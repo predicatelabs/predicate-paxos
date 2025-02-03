@@ -1,0 +1,14 @@
+#!/usr/bin/env sh
+
+set -e 
+
+echo "Running forge fmt..."
+
+if ! forge fmt --check; then
+  echo "forge fmt found issues. Run `forge fmt` to fix."
+  exit 1
+fi
+
+echo "No issues found. Proceeding with commit."
+
+exit 0

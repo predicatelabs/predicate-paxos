@@ -1,0 +1,40 @@
+{
+  "name": "@predicate/contracts",
+  "version": "1.0.10",
+  "description": "Core contracts for Predicate AVS",
+  "main": "index.js",
+  "files": [
+    "src/**/*.sol",
+    "src/*.sol"
+  ],
+  "directories": {
+    "doc": "docs",
+    "lib": "lib"
+  },
+  "scripts": {
+    "test": "forge test -v",
+    "fmt:check": "forge fmt --check",
+    "fmt:fix": "forge fmt"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/PredicateLabs/predicate-contracts"
+  },
+  "author": "Heimdall Labs Inc.",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/PredicateLabs/predicate-contracts/issues"
+  },
+  "homepage": "https://github.com/PredicateLabs/predicate-contracts#readme",
+  "dependencies": {
+    "fs": "^0.0.1-security",
+    "hardhat": "^2.22.14",
+    "hardhat-preprocessor": "^0.1.5",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.6.3"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-foundry": "^1.1.2",
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0"
+  }
+}

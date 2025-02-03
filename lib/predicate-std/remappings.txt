@@ -1,0 +1,9 @@
+forge-std/=lib/forge-std/src/
+openzeppelin/=lib/openzeppelin-contracts/contracts/
+solmate/=lib/solmate/src/
+openzeppelin-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/
+eigenlayer-contracts/=lib/eigenlayer-contracts/
+utils/=lib/utils/
+@uniswap/v3-core/=lib/v3-core/
+@uniswap/v3-periphery/=lib/v3-periphery/
+

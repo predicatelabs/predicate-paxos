@@ -21,15 +21,21 @@ contract PredicateUniswap {
         address token1,
         uint24 fee,
         uint160 sqrtPriceX96
-    ) public returns (address pool) {
+    ) public returns (int24 tick) {
         require(token0 != address(0) && token1 != address(0), "Invalid token address");
         require(fee > 0, "Fee must be positive");
         require(sqrtPriceX96 > 0, "Invalid sqrtPriceX96");
 
-        pool = poolManager.createAndInitializePoolIfNecessary(token0, token1, fee, sqrtPriceX96, address(0));
+        PoolKey memory tempKey = PoolKey({
+            currency0: Currency.wrap(token0),
+            currency1: Currency.wrap(token1),
+            fee: fee,
+            tickSpacing: 0,
+            hooks: IHooks(address(0))
+        });
 
-        require(pool != address(0), "Pool creation failed");
-
+        tick = poolManager.initalize(poolKey, sqrtPriceX96);
+    
         emit PoolCreated(token0, token1, fee, pool);
     }
 }

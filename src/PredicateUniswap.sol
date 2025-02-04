@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import { IPoolManager } from "v4-core/src/interfaces/IPoolManager.sol";
-import { PoolKey } from "v4-core/src/types/PoolKey.sol";
+import { IPoolManager } from "lib/v4-core/src/interfaces/IPoolManager.sol";
+import { PoolKey } from "lib/v4-core/src/types/PoolKey.sol";
 
 contract PredicateUniswap {
     IPoolManager public immutable poolManager;

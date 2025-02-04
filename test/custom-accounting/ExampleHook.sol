@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.20;
 
-import {Hooks} from "v4-core/src/libraries/Hooks.sol";
-import {IHooks} from "v4-core/src/interfaces/IHooks.sol";
-import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
-import {PoolKey} from "v4-core/src/types/PoolKey.sol";
-import {BeforeSwapDelta, toBeforeSwapDelta} from "v4-core/src/types/BeforeSwapDelta.sol";
-import {BalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
-import {Currency} from "v4-core/src/types/Currency.sol";
-import {CurrencySettler} from "v4-core/test/utils/CurrencySettler.sol";
-import {BaseTestHooks} from "v4-core/src/test/BaseTestHooks.sol";
-import {Currency} from "v4-core/src/types/Currency.sol";
+import { Hooks } from "v4-core/src/libraries/Hooks.sol";
+import { IHooks } from "v4-core/src/interfaces/IHooks.sol";
+import { IPoolManager } from "v4-core/src/interfaces/IPoolManager.sol";
+import { PoolKey } from "v4-core/src/types/PoolKey.sol";
+import { BeforeSwapDelta, toBeforeSwapDelta } from "v4-core/src/types/BeforeSwapDelta.sol";
+import { BalanceDelta } from "v4-core/src/types/BalanceDelta.sol";
+import { Currency } from "v4-core/src/types/Currency.sol";
+import { CurrencySettler } from "v4-core/test/utils/CurrencySettler.sol";
+import { BaseTestHooks } from "v4-core/src/test/BaseTestHooks.sol";
+import { Currency } from "v4-core/src/types/Currency.sol";
 
 contract ExampleHook is BaseTestHooks {
     using Hooks for IHooks;
@@ -18,7 +18,9 @@ contract ExampleHook is BaseTestHooks {
 
     IPoolManager immutable manager;
 
-    constructor(IPoolManager _manager) {
+    constructor(
+        IPoolManager _manager
+    ) {
         manager = _manager;
     }
 
@@ -46,11 +48,10 @@ contract ExampleHook is BaseTestHooks {
         return (IHooks.beforeSwap.selector, hookDelta, 0);
     }
 
-    function _getInputOutputAndAmount(PoolKey calldata key, IPoolManager.SwapParams calldata params)
-        internal
-        pure
-        returns (Currency input, Currency output, uint256 amount)
-    {
+    function _getInputOutputAndAmount(
+        PoolKey calldata key,
+        IPoolManager.SwapParams calldata params
+    ) internal pure returns (Currency input, Currency output, uint256 amount) {
         (input, output) = params.zeroForOne ? (key.currency0, key.currency1) : (key.currency1, key.currency0);
 
         amount = params.amountSpecified < 0 ? uint256(-params.amountSpecified) : uint256(params.amountSpecified);

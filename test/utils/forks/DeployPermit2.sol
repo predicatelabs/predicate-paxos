@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import {CommonBase} from "forge-std/Base.sol";
-import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
+import { CommonBase } from "forge-std/Base.sol";
+import { IAllowanceTransfer } from "permit2/src/interfaces/IAllowanceTransfer.sol";
 
-import {Permit2Bytecode} from "./Permit2Bytecode.sol";
+import { Permit2Bytecode } from "./Permit2Bytecode.sol";
 
 /// @notice helper to deploy permit2 from precompiled bytecode. To be used in foundry tests and scripts
 /// @dev useful if testing externally against permit2 and want to avoid

@@ -1,18 +1,18 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.20;
 
-import {Test} from "forge-std/Test.sol";
-import {Deployers} from "v4-core/test/utils/Deployers.sol";
-import {IHooks} from "v4-core/src/interfaces/IHooks.sol";
-import {Hooks} from "v4-core/src/libraries/Hooks.sol";
-import {PoolSwapTest} from "v4-core/src/test/PoolSwapTest.sol";
-import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
-import {Currency} from "v4-core/src/types/Currency.sol";
-import {BalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
-import {SafeCast} from "v4-core/src/libraries/SafeCast.sol";
-import {Constants} from "v4-core/test/utils/Constants.sol";
-import {MockERC20} from "solmate/src/test/utils/mocks/MockERC20.sol";
-import {ExampleHook} from "./ExampleHook.sol";
+import { Test } from "forge-std/Test.sol";
+import { Deployers } from "v4-core/test/utils/Deployers.sol";
+import { IHooks } from "v4-core/src/interfaces/IHooks.sol";
+import { Hooks } from "v4-core/src/libraries/Hooks.sol";
+import { PoolSwapTest } from "v4-core/src/test/PoolSwapTest.sol";
+import { IPoolManager } from "v4-core/src/interfaces/IPoolManager.sol";
+import { Currency } from "v4-core/src/types/Currency.sol";
+import { BalanceDelta } from "v4-core/src/types/BalanceDelta.sol";
+import { SafeCast } from "v4-core/src/libraries/SafeCast.sol";
+import { Constants } from "v4-core/test/utils/Constants.sol";
+import { MockERC20 } from "solmate/src/test/utils/mocks/MockERC20.sol";
+import { ExampleHook } from "./ExampleHook.sol";
 
 import "forge-std/console2.sol";
 
@@ -120,7 +120,9 @@ contract ExampleHookTest is Test, Deployers {
         console2.log("The currency specified is", currencySpecified);
     }
 
-    function _setUpBeforeSwapHook(address impl) internal {
+    function _setUpBeforeSwapHook(
+        address impl
+    ) internal {
         address hookAddr = address(uint160(Hooks.BEFORE_SWAP_FLAG | Hooks.BEFORE_SWAP_RETURNS_DELTA_FLAG));
         _etchHookAndInitPool(hookAddr, impl);
     }
@@ -132,7 +134,7 @@ contract ExampleHookTest is Test, Deployers {
     }
 
     function _defaultTestSettings() internal returns (PoolSwapTest.TestSettings memory testSetting) {
-        return PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false});
+        return PoolSwapTest.TestSettings({ takeClaims: false, settleUsingBurn: false });
     }
 
     function _setApprovalsFor(address _user, address token) internal {

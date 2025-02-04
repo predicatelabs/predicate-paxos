@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import "forge-std/Script.sol";
-import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
-import {PoolKey} from "v4-core/src/types/PoolKey.sol";
-import {CurrencyLibrary, Currency} from "v4-core/src/types/Currency.sol";
+import "lib/forge-std/src/Script.sol";
+import {IPoolManager} from "lib/v4-core/src/interfaces/IPoolManager.sol";
+import {PoolKey} from "lib/v4-core/src/types/PoolKey.sol";
+import {CurrencyLibrary, Currency} from "lib/v4-core/src/types/Currency.sol";
 
 import {Constants} from "./base/Constants.sol";
 import {Config} from "./base/Config.sol";

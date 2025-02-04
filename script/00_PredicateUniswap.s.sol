@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import "forge-std/Script.sol";
-import {Hooks} from "v4-core/src/libraries/Hooks.sol";
-import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
+import "lib/forge-std/src/Script.sol";
+import {Hooks} from "lib/v4-core/src/libraries/Hooks.sol";
+import {IPoolManager} from "lib/v4-core/src/interfaces/IPoolManager.sol";
 
 import {Constants} from "./base/Constants.sol";
-import {CompliantUniswap} from "../src/CompliantUniswap.sol";
+import {PredicateUniswap} from "../src/PredicateUniswap.sol";
 import {HookMiner} from "../test/utils/HookMiner.sol";
 
-contract CompliantUniswapScript is Script, Constants {
+contract PredicateUniswapScript is Script, Constants {
     function setUp() public {}
 
     function run() public {

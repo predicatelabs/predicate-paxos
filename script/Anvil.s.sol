@@ -1,29 +1,29 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import "forge-std/Script.sol";
-import {IHooks} from "v4-core/src/interfaces/IHooks.sol";
-import {Hooks} from "v4-core/src/libraries/Hooks.sol";
-import {PoolManager} from "v4-core/src/PoolManager.sol";
-import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
-import {PoolModifyLiquidityTest} from "v4-core/src/test/PoolModifyLiquidityTest.sol";
-import {PoolSwapTest} from "v4-core/src/test/PoolSwapTest.sol";
-import {PoolDonateTest} from "v4-core/src/test/PoolDonateTest.sol";
-import {PoolKey} from "v4-core/src/types/PoolKey.sol";
-import {MockERC20} from "solmate/src/test/utils/mocks/MockERC20.sol";
-import {Constants} from "v4-core/src/../test/utils/Constants.sol";
-import {TickMath} from "v4-core/src/libraries/TickMath.sol";
-import {CurrencyLibrary, Currency} from "v4-core/src/types/Currency.sol";
-import {CompliantUniswap} from "../src/CompliantUniswap.sol";
+import "lib/forge-std/src/Script.sol";
+import {IHooks} from "lib/v4-core/src/interfaces/IHooks.sol";
+import {Hooks} from "lib/v4-core/src/libraries/Hooks.sol";
+import {PoolManager} from "lib/v4-core/src/PoolManager.sol";
+import {IPoolManager} from "lib/v4-core/src/interfaces/IPoolManager.sol";
+import {PoolModifyLiquidityTest} from "lib/v4-core/src/test/PoolModifyLiquidityTest.sol";
+import {PoolSwapTest} from "lib/v4-core/src/test/PoolSwapTest.sol";
+import {PoolDonateTest} from "lib/v4-core/src/test/PoolDonateTest.sol";
+import {PoolKey} from "lib/v4-core/src/types/PoolKey.sol";
+import {MockERC20} from "lib/solmate/src/test/utils/mocks/MockERC20.sol";
+import {Constants} from "lib/v4-core/src/test/utils/Constants.sol";
+import {TickMath} from "lib/v4-core/src/libraries/TickMath.sol";
+import {CurrencyLibrary, Currency} from "lib/v4-core/src/types/Currency.sol";
+import {PredicateUniswap} from "../src/PredicateUniswap.sol";
 import {HookMiner} from "../test/utils/HookMiner.sol";
-import {IPositionManager} from "v4-periphery/src/interfaces/IPositionManager.sol";
-import {PositionManager} from "v4-periphery/src/PositionManager.sol";
+import {IPositionManager} from "lib/v4-periphery/src/interfaces/IPositionManager.sol";
+import {PositionManager} from "lib/v4-periphery/src/PositionManager.sol";
 import {EasyPosm} from "../test/utils/EasyPosm.sol";
-import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
+import {IAllowanceTransfer} from "lib/permit2/src/interfaces/IAllowanceTransfer.sol";
 import {DeployPermit2} from "../test/utils/forks/DeployPermit2.sol";
-import {IERC20} from "forge-std/interfaces/IERC20.sol";
-import {IPositionDescriptor} from "v4-periphery/src/interfaces/IPositionDescriptor.sol";
-import {IWETH9} from "v4-periphery/src/interfaces/external/IWETH9.sol";
+import {IERC20} from "lib/forge-std/src/interfaces/IERC20.sol";
+import {IPositionDescriptor} from "lib/v4-periphery/src/interfaces/IPositionDescriptor.sol";
+import {IWETH9} from "lib/v4-periphery/src/interfaces/external/IWETH9.sol";
 
 /// @notice Forge script for deploying v4 & hooks to **anvil**
 /// @dev This script only works on an anvil RPC because v4 exceeds bytecode limits

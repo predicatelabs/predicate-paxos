@@ -2,7 +2,9 @@
 
 This is a simple Uniswap V4 hook that enforces a compliance policy on the swaps using the Predicate network.
 
-## Policy Enforcement
+## Deploy
 
-TODO: Add details on the policy enforcement
+```solidity
+forge script script/DeployPredicateUniswap.sol:DeployPredicateUniswap --rpc-url unichain-sepolia --broadcast
+```
 

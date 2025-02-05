@@ -1,44 +1,80 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.24;
 
-// Adjust these imports to match your local file structure in v4-core
-import { IPoolManager } from "lib/v4-core/src/interfaces/IPoolManager.sol";
-import { PoolKey } from "lib/v4-core/src/types/PoolKey.sol";
-import { Currency } from "lib/v4-core/src/types/Currency.sol";
-import { IHooks } from "lib/v4-core/src/interfaces/IHooks.sol";
+import {BaseHook} from "v4-periphery/src/base/hooks/BaseHook.sol";
 
-contract PredicateUniswap {
-    IPoolManager public immutable poolManager;
+import {Hooks} from "v4-core/src/libraries/Hooks.sol";
+import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
+import {PoolKey} from "v4-core/src/types/PoolKey.sol";
+import {PoolId, PoolIdLibrary} from "v4-core/src/types/PoolId.sol";
+import {BalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
+import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "v4-core/src/types/BeforeSwapDelta.sol";
 
-    event PoolCreated(address indexed token0, address indexed token1, uint24 fee, address pool);
+contract PredciateUniswap is BaseHook {
+    using PoolIdLibrary for PoolKey;
 
-    constructor(IPoolManager _poolManager) {
-        require(address(_poolManager) != address(0), "Invalid PoolManager address");
-        poolManager = _poolManager;
+    mapping(PoolId => uint256 count) public beforeSwapCount;
+    mapping(PoolId => uint256 count) public afterSwapCount;
+
+    mapping(PoolId => uint256 count) public beforeAddLiquidityCount;
+    mapping(PoolId => uint256 count) public beforeRemoveLiquidityCount;
+
+    constructor(IPoolManager _poolManager) BaseHook(_poolManager) {}
+
+    function getHookPermissions() public pure override returns (Hooks.Permissions memory) {
+        return Hooks.Permissions({
+            beforeInitialize: false,
+            afterInitialize: false,
+            beforeAddLiquidity: true,
+            afterAddLiquidity: false,
+            beforeRemoveLiquidity: true,
+            afterRemoveLiquidity: false,
+            beforeSwap: true,
+            afterSwap: true,
+            beforeDonate: false,
+            afterDonate: false,
+            beforeSwapReturnDelta: false,
+            afterSwapReturnDelta: false,
+            afterAddLiquidityReturnDelta: false,
+            afterRemoveLiquidityReturnDelta: false
+        });
     }
 
-    function createV4Pool(
-        address token0,
-        address token1,
-        uint24 fee,
-        uint160 sqrtPriceX96
-    ) public returns (int24 tick) {
-        require(token0 != address(0) && token1 != address(0), "Invalid token address");
-        require(fee > 0, "Fee must be positive");
-        require(sqrtPriceX96 > 0, "Invalid sqrtPriceX96");
+    function beforeSwap(address, PoolKey calldata key, IPoolManager.SwapParams calldata, bytes calldata)
+        external
+        override
+        returns (bytes4, BeforeSwapDelta, uint24)
+    {
+        beforeSwapCount[key.toId()]++;
+        return (BaseHook.beforeSwap.selector, BeforeSwapDeltaLibrary.ZERO_DELTA, 0);
+    }
 
-        PoolKey memory poolKey = PoolKey({
-            currency0: Currency.wrap(token0),
-            currency1: Currency.wrap(token1),
-            fee: fee,
-            tickSpacing: 60,
-            hooks: IHooks(address(0)) 
-        });
+    function afterSwap(address, PoolKey calldata key, IPoolManager.SwapParams calldata, BalanceDelta, bytes calldata)
+        external
+        override
+        returns (bytes4, int128)
+    {
+        afterSwapCount[key.toId()]++;
+        return (BaseHook.afterSwap.selector, 0);
+    }
 
-        tick = poolManager.initialize(poolKey, sqrtPriceX96);
+    function beforeAddLiquidity(
+        address,
+        PoolKey calldata key,
+        IPoolManager.ModifyLiquidityParams calldata,
+        bytes calldata
+    ) external override returns (bytes4) {
+        beforeAddLiquidityCount[key.toId()]++;
+        return BaseHook.beforeAddLiquidity.selector;
+    }
 
-        bytes32 poolId = poolManager.getPoolId(poolKey);
-
-        emit PoolCreated(token0, token1, fee, address(this));
+    function beforeRemoveLiquidity(
+        address,
+        PoolKey calldata key,
+        IPoolManager.ModifyLiquidityParams calldata,
+        bytes calldata
+    ) external override returns (bytes4) {
+        beforeRemoveLiquidityCount[key.toId()]++;
+        return BaseHook.beforeRemoveLiquidity.selector;
     }
 }

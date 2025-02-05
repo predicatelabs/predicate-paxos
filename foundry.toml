@@ -1,4 +1,9 @@
 [profile.default]
+
+remappings = [
+    "predicate-std/=lib/predicate-std/src/"
+]
+
 src = "src"
 out = "out"
 libs = ["lib"]

@@ -11,8 +11,8 @@ import {BeforeSwapDelta} from "v4-core/src/types/BeforeSwapDelta.sol";
 
 import {PredicateUniswap} from "./PredicateUniswap.sol";
 
-import { PredicateClient } from "predicate-std/src/mixins/PredicateClient.sol";
-import { PredicateMessage } from "predicate-std/src/interfaces/IPredicateClient.sol";
+import { PredicateClient } from "lib/predicate-std/src/mixins/PredicateClient.sol";
+import { PredicateMessage } from "lib/predicate-std/src/interfaces/IPredicateClient.sol";
 
 contract PredicateWrapper is PredicateClient, IHooks {
     constructor(address _serviceManager, string memory _policyID) {

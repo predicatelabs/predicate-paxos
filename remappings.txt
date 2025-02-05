@@ -8,6 +8,5 @@ permit2/=lib/v4-periphery/lib/permit2/
 solmate/=lib/v4-core/lib/solmate/
 v4-core/=lib/v4-core/
 v4-periphery/=lib/v4-periphery/
-utils/=lib/predicate-std/lib/utils/
 predicate-std/=lib/predicate-std/src/
 

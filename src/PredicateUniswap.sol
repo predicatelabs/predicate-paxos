@@ -1,17 +1,18 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
+// Adjust these imports to match your local file structure in v4-core
 import { IPoolManager } from "lib/v4-core/src/interfaces/IPoolManager.sol";
 import { PoolKey } from "lib/v4-core/src/types/PoolKey.sol";
+import { Currency } from "lib/v4-core/src/types/Currency.sol";
+import { IHooks } from "lib/v4-core/src/interfaces/IHooks.sol";
 
 contract PredicateUniswap {
     IPoolManager public immutable poolManager;
 
     event PoolCreated(address indexed token0, address indexed token1, uint24 fee, address pool);
 
-    constructor(
-        IPoolManager _poolManager
-    ) {
+    constructor(IPoolManager _poolManager) {
         require(address(_poolManager) != address(0), "Invalid PoolManager address");
         poolManager = _poolManager;
     }
@@ -26,16 +27,18 @@ contract PredicateUniswap {
         require(fee > 0, "Fee must be positive");
         require(sqrtPriceX96 > 0, "Invalid sqrtPriceX96");
 
-        PoolKey memory tempKey = PoolKey({
+        PoolKey memory poolKey = PoolKey({
             currency0: Currency.wrap(token0),
             currency1: Currency.wrap(token1),
             fee: fee,
-            tickSpacing: 0,
-            hooks: IHooks(address(0))
+            tickSpacing: 60,
+            hooks: IHooks(address(0)) 
         });
 
-        tick = poolManager.initalize(poolKey, sqrtPriceX96);
-    
-        emit PoolCreated(token0, token1, fee, pool);
+        tick = poolManager.initialize(poolKey, sqrtPriceX96);
+
+        bytes32 poolId = poolManager.getPoolId(poolKey);
+
+        emit PoolCreated(token0, token1, fee, address(this));
     }
 }

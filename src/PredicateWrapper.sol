@@ -9,17 +9,17 @@ import {PoolKey} from "v4-core/src/types/PoolKey.sol";
 import {BalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
 import {BeforeSwapDelta} from "v4-core/src/types/BeforeSwapDelta.sol";
 
-import {PredicateUniswap} from "./PredicateUniswap.sol";
+import {PaxosV4Hook} from "./PaxosV4Hook.sol";
 
 import { PredicateClient } from "lib/predicate-std/src/mixins/PredicateClient.sol";
 import { PredicateMessage } from "lib/predicate-std/src/interfaces/IPredicateClient.sol";
 
 contract PredicateWrapper is PredicateClient {
-    PredicateUniswap public predicateUniswap;
+    PaxosV4Hook public paxosV4Hook;
 
-    constructor(address _serviceManager, string memory _policyID, address _predicateUniswap) {
+    constructor(address _serviceManager, string memory _policyID, address _paxosV4Hook) {
         _initPredicateClient(_serviceManager, _policyID);
-        predicateUniswap = PredicateUniswap(_predicateUniswap);
+        paxosV4Hook = PaxosV4Hook(_paxosV4Hook);
     }
 
     function beforeSwap(
@@ -53,7 +53,7 @@ contract PredicateWrapper is PredicateClient {
             );
 
             (bytes4 selector, BeforeSwapDelta swapDelta, uint24 fee) = 
-                  predicateUniswap.beforeSwap(sender, 
+                  paxosV4Hook.beforeSwap(sender, 
                                                  key, 
                                                  params, 
                                                  hookData
@@ -69,7 +69,7 @@ contract PredicateWrapper is PredicateClient {
         _setPredicateManager(_predicateManager);
     }
     
-    function setPredicateUniswap(address _predicateUniswap) external {
-        predicateUniswap = PredicateUniswap(_predicateUniswap);
+    function setPaxosV4Hook(address _paxosV4Hook) external {
+        paxosV4Hook = PaxosV4Hook(_paxosV4Hook);
     }
 }

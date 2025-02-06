@@ -6,7 +6,7 @@ import {Hooks} from "v4-core/src/libraries/Hooks.sol";
 import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
 
 import {Constants} from "./base/Constants.sol";
-import {PredicateUniswap} from "../src/PredicateUniswap.sol";
+import {PaxosV4Hook} from "../src/PaxosV4Hook.sol";
 import {HookMiner} from "../test/utils/HookMiner.sol";
 
 contract PredicateUniswapScript is Script, Constants {
@@ -20,10 +20,10 @@ contract PredicateUniswapScript is Script, Constants {
 
         bytes memory constructorArgs = abi.encode(POOLMANAGER);
         (address hookAddress, bytes32 salt) =
-            HookMiner.find(CREATE2_DEPLOYER, flags, type(PredicateUniswap).creationCode, constructorArgs);
+            HookMiner.find(CREATE2_DEPLOYER, flags, type(PaxosV4Hook).creationCode, constructorArgs);
 
         vm.broadcast();
-        PredicateUniswap predicateUniswap = new PredicateUniswap{salt: salt}(IPoolManager(POOLMANAGER));
-        require(address(predicateUniswap) == hookAddress, "PredicateUniswapScript: hook address mismatch");
+        PaxosV4Hook paxosV4Hook = new PaxosV4Hook{salt: salt}(IPoolManager(POOLMANAGER));
+        require(address(paxosV4Hook) == hookAddress, "PaxosV4HookScript: hook address mismatch");
     }
 }

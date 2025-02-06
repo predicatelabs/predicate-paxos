@@ -9,7 +9,7 @@ import {Constants} from "./base/Constants.sol";
 import {PaxosV4Hook} from "../src/PaxosV4Hook.sol";
 import {HookMiner} from "../test/utils/HookMiner.sol";
 
-contract PredicateUniswapScript is Script, Constants {
+contract PaxosV4HookScript is Script, Constants {
     function setUp() public {}
 
     function run() public {

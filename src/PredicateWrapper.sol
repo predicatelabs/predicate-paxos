@@ -27,13 +27,12 @@ contract PredicateWrapper is PredicateClient {
             PoolKey calldata key, 
             IPoolManager.SwapParams calldata params, 
             bytes calldata hookData
-        ) external override returns (bytes4, BeforeSwapDelta, uint24) {
+        ) external returns (bytes4, BeforeSwapDelta, uint24) {
             (
                 PredicateMessage memory predicateMessage,
                 address msgSender,
-                uint256 amount0,
-                uint256 amount1
-            ) = abi.decode(hookData, (PredicateMessage, address, uint256, uint256));
+                uint256 value
+            ) = abi.decode(hookData, (PredicateMessage, address, uint256));
 
             bytes memory encodeSigAndArgs = abi.encodeWithSignature(
                 "_beforeSwap(address,PoolKey,IPoolManager.SwapParams,bytes)",
@@ -48,7 +47,7 @@ contract PredicateWrapper is PredicateClient {
                     predicateMessage,
                     encodeSigAndArgs,
                     msgSender,
-                    amount0 + amount1
+                    value
                 ),
                 "Unauthorized transaction"
             );
@@ -59,7 +58,7 @@ contract PredicateWrapper is PredicateClient {
                                                  params, 
                                                  hookData
             );
-            return (selector, swapDelta, 0);
+            return (selector, swapDelta, fee);
     }
 
     function setPolicy(string memory _policyID) external {

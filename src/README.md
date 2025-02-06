@@ -1,22 +1,16 @@
-# Compliant Uniswap V4
+# Paxos V4 Hook
 
-Compliant, decentralized exchange powered by [Predicate](https://docs.predicate.io).
+#### Compliant exchange of USDL on Uniswap V4 powered by [Predicate](https://docs.predicate.io).
+
+![Paxos V4 Hook](../assets/PaxosV4Hook.png)
+
+## Overview
+
+A Uniswap V4 Hook that enables Paxos to offer compliant, decentralized exchange of USDL/wUSDL within the Uniswap ecosystem. The hook uses Predicate to authorize transactions coming from an addresses in a certain jurisdiction and not on the OFAC sanctions list.
+
 
 ## Usage
 
-```
+```bash
 forge build
 ```
-
-## Predicate
-
-TODO: Add Diagram and explanation
-
----
-
-Additional resources:
-
-[Uniswap v4 docs](https://docs.uniswap.org/contracts/v4/overview)
-
-[Predicate docs](https://docs.predicate.io)
-

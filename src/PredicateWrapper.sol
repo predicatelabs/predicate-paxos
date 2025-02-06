@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.12;
+pragma solidity ^0.8.24;
 
 import {IHooks} from "v4-core/src/interfaces/IHooks.sol";
 import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
@@ -15,11 +15,14 @@ import { PredicateClient } from "lib/predicate-std/src/mixins/PredicateClient.so
 import { PredicateMessage } from "lib/predicate-std/src/interfaces/IPredicateClient.sol";
 
 contract PredicateWrapper is PredicateClient {
+    PredicateUniswap public predicateUniswap;
+
     constructor(address _serviceManager, string memory _policyID) {
         _initPredicateClient(_serviceManager, _policyID);
+        predicateUniswap = new PredicateUniswap(_predicateUniswap);
     }
 
-    function beforeSwap(
+    function PredicateUniswap.beforeSwap(
             address sender,
             PoolKey calldata key, 
             IPoolManager.SwapParams calldata params, 
@@ -40,16 +43,16 @@ contract PredicateWrapper is PredicateClient {
                 hookData
             );
 
-            // require(
-            //     _authorizeTransaction(
-            //         predicateMessage,
-            //         encodeSigAndArgs,
-            //         msgSender,
-            //         amount0,
-            //         amount1
-            //     ),
-            //     "Unauthorized transaction"
-            // );
+            require(
+                _authorizeTransaction(
+                    predicateMessage,
+                    encodeSigAndArgs,
+                    msgSender,
+                    amount0,
+                    amount1
+                ),
+                "Unauthorized transaction"
+            );
 
             BeforeSwapDelta swapDelta = BeforeSwapDelta(0,0);
             return (this.beforeSwap.selector, swapDelta, 0);

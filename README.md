@@ -2,7 +2,7 @@
 
 #### Compliant exchange of USDL on Uniswap V4 powered by [Predicate](https://docs.predicate.io).
 
-![Paxos V4 Hook](../assets/PaxosV4Hook.png)
+![Paxos V4 Hook](assets/PaxosV4Hook.png)
 
 ## Overview
 

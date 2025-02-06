@@ -17,12 +17,12 @@ import { PredicateMessage } from "lib/predicate-std/src/interfaces/IPredicateCli
 contract PredicateWrapper is PredicateClient {
     PredicateUniswap public predicateUniswap;
 
-    constructor(address _serviceManager, string memory _policyID) {
+    constructor(address _serviceManager, string memory _policyID, address _predicateUniswap) {
         _initPredicateClient(_serviceManager, _policyID);
-        predicateUniswap = new PredicateUniswap(_predicateUniswap);
+        predicateUniswap = PredicateUniswap(_predicateUniswap);
     }
 
-    function PredicateUniswap.beforeSwap(
+    function beforeSwap(
             address sender,
             PoolKey calldata key, 
             IPoolManager.SwapParams calldata params, 
@@ -54,8 +54,13 @@ contract PredicateWrapper is PredicateClient {
                 "Unauthorized transaction"
             );
 
-            BeforeSwapDelta swapDelta = BeforeSwapDelta(0,0);
-            return (this.beforeSwap.selector, swapDelta, 0);
+            (bytes4 selector, BeforeSwapDelta swapDelta, uint24 fee) = 
+                  predicateUniswap.beforeSwap(sender, 
+                                                 key, 
+                                                 params, 
+                                                 hookData
+            );
+            return (selector, swapDelta, 0);
     }
 
     function setPolicy(string memory _policyID) external {
@@ -64,5 +69,9 @@ contract PredicateWrapper is PredicateClient {
 
     function setPredicateManager(address _predicateManager) public {
         _setPredicateManager(_predicateManager);
+    }
+    
+    function setPredicateUniswap(address _predicateUniswap) external {
+        predicateUniswap = PredicateUniswap(_predicateUniswap);
     }
 }

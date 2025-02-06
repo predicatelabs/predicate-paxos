@@ -48,8 +48,7 @@ contract PredicateWrapper is PredicateClient {
                     predicateMessage,
                     encodeSigAndArgs,
                     msgSender,
-                    amount0,
-                    amount1
+                    amount0 + amount1
                 ),
                 "Unauthorized transaction"
             );

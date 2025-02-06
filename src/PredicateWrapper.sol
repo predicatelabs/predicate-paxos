@@ -40,16 +40,16 @@ contract PredicateWrapper is PredicateClient {
                 hookData
             );
 
-            require(
-                _authorizeTransaction(
-                    predicateMessage,
-                    encodeSigAndArgs,
-                    msgSender,
-                    amount0,
-                    amount1
-                ),
-                "Unauthorized transaction"
-            );
+            // require(
+            //     _authorizeTransaction(
+            //         predicateMessage,
+            //         encodeSigAndArgs,
+            //         msgSender,
+            //         amount0,
+            //         amount1
+            //     ),
+            //     "Unauthorized transaction"
+            // );
 
             BeforeSwapDelta swapDelta = BeforeSwapDelta(0,0);
             return (this.beforeSwap.selector, swapDelta, 0);

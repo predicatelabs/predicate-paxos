@@ -55,7 +55,7 @@ contract PredicateWrapperTest is Test {
 
         PredicateMessage memory pm = PredicateMessage({
             taskId: "test-task",
-            expireByBlockNumber: block.number + 100,
+            expireByBlockNumber: block.number + 25,
             signerAddresses: new address[](0),
             signatures: new bytes[](0)
         });

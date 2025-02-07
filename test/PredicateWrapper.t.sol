@@ -104,9 +104,9 @@ contract PredicateWrapperTest is Test {
         string memory newPolicyID = "Policy-699";
         wrapper.setPolicy(newPolicyID);
 
-        // vm.recordLogs();
-        // wrapper.setPolicy(newPolicyID);
-        // Vm.Log[] memory entries = vm.getRecordedLogs();
+        vm.recordLogs();
+        wrapper.setPolicy(newPolicyID);
+        Vm.Log[] memory entries = vm.getRecordedLogs();
     }
 
     function testSetPredicateManager() public {
@@ -114,7 +114,6 @@ contract PredicateWrapperTest is Test {
 
         wrapper.setPredicateManager(newManager);
     }
-
 
     function testSetPaxosV4Hook() public {
         MockPaxosV4Hook newMockHook = new MockPaxosV4Hook(_poolManager);

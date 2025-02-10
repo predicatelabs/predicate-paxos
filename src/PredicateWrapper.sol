@@ -18,6 +18,14 @@ contract PredicateWrapper is PredicateClient {
     PaxosV4Hook public paxosV4Hook;
 
     constructor(address _serviceManager, string memory _policyID, address _paxosV4Hook) {
+    require(_paxosV4Hook != address(0), "Hook address cannot be zero");
+
+    uint256 codeSize;
+    assembly {
+        codeSize := extcodesize(_paxosV4Hook)
+        }
+        require(codeSize > 0, "Invalid hook address");
+
         _initPredicateClient(_serviceManager, _policyID);
         paxosV4Hook = PaxosV4Hook(_paxosV4Hook);
     }

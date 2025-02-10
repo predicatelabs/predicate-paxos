@@ -14,7 +14,7 @@ import {MockPaxosV4Hook} from "./mocks/MockPaxosV4Hook.sol";
 import {MockPredicateClient} from "./mocks/MockPredicateClient.sol";
 
 contract PredicateWrapperTest is Test {
-    IPoolManager public _poolManager = IPoolManager(address(0x1234));
+    IPoolManager public _poolManager = IPoolManager(address(0x00B036B58a818B1BC34d502D3fE730Db729e62AC));
 
     PredicateWrapper public wrapper;
     MockPaxosV4Hook public mockPaxosHook;
@@ -43,7 +43,7 @@ contract PredicateWrapperTest is Test {
             currency0: Currency.wrap(address(1)),
             currency1: Currency.wrap(address(2)),
             fee: 3000,
-            tickSpacing: 100,
+            tickSpacing: 10,
             hooks: IHooks(address(0))
         });
 

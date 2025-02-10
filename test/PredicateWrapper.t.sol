@@ -8,6 +8,8 @@ import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "v4-core/src/types/BeforeS
 import {PredicateMessage} from "lib/predicate-std/src/interfaces/IPredicateClient.sol";
 import {Currency} from "v4-core/src/types/Currency.sol";
 import {IHooks} from "v4-core/src/interfaces/IHooks.sol";
+import {Hooks} from "v4-core/src/libraries/Hooks.sol";
+import {HookMiner} from "./utils/HookMiner.sol";
 
 import {PredicateWrapper} from "../src/PredicateWrapper.sol";
 import {MockPaxosV4Hook} from "./mocks/MockPaxosV4Hook.sol";
@@ -30,7 +32,16 @@ contract PredicateWrapperTest is Test {
     bytes public invalidHookData;
 
     function setUp() public {
-        mockPaxosHook = new MockPaxosV4Hook(_poolManager);
+        (address hookAddress, bytes32 salt) = HookMiner.find(
+            address(this),
+            uint160(Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG),
+            type(MockPaxosV4Hook).creationCode,
+            abi.encode(address(_poolManager))
+        );
+
+        mockPaxosHook = new MockPaxosV4Hook{salt: salt}(_poolManager);
+        require(address(mockPaxosHook) == hookAddress, "Hook deployment failed");
+        
         mockPredicateClient = new MockPredicateClient();
 
         wrapper = new PredicateWrapper(
@@ -44,7 +55,7 @@ contract PredicateWrapperTest is Test {
             currency1: Currency.wrap(address(2)),
             fee: 3000,
             tickSpacing: 10,
-            hooks: IHooks(address(0))
+            hooks: IHooks(address(mockPaxosHook))
         });
 
         swapParams = IPoolManager.SwapParams({

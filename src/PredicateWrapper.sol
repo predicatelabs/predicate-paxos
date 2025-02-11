@@ -9,25 +9,25 @@ import {PoolKey} from "v4-core/src/types/PoolKey.sol";
 import {BalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
 import {BeforeSwapDelta} from "v4-core/src/types/BeforeSwapDelta.sol";
 
-import {PaxosV4Hook} from "./PaxosV4Hook.sol";
+import {PaxosHook} from "./PaxosHook.sol";
 
 import { PredicateClient } from "lib/predicate-std/src/mixins/PredicateClient.sol";
 import { PredicateMessage } from "lib/predicate-std/src/interfaces/IPredicateClient.sol";
 
 contract PredicateWrapper is PredicateClient {
-    PaxosV4Hook public paxosV4Hook;
+    PaxosHook public paxosHook;
 
-    constructor(address _serviceManager, string memory _policyID, address _paxosV4Hook) {
-    require(_paxosV4Hook != address(0), "Hook address cannot be zero");
+    constructor(address _serviceManager, string memory _policyID, address _paxosHook) {
+    require(_paxosHook != address(0), "Hook address cannot be zero");
 
     uint256 codeSize;
     assembly {
-        codeSize := extcodesize(_paxosV4Hook)
+        codeSize := extcodesize(_paxosHook)
         }
         require(codeSize > 0, "Invalid hook address");
 
         _initPredicateClient(_serviceManager, _policyID);
-        paxosV4Hook = PaxosV4Hook(_paxosV4Hook);
+        paxosHook = PaxosHook(_paxosHook);
     }
 
     function beforeSwap(
@@ -61,7 +61,7 @@ contract PredicateWrapper is PredicateClient {
             );
 
             (bytes4 selector, BeforeSwapDelta swapDelta, uint24 fee) = 
-                  paxosV4Hook.beforeSwap(sender, 
+                  paxosHook.beforeSwap(sender, 
                                                  key, 
                                                  params, 
                                                  hookData
@@ -77,7 +77,7 @@ contract PredicateWrapper is PredicateClient {
         _setPredicateManager(_predicateManager);
     }
     
-    function setPaxosV4Hook(address _paxosV4Hook) external {
-        paxosV4Hook = PaxosV4Hook(_paxosV4Hook);
+    function setPaxosHook(address _paxosHook) external {
+        paxosHook = PaxosHook(_paxosHook);
     }
 }

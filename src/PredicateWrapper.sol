@@ -39,7 +39,7 @@ contract PredicateWrapper is PredicateClient {
             (
                 PredicateMessage memory predicateMessage,
                 address msgSender,
-                uint256 value
+                uint256 msgValue
             ) = abi.decode(hookData, (PredicateMessage, address, uint256));
 
             bytes memory encodeSigAndArgs = abi.encodeWithSignature(
@@ -55,7 +55,7 @@ contract PredicateWrapper is PredicateClient {
                     predicateMessage,
                     encodeSigAndArgs,
                     msgSender,
-                    value
+                    msgValue
                 ),
                 "Unauthorized transaction"
             );

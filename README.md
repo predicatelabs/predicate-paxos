@@ -50,10 +50,10 @@ PREDICATE_API_KEY=predicate_api_key
 HOOK_ADDRESS=hook_address
 ```
 
-#### Unichain Sepolia:
+#### Ethereum Holesky:
 
 ```solidity
-forge script script/DeployPaxosHook.sol:DeployPaxosHook --rpc-url unichain-sepolia --broadcast
+forge script script/DeployPaxosHook.sol:DeployPaxosHook --rpc-url ethereum-holesky --broadcast
 ```
 
 For verification:

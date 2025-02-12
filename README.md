@@ -50,10 +50,10 @@ PREDICATE_API_KEY=predicate_api_key
 HOOK_ADDRESS=hook_address
 ```
 
-#### Ethereum Holesky:
+#### Ethereum:
 
 ```solidity
-forge script script/DeployPaxosHook.sol:DeployPaxosHook --rpc-url ethereum-holesky --broadcast
+forge script script/DeployPaxosHook.sol:DeployPaxosHook --rpc-url ethereum --broadcast
 ```
 
 For verification:

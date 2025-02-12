@@ -12,14 +12,14 @@ import {Hooks} from "v4-core/src/libraries/Hooks.sol";
 import {HookMiner} from "./utils/HookMiner.sol";
 
 import {PredicateWrapper} from "../src/PredicateWrapper.sol";
-import {MockPaxosV4Hook} from "./mocks/MockPaxosV4Hook.sol";
+import {MockPaxosHook} from "./mocks/MockPaxosHook.sol";
 import {MockPredicateClient} from "./mocks/MockPredicateClient.sol";
 
 contract PredicateWrapperTest is Test {
     IPoolManager public _poolManager = IPoolManager(address(0x00B036B58a818B1BC34d502D3fE730Db729e62AC));
 
     PredicateWrapper public wrapper;
-    MockPaxosV4Hook public mockPaxosHook;
+    MockPaxosHook public mockPaxosHook;
     MockPredicateClient public mockPredicateClient;
 
     address public serviceManager = address(0xf6f4A30EeF7cf51Ed4Ee1415fB3bFDAf3694B0d2);
@@ -35,11 +35,11 @@ contract PredicateWrapperTest is Test {
         (address hookAddress, bytes32 salt) = HookMiner.find(
             address(this),
             uint160(Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG),
-            type(MockPaxosV4Hook).creationCode,
+            type(MockPaxosHook).creationCode,
             abi.encode(address(_poolManager))
         );
 
-        mockPaxosHook = new MockPaxosV4Hook{salt: salt}(_poolManager);
+        mockPaxosHook = new MockPaxosHook{salt: salt}(_poolManager);
         require(address(mockPaxosHook) == hookAddress, "Hook deployment failed");
         
         mockPredicateClient = new MockPredicateClient();
@@ -127,14 +127,14 @@ contract PredicateWrapperTest is Test {
     }
 
     function testSetPaxosV4Hook() public {
-        MockPaxosV4Hook newMockHook = new MockPaxosV4Hook(_poolManager);
+        MockPaxosHook newMockHook = new MockPaxosHook(_poolManager);
 
-        address oldHook = address(wrapper.paxosV4Hook());
+        address oldHook = address(wrapper.paxosHook());
         assertEq(oldHook, address(mockPaxosHook), "Initial Paxos hook mismatch");
 
-        wrapper.setPaxosV4Hook(address(newMockHook));
+        wrapper.setPaxosHook(address(newMockHook));
 
-        address updatedHook = address(wrapper.paxosV4Hook());
+        address updatedHook = address(wrapper.paxosHook());
         assertEq(updatedHook, address(newMockHook), "New Paxos hook mismatch");
     }
 }

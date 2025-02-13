@@ -19,3 +19,6 @@
 [submodule "lib/predicate-std"]
 	path = lib/predicate-std
 	url = https://github.com/predicatelabs/predicate-std
+[submodule "lib/ybs-contract"]
+	path = lib/ybs-contract
+	url = https://github.com/paxosglobal/ybs-contract

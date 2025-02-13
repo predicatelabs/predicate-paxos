@@ -14,6 +14,9 @@ import {PaxosHook} from "./PaxosHook.sol";
 import { PredicateClient } from "lib/predicate-std/src/mixins/PredicateClient.sol";
 import { PredicateMessage } from "lib/predicate-std/src/interfaces/IPredicateClient.sol";
 
+/// @title Predicate Wrapper
+/// @author Predicate
+/// @notice A wrapper for compliant swaps using the PaxosHook
 contract PredicateWrapper is PredicateClient {
     PaxosHook public paxosHook;
 

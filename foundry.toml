@@ -10,6 +10,7 @@ libs = ["lib"]
 evm_version = "cancun"
 via_ir = true
 solc = '0.8.26'
+solc_version = "0.8.17"
 fs_permissions = [{ access = "read", path = "./lib" }]
 optimizer_runs = 0
 bytecode_hash = "none"

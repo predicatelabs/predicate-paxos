@@ -9,7 +9,7 @@ import {Constants} from "./base/Constants.sol";
 import {PaxosHook} from "../src/PaxosHook.sol";
 import {HookMiner} from "../test/utils/HookMiner.sol";
 
-contract PaxosV4HookScript is Script, Constants {
+contract PredicateHookScript is Script, Constants {
     function setUp() public {}
 
     function run() public {
@@ -23,7 +23,7 @@ contract PaxosV4HookScript is Script, Constants {
             HookMiner.find(CREATE2_DEPLOYER, flags, type(PaxosHook).creationCode, constructorArgs);
 
         vm.broadcast();
-        PaxosHook paxosHook = new PaxosHook{salt: salt}(IPoolManager(POOLMANAGER));
-        require(address(paxosHook) == hookAddress, "PaxosHookScript: hook address mismatch");
+        PredicateHook predicateHook = new PredicateHook{salt: salt}(IPoolManager(POOLMANAGER));
+        require(address(predicateHook) == hookAddress, "PredicateHookScript: hook address mismatch");
     }
 }

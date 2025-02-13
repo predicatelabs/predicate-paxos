@@ -10,7 +10,7 @@ import {Currency, CurrencyLibrary} from "@uniswap/v4-core/src/types/Currency.sol
 /// @title Paxos Hook
 /// @author Predicate
 /// @notice A hook for auto wrapping and unwrapping YBS, "USDL"
-contract PaxosHook is BaseHook {
+contract PaxosHook is BaseTokenWrapperHook {
     using PoolIdLibrary for PoolKey;
 
     wYBSV1 public immutable wYBS;

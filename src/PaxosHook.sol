@@ -8,6 +8,7 @@ import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
 import {Currency, CurrencyLibrary} from "@uniswap/v4-core/src/types/Currency.sol";
 
 /// @title Paxos Hook
+/// @author Predicate Labs
 /// @notice A hook for auto wrapping and unwrapping YBS, "USDL"
 contract PaxosHook is BaseHook {
     using PoolIdLibrary for PoolKey;

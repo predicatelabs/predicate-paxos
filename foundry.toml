@@ -1,4 +1,5 @@
 [profile.default]
+solc = "0.8.26"  
 
 remappings = [
     "predicate-std/=lib/predicate-std/src/"
@@ -9,12 +10,15 @@ out = "out"
 libs = ["lib"]
 evm_version = "cancun"
 via_ir = true
-solc = '0.8.26'
-solc_version = "0.8.17"
 fs_permissions = [{ access = "read", path = "./lib" }]
 optimizer_runs = 0
 bytecode_hash = "none"
 optimizer = true
+
+# # Compile other ybs libs with solc 0.8.17
+# solc-select use 0.8.17
+# forge build --contracts lib/ybs-contract/contracts/wYBSV1.sol
+# forge build --contracts lib/ybs-contract/contracts/YBSV1_1.sol
 
 [fuzz]
 max_test_rejects = 10000000
@@ -33,3 +37,18 @@ number_underscore = 'thousands'
 quote_style = 'double'
 tab_width = 4
 wrap_comments = false
+
+[profile.ybs]  # New profile for YBS contracts
+solc = "0.8.17"
+src = "lib/ybs-contract/contracts"
+out = "out"
+libs = ["lib"]
+remappings = [
+    "@openzeppelin/contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/",
+    "@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/"
+]
+via_ir = true
+optimizer = true
+optimizer_runs = 0
+fs_permissions = [{ access = "read", path = "./lib" }]
+

@@ -1,18 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import {IHooks} from "v4-core/src/interfaces/IHooks.sol";
-import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
-import {Hooks} from "v4-core/src/libraries/Hooks.sol";
+import {BaseHook} from "v4-periphery/src/base/hooks/BaseHook.sol";
+import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
+import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
+import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
+import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
+import {BalanceDelta} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
+import {BeforeSwapDelta, toBeforeSwapDelta} from "@uniswap/v4-core/src/types/BeforeSwapDelta.sol";
 
-import {PoolKey} from "v4-core/src/types/PoolKey.sol";
-import {BalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
-import {BeforeSwapDelta} from "v4-core/src/types/BeforeSwapDelta.sol";
-
-import {PaxosHook} from "./PaxosHook.sol";
-
-import { PredicateClient } from "lib/predicate-std/src/mixins/PredicateClient.sol";
-import { PredicateMessage } from "lib/predicate-std/src/interfaces/IPredicateClient.sol";
+import {PredicateClient} from "@predicate/mixins/PredicateClient.sol";
+import {PredicateMessage} from "@predicate/interfaces/IPredicateClient.sol";
 
 /// @title Predicate Hook
 /// @author Predicate Labs
@@ -83,10 +81,6 @@ contract PredicateHook is BaseHook, PredicateClient {
         _setPredicateManager(_predicateManager);
     }
     
-    function setPaxosHook(address _paxosHook) external {
-        paxosHook = PaxosHook(_paxosHook);
-    }
-
     function decodeHookData(
         bytes calldata hookData
     ) external returns (PredicateMessage memory, address, uint256) {

@@ -71,15 +71,28 @@ contract PredicateHook is BaseHook, PredicateClient {
         return (IHooks.beforeSwap.selector, delta, 100);
     }
 
-    function setPolicy(string memory _policyID) external {
+    function setPolicy(
+        string memory _policyID
+    ) external {
         _setPolicy(_policyID);
     }
 
-    function setPredicateManager(address _predicateManager) public {
+    function setPredicateManager(
+        address _predicateManager
+    ) external {
         _setPredicateManager(_predicateManager);
     }
     
     function setPaxosHook(address _paxosHook) external {
         paxosHook = PaxosHook(_paxosHook);
+    }
+
+    function decodeHookData(
+        bytes calldata hookData
+    ) external returns (PredicateMessage memory, address, uint256) {
+        (PredicateMessage memory predicateMessage, address msgSender, uint256 msgValue) = 
+            abi.decode(hookData, (PredicateMessage, address, uint256));
+
+        return (predicateMessage, msgSender, msgValue);
     }
 }

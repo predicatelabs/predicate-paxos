@@ -14,10 +14,10 @@ import {PaxosHook} from "./PaxosHook.sol";
 import { PredicateClient } from "lib/predicate-std/src/mixins/PredicateClient.sol";
 import { PredicateMessage } from "lib/predicate-std/src/interfaces/IPredicateClient.sol";
 
-/// @title Predicate Wrapper
+/// @title Predicate Hook
 /// @author Predicate
-/// @notice A wrapper for compliant swaps using the PaxosHook
-contract PredicateWrapper is PredicateClient {
+/// @notice A hook for compliant swaps
+contract PredicateProxy is PredicateClient {
     PaxosHook public paxosHook;
 
     constructor(address _serviceManager, string memory _policyID, address _paxosHook) {

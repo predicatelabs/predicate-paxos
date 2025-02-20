@@ -42,42 +42,33 @@ contract PredicateHook is BaseHook, PredicateClient {
     }
 
     function beforeSwap(
-            address sender,
-            PoolKey calldata key, 
-            IPoolManager.SwapParams calldata params, 
-            bytes calldata hookData
-        ) external returns (bytes4, BeforeSwapDelta, uint24) {
-            (
-                PredicateMessage memory predicateMessage,
-                address msgSender,
-                uint256 msgValue
-            ) = abi.decode(hookData, (PredicateMessage, address, uint256));
+        address sender,
+        PoolKey calldata key,
+        IPoolManager.SwapParams calldata params,
+        bytes calldata hookData
+    ) external override onlyPoolManager returns (bytes4, BeforeSwapDelta, uint24) {
+        (PredicateMessage memory predicateMessage, address msgSender, uint256 msgValue) = this.decodeHookData(hookData);
 
-            bytes memory encodeSigAndArgs = abi.encodeWithSignature(
-                "_beforeSwap(address,PoolKey,IPoolManager.SwapParams,bytes)",
-                sender,
-                key,
-                params,
-                hookData
-            );
+        bytes memory encodeSigAndArgs = abi.encodeWithSignature(
+            "_beforeSwap(address,address,address,uint24,int24,address,bool,int256,uint160)",
+            tx.origin,
+            key.currency0,
+            key.currency1,
+            key.fee,
+            key.tickSpacing,
+            address(key.hooks),
+            params.zeroForOne,
+            params.amountSpecified,
+            params.sqrtPriceLimitX96
+        );
 
-            require(
-                _authorizeTransaction(
-                    predicateMessage,
-                    encodeSigAndArgs,
-                    msgSender,
-                    msgValue
-                ),
-                "Unauthorized transaction"
-            );
+        require(
+            _authorizeTransaction(predicateMessage, encodeSigAndArgs, msgSender, msgValue), "Unauthorized transaction"
+        );
 
-            (bytes4 selector, BeforeSwapDelta swapDelta, uint24 fee) = 
-                  paxosHook.beforeSwap(sender, 
-                                                 key, 
-                                                 params, 
-                                                 hookData
-            );
-            return (selector, swapDelta, fee);
+        BeforeSwapDelta delta = toBeforeSwapDelta(0, 0);
+
+        return (IHooks.beforeSwap.selector, delta, 100);
     }
 
     function setPolicy(string memory _policyID) external {

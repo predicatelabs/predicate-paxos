@@ -1,12 +1,8 @@
-@openzeppelin/contracts/=lib/v4-periphery/lib/v4-core/lib/openzeppelin-contracts/contracts/
-ds-test/=lib/forge-std/lib/ds-test/src/
-openzeppelin-contracts/=lib/v4-periphery/lib/openzeppelin-contracts/
-@uniswap/v4-core/=lib/v4-core/
-forge-gas-snapshot/=lib/v4-core/lib/forge-gas-snapshot/src/
-forge-std/=lib/v4-core/lib/forge-std/src/
-permit2/=lib/v4-periphery/lib/permit2/
+@predicate/=lib/predicate-contracts/src/
+
 solmate/=lib/v4-core/lib/solmate/
+@uniswap/v4-core=lib/v4-core/
+@uniswap/v4-peripheral=lib/v4-peripheral/
 v4-core/=lib/v4-core/
 v4-periphery/=lib/v4-periphery/
-predicate-std/=lib/predicate-std/src/
 

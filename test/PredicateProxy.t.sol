@@ -5,17 +5,17 @@ import "forge-std/Test.sol";
 import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
 import {PoolKey} from "v4-core/src/types/PoolKey.sol";
 import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "v4-core/src/types/BeforeSwapDelta.sol";
-import {PredicateMessage} from "lib/predicate-std/src/interfaces/IPredicateClient.sol";
+import {PredicateMessage} from "lib/predicate-contracts/src/interfaces/IPredicateClient.sol";
 import {Currency} from "v4-core/src/types/Currency.sol";
 import {IHooks} from "v4-core/src/interfaces/IHooks.sol";
 import {Hooks} from "v4-core/src/libraries/Hooks.sol";
 import {HookMiner} from "./utils/HookMiner.sol";
 
-import {PredicateWrapper} from "../src/PredicateWrapper.sol";
+import {PredicateProxy} from "../src/PredicateProxy.sol";
 import {MockPaxosHook} from "./mocks/MockPaxosHook.sol";
 import {MockPredicateClient} from "./mocks/MockPredicateClient.sol";
 
-contract PredicateWrapperTest is Test {
+contract PredicateProxyTest is Test {
     IPoolManager public _poolManager = IPoolManager(address(0x00B036B58a818B1BC34d502D3fE730Db729e62AC));
 
     PredicateWrapper public wrapper;

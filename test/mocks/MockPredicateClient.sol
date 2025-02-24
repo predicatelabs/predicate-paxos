@@ -16,7 +16,9 @@ contract MockPredicateClient {
         return authorized;
     }
 
-    function setAuthorized(bool _authorized) external {
+    function setAuthorized(
+        bool _authorized
+    ) external {
         authorized = _authorized;
     }
 }

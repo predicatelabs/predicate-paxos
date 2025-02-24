@@ -17,24 +17,26 @@ contract AutoWrapper is BaseTokenWrapperHook {
 
     error WithdrawFailed();
 
-    constructor(IPoolManager _manager, address _wYBS, address _ybs)
-        BaseTokenWrapperHook(
-            _manager,
-            Currency.wrap(_wYBS), 
-            Currency.wrap(_ybs)
-        )
-    {
+    constructor(
+        IPoolManager _manager,
+        address _wYBS,
+        address _ybs
+    ) BaseTokenWrapperHook(_manager, Currency.wrap(_wYBS), Currency.wrap(_ybs)) {
         wYBS = wYBSV1(payable(_wYBS));
     }
 
-    function deposit(uint256 underlyingAmount) internal override returns (uint256 wrapperAmount) {
+    function deposit(
+        uint256 underlyingAmount
+    ) internal override returns (uint256 wrapperAmount) {
         IERC20Upgradeable(ybsAddress).approve(address(wYBS), underlyingAmount);
         wYBS.deposit(underlyingAmount, address(this));
-        return underlyingAmount; 
+        return underlyingAmount;
     }
 
-    function withdraw(uint256 wrapperAmount) internal override returns (uint256 underlyingAmount) {
+    function withdraw(
+        uint256 wrapperAmount
+    ) internal override returns (uint256 underlyingAmount) {
         wYBS.redeem(wrapperAmount, address(this), address(this));
-        return wrapperAmount; 
+        return wrapperAmount;
     }
 }

@@ -41,14 +41,10 @@ contract PredicateProxyTest is Test {
 
         mockPaxosHook = new MockPaxosHook{salt: salt}(_poolManager);
         require(address(mockPaxosHook) == hookAddress, "Hook deployment failed");
-        
+
         mockPredicateClient = new MockPredicateClient();
 
-        wrapper = new PredicateWrapper(
-            serviceManager,
-            defaultPolicyID,
-            address(mockPaxosHook)
-        );
+        wrapper = new PredicateWrapper(serviceManager, defaultPolicyID, address(mockPaxosHook));
 
         poolKey = PoolKey({
             currency0: Currency.wrap(address(1)),
@@ -58,11 +54,7 @@ contract PredicateProxyTest is Test {
             hooks: IHooks(address(mockPaxosHook))
         });
 
-        swapParams = IPoolManager.SwapParams({
-            zeroForOne: true,
-            amountSpecified: 1000,
-            sqrtPriceLimitX96: 0
-        });
+        swapParams = IPoolManager.SwapParams({zeroForOne: true, amountSpecified: 1000, sqrtPriceLimitX96: 0});
 
         PredicateMessage memory pm = PredicateMessage({
             taskId: "test-task",
@@ -80,12 +72,7 @@ contract PredicateProxyTest is Test {
         mockPredicateClient.setAuthorized(true);
 
         (bytes4 selector, BeforeSwapDelta swapDelta, uint24 fee) =
-            wrapper.beforeSwap(
-                address(this),
-                poolKey,
-                swapParams,
-                validHookData
-            );
+            wrapper.beforeSwap(address(this), poolKey, swapParams, validHookData);
 
         bytes4 expectedSelector = bytes4(keccak256("MockBeforeSwap()"));
         assertEq(selector, expectedSelector, "Incorrect selector returned");
@@ -103,12 +90,7 @@ contract PredicateProxyTest is Test {
 
         vm.expectRevert(bytes("Unauthorized transaction"));
 
-        wrapper.beforeSwap(
-            address(this),
-            poolKey,
-            swapParams,
-            invalidHookData
-        );
+        wrapper.beforeSwap(address(this), poolKey, swapParams, invalidHookData);
     }
 
     function testSetPolicy() public {

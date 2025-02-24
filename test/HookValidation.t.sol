@@ -1,19 +1,19 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {PredicateHook} from "../src/PredicateHook.sol";
-import {PredicateMessage} from "@predicate/interfaces/IPredicateClient.sol";
-import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
-import {Task, SignatureWithSaltAndExpiry} from "@predicate/interfaces/IPredicateManager.sol";
-import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
-import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
-import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
-import {TestUtils} from "@predicate-test/helpers/utility/TestUtils.sol";
-import {TestPrep} from "@predicate-test/helpers/utility/TestPrep.sol";
-import {STMSetup} from "@predicate-test/helpers/utility/STMSetup.sol";
-import {HookMiner} from "./utils/HookMiner.sol";
-import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
-import {TestSetup} from "./helpers/TestSetup.sol";
+import { PredicateHook } from "../src/PredicateHook.sol";
+import { PredicateMessage } from "@predicate/interfaces/IPredicateClient.sol";
+import { IPoolManager } from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
+import { Task, SignatureWithSaltAndExpiry } from "@predicate/interfaces/IPredicateManager.sol";
+import { PoolKey } from "@uniswap/v4-core/src/types/PoolKey.sol";
+import { IHooks } from "@uniswap/v4-core/src/interfaces/IHooks.sol";
+import { Hooks } from "@uniswap/v4-core/src/libraries/Hooks.sol";
+import { TestUtils } from "@predicate-test/helpers/utility/TestUtils.sol";
+import { TestPrep } from "@predicate-test/helpers/utility/TestPrep.sol";
+import { STMSetup } from "@predicate-test/helpers/utility/STMSetup.sol";
+import { HookMiner } from "./utils/HookMiner.sol";
+import { Currency } from "@uniswap/v4-core/src/types/Currency.sol";
+import { TestSetup } from "./helpers/TestSetup.sol";
 
 contract HookValidationTest is TestSetup, TestPrep {
     function setUp() public override {
@@ -44,7 +44,7 @@ contract HookValidationTest is TestSetup, TestPrep {
         });
 
         IPoolManager.SwapParams memory params =
-            IPoolManager.SwapParams({zeroForOne: false, amountSpecified: 0, sqrtPriceLimitX96: 0});
+            IPoolManager.SwapParams({ zeroForOne: false, amountSpecified: 0, sqrtPriceLimitX96: 0 });
 
         Task memory task = Task({
             taskId: taskId,

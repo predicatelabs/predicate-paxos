@@ -1,12 +1,12 @@
 // // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {PredicateHook} from "../src/PredicateHook.sol";
-import {PredicateMessage} from "@predicate/interfaces/IPredicateClient.sol";
-import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
-import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
-import {HookMiner} from "test/utils/HookMiner.sol";
-import {TestSetup} from "test/helpers/TestSetup.sol";
+import { PredicateHook } from "../src/PredicateHook.sol";
+import { PredicateMessage } from "@predicate/interfaces/IPredicateClient.sol";
+import { IPoolManager } from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
+import { Hooks } from "@uniswap/v4-core/src/libraries/Hooks.sol";
+import { HookMiner } from "test/utils/HookMiner.sol";
+import { TestSetup } from "test/helpers/TestSetup.sol";
 
 contract HookDataTest is TestSetup {
     function setUp() public override {

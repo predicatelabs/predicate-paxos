@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import {PredicateMessage} from "@predicate/interfaces/IPredicateClient.sol";
+import { PredicateMessage } from "@predicate/interfaces/IPredicateClient.sol";
 
 /// @notice A mock contract or utility to help with _authorizeTransaction.
 contract MockPredicateClient {

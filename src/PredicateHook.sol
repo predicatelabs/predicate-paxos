@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import {ISimpleV4Router} from "./interfaces/ISimpleV4Router.sol";
-import {BaseHook} from "v4-periphery/src/utils/BaseHook.sol";
-import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
-import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
-import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
-import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
-import {BalanceDelta} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
-import {BeforeSwapDelta, toBeforeSwapDelta} from "@uniswap/v4-core/src/types/BeforeSwapDelta.sol";
-import {PredicateClient} from "@predicate/mixins/PredicateClient.sol";
-import {PredicateMessage} from "@predicate/interfaces/IPredicateClient.sol";
+import { ISimpleV4Router } from "./interfaces/ISimpleV4Router.sol";
+import { BaseHook } from "v4-periphery/src/utils/BaseHook.sol";
+import { IHooks } from "@uniswap/v4-core/src/interfaces/IHooks.sol";
+import { IPoolManager } from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
+import { Hooks } from "@uniswap/v4-core/src/libraries/Hooks.sol";
+import { PoolKey } from "@uniswap/v4-core/src/types/PoolKey.sol";
+import { BalanceDelta } from "@uniswap/v4-core/src/types/BalanceDelta.sol";
+import { BeforeSwapDelta, toBeforeSwapDelta } from "@uniswap/v4-core/src/types/BeforeSwapDelta.sol";
+import { PredicateClient } from "@predicate/mixins/PredicateClient.sol";
+import { PredicateMessage } from "@predicate/interfaces/IPredicateClient.sol";
 
 /// @title Predicate Hook
 /// @author Predicate Labs
@@ -19,13 +19,13 @@ contract PredicateHook is BaseHook, PredicateClient {
     ISimpleV4SwapRouter router;
 
     constructor(
-            IPoolManager _poolManager,
-            ISimpleV4SwapRouter _router,
-            address _serviceManager,
-            string memory _policyID
-        ) BaseHook(_poolManager) {
-            _initPredicateClient(_serviceManager, _policyID);
-            router = _router;
+        IPoolManager _poolManager,
+        ISimpleV4SwapRouter _router,
+        address _serviceManager,
+        string memory _policyID
+    ) BaseHook(_poolManager) {
+        _initPredicateClient(_serviceManager, _policyID);
+        router = _router;
     }
 
     function getHookPermissions() public pure override returns (Hooks.Permissions memory) {

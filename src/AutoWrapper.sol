@@ -12,7 +12,7 @@ import { Hooks } from "v4-core/src/libraries/Hooks.sol";
 import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
 import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
 import { IPoolManager } from "v4-core/src/interfaces/IPoolManager.sol";
-import { Currency, CurrencyLibrary } from "@uniswap/v4-core/src/types/Currency.sol";
+import { Currency, CurrencyLibrary} from "@uniswap/v4-core/src/types/Currency.sol";
 import {BeforeSwapDelta} from "@uniswap/v4-core/src/types/BeforeSwapDelta.sol";
 import {IERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -26,21 +26,20 @@ contract AutoWrapper is BaseTokenWrapperHook {
     using SafeCast for int256;
     using SafeCast for uint256;
 
-    
-    wYBSV1 public  wYBS;
-    IERC20Upgradeable public  ybs;
-    IERC20 public  usdc;
-    PoolKey public  underlyingPoolKey;
+    wYBSV1 _wYBS;
+    IERC20Upgradeable _ybs;
+    IERC20 _usdc;
+    PoolKey _underlyingPoolKey;
 
     constructor(
         IPoolManager _manager,
-        address _ybs, // USDL
+        address _ybsAddress, // USDL
         PoolKey memory _poolKey // token0 is USDC, token1 is wUSDL
-    ) BaseTokenWrapperHook(_manager, _poolKey.currency1, Currency.wrap(_ybs)) { 
-        usdc = IERC20(Currency.unwrap(_poolKey.currency0));
-        wYBS = wYBSV1(Currency.unwrap(_poolKey.currency1));
-        ybs = IERC20Upgradeable(_ybs);
-        underlyingPoolKey = _poolKey;
+    ) BaseTokenWrapperHook(_manager, _poolKey.currency1, Currency.wrap(_ybsAddress)) { 
+        _usdc = IERC20(Currency.unwrap(_poolKey.currency0));
+        _wYBS = wYBSV1(Currency.unwrap(_poolKey.currency1));
+        _ybs = IERC20Upgradeable(_ybsAddress);
+        _underlyingPoolKey = _poolKey;
     }
 
     /// @notice Handles token wrapping and unwrapping during swaps
@@ -94,15 +93,15 @@ contract AutoWrapper is BaseTokenWrapperHook {
     function _deposit(
         uint256 underlyingAmount
     ) internal override returns (uint256 wrapperAmount) {
-        ybs.approve(address(wYBS), underlyingAmount);
-        wYBS.deposit(underlyingAmount, address(this));
+        _ybs.approve(address(_wYBS), underlyingAmount);
+        _wYBS.deposit(underlyingAmount, address(this));
         return underlyingAmount;
     }
 
     function _withdraw(
         uint256 wrapperAmount
     ) internal override returns (uint256 underlyingAmount) {
-        wYBS.redeem(wrapperAmount, address(this), address(this));
+        _wYBS.redeem(wrapperAmount, address(this), address(this));
         return wrapperAmount;
     }
 }

@@ -8,24 +8,28 @@ import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
 import { IPoolManager } from "v4-core/src/interfaces/IPoolManager.sol";
 import { Currency, CurrencyLibrary } from "@uniswap/v4-core/src/types/Currency.sol";
 import {IERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /// @title Auto Wrapper
 /// @author Predicate Labs
 /// @notice A hook for auto wrapping and unwrapping YBS, "USDL"
 contract AutoWrapper is BaseTokenWrapperHook {
+    using CurrencyLibrary for Currency;
+
     wYBSV1 public immutable wYBS;
     IERC20Upgradeable public immutable ybs;
-    PoolKey public immutable wrappedPoolKey;
+    IERC20 public immutable usdc;
+    PoolKey public immutable underlyingPoolKey;
 
     constructor(
         IPoolManager _manager,
-        address _wYBS,
-        address _ybs, 
-        PoolKey memory _poolKey
-    ) BaseTokenWrapperHook(_manager, Currency.wrap(_wYBS), Currency.wrap(_ybs)) {
-        wYBS = wYBSV1(wYBS);
+        address _ybs, // USDL
+        PoolKey memory _poolKey // token0 is USDC, token1 is wUSDL
+    ) BaseTokenWrapperHook(_manager, _poolKey.token1, Currency.wrap(_ybs)) { 
+        usdc = IERC20(Currency.unwrap(_poolKey.token0));
+        wYBS = wYBSV1(Currency.unwrap(_w_poolKey.token1));
         ybs = IERC20Upgradeable(_ybs);
-        wrappedPoolKey = _poolKey;
+        underlyingPoolKey = _poolKey;
     }
 
     /// @notice Handles token wrapping and unwrapping during swaps
@@ -42,9 +46,14 @@ contract AutoWrapper is BaseTokenWrapperHook {
         bool isExactInput = params.amountSpecified < 0;
 
         if (wrapZeroForOne == params.zeroForOne) {
-            // we are wrapping  => USDC -> USDL
+            // we are wrapping  => USDC -> USDL   USDC/USDL
             uint256 inputAmount =
                 isExactInput ? uint256(-params.amountSpecified) : _getWrapInputRequired(uint256(params.amountSpecified));
+
+            // transfer USDC to this contract
+            // swap
+            // transfer USDL to this contract
+            // settle
             _take(underlyingCurrency, address(this), inputAmount);
             uint256 wrappedAmount = _deposit(inputAmount);
             _settle(wrapperCurrency, address(this), wrappedAmount);
@@ -56,6 +65,10 @@ contract AutoWrapper is BaseTokenWrapperHook {
             uint256 inputAmount = isExactInput
                 ? uint256(-params.amountSpecified)
                 : _getUnwrapInputRequired(uint256(params.amountSpecified));
+            
+            // transfer USDL to the ERC4626 contract
+            // get wUSDL and swap
+            // transfer USDC to the user
             _take(wrapperCurrency, address(this), inputAmount);
             uint256 unwrappedAmount = _withdraw(inputAmount);
             _settle(underlyingCurrency, address(this), unwrappedAmount);

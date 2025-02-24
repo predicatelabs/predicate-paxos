@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import {ISimpleV4SwapRouter} from "./interfaces/ISimpleV4Router.sol";
-import {BaseHook} from "v4-periphery/src/base/hooks/BaseHook.sol";
+import {ISimpleV4Router} from "./interfaces/ISimpleV4Router.sol";
+import {BaseHook} from "v4-periphery/src/utils/BaseHook.sol";
 import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
 import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
 import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";

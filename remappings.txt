@@ -7,3 +7,4 @@ v4-core/=lib/v4-core/
 v4-periphery/=lib/v4-periphery/
 @openzeppelin/contracts-upgradeable=lib/openzeppelin-contracts-upgradeable/contracts
 openzeppelin=lib/openzeppelin-contracts/contracts
+@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts

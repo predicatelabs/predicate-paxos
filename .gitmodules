@@ -16,6 +16,3 @@
 [submodule "lib/ybs-contract"]
 	path = lib/ybs-contract
 	url = https://github.com/paxosglobal/ybs-contract
-[submodule "lib/predicate-contracts"]
-	path = lib/predicate-contracts
-	url = https://github.com/predicatelabs/predicate-contracts

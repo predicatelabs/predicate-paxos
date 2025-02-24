@@ -42,7 +42,7 @@ contract AutoWrapper is BaseTokenWrapperHook {
         bool isExactInput = params.amountSpecified < 0;
 
         if (wrapZeroForOne == params.zeroForOne) {
-            // we are wrapping
+            // we are wrapping  => USDC -> USDL
             uint256 inputAmount =
                 isExactInput ? uint256(-params.amountSpecified) : _getWrapInputRequired(uint256(params.amountSpecified));
             _take(underlyingCurrency, address(this), inputAmount);
@@ -52,7 +52,7 @@ contract AutoWrapper is BaseTokenWrapperHook {
                 isExactInput ? -wrappedAmount.toInt256().toInt128() : inputAmount.toInt256().toInt128();
             swapDelta = toBeforeSwapDelta(-params.amountSpecified.toInt128(), amountUnspecified);
         } else {
-            // we are unwrapping
+            // we are unwrapping => USDL -> USDC
             uint256 inputAmount = isExactInput
                 ? uint256(-params.amountSpecified)
                 : _getUnwrapInputRequired(uint256(params.amountSpecified));

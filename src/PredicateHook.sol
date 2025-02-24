@@ -17,7 +17,7 @@ import {PredicateMessage} from "@predicate/interfaces/IPredicateClient.sol";
 /// @author Predicate Labs
 /// @notice A hook for compliant swaps
 contract PredicateHook is BaseHook, PredicateClient {
-    ISimpleV4Router router;
+    ISimpleV4Router public immutable router;
 
     constructor(
         IPoolManager _poolManager,

@@ -1,0 +1,16 @@
+#!/usr/bin/env sh
+
+# Step 1: forge fmt lints
+echo "Running forge fmt..."
+
+# Check the exit status of the linter
+if ! forge fmt --via-ir; then
+  echo "forge fmt found issues. Commit aborted."
+  exit 1
+fi
+
+echo "No issues found. Proceeding with commit."
+
+# Optional: Add any additional checks here
+
+exit 0

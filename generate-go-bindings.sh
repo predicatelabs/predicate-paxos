@@ -28,4 +28,4 @@ forge build --via-ir
 
 # Generate bindings for your contract
 
-create_binding "PoolSwapTest"
+create_binding "ISimpleV4Router"

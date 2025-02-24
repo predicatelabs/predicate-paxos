@@ -1,26 +1,27 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import { ISimpleV4Router } from "./interfaces/ISimpleV4Router.sol";
-import { BaseHook } from "v4-periphery/src/utils/BaseHook.sol";
-import { IHooks } from "@uniswap/v4-core/src/interfaces/IHooks.sol";
-import { IPoolManager } from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
-import { Hooks } from "@uniswap/v4-core/src/libraries/Hooks.sol";
-import { PoolKey } from "@uniswap/v4-core/src/types/PoolKey.sol";
-import { BalanceDelta } from "@uniswap/v4-core/src/types/BalanceDelta.sol";
-import { BeforeSwapDelta, toBeforeSwapDelta } from "@uniswap/v4-core/src/types/BeforeSwapDelta.sol";
-import { PredicateClient } from "@predicate/mixins/PredicateClient.sol";
-import { PredicateMessage } from "@predicate/interfaces/IPredicateClient.sol";
+import {ISimpleV4Router} from "./interfaces/ISimpleV4Router.sol";
 
-/// @title Predicate Hook
+import {BaseHook} from "v4-periphery/src/utils/BaseHook.sol";
+import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
+import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
+import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
+import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
+import {BalanceDelta} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
+import {BeforeSwapDelta, toBeforeSwapDelta} from "@uniswap/v4-core/src/types/BeforeSwapDelta.sol";
+import {PredicateClient} from "@predicate/mixins/PredicateClient.sol";
+import {PredicateMessage} from "@predicate/interfaces/IPredicateClient.sol";
+
+/// @title Predicated Hook
 /// @author Predicate Labs
 /// @notice A hook for compliant swaps
 contract PredicateHook is BaseHook, PredicateClient {
-    ISimpleV4SwapRouter router;
+    ISimpleV4Router router;
 
     constructor(
         IPoolManager _poolManager,
-        ISimpleV4SwapRouter _router,
+        ISimpleV4Router _router,
         address _serviceManager,
         string memory _policyID
     ) BaseHook(_poolManager) {
@@ -47,12 +48,12 @@ contract PredicateHook is BaseHook, PredicateClient {
         });
     }
 
-    function beforeSwap(
+    function _beforeSwap(
         address sender,
         PoolKey calldata key,
         IPoolManager.SwapParams calldata params,
         bytes calldata hookData
-    ) external override onlyPoolManager returns (bytes4, BeforeSwapDelta, uint24) {
+    ) internal override returns (bytes4, BeforeSwapDelta, uint24) {
         (PredicateMessage memory predicateMessage, address msgSender, uint256 msgValue) = this.decodeHookData(hookData);
 
         bytes memory encodeSigAndArgs = abi.encodeWithSignature(
@@ -85,13 +86,13 @@ contract PredicateHook is BaseHook, PredicateClient {
 
     function setPredicateManager(
         address _predicateManager
-    ) external {
+    ) public {
         _setPredicateManager(_predicateManager);
     }
 
     function decodeHookData(
         bytes calldata hookData
-    ) external returns (PredicateMessage memory, address, uint256) {
+    ) external pure returns (PredicateMessage memory, address, uint256) {
         (PredicateMessage memory predicateMessage, address msgSender, uint256 msgValue) =
             abi.decode(hookData, (PredicateMessage, address, uint256));
 

@@ -1,20 +1,54 @@
 [profile.default]
+solc = "0.8.26"  
+
 src = "src"
 out = "out"
-ffi = true
-build_info = true
 ast = true
-extra_output = ["storageLayout", "abi", "metadata", "devdoc", "userdoc"]
+build_info = true
+ffi = true
 libs = ["lib"]
 gas_reports = ["*"]
-solc_version = '0.8.26'
+evm_version = "cancun"
+via_ir = true
+fs_permissions = [{ access = "read", path = "./lib" }]
+optimizer_runs = 0
+bytecode_hash = "none"
+optimizer = true
+
+# # Compile other ybs libs with solc 0.8.17
+# solc-select use 0.8.17
+# forge build --contracts lib/ybs-contract/contracts/wYBSV1.sol
+# forge build --contracts lib/ybs-contract/contracts/YBSV1_1.sol
+
+[fuzz]
+max_test_rejects = 10000000
+
+# See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
+
+[profile.coverage]
+# use the --ir-minimum flag to get coverage to run. there's no foundry config for this yet.
 
 [fmt]
-bracket_spacing = false
-int_types = "long"
+bracket_spacing = true
+int_types = 'long'
 line_length = 120
-multiline_func_header = "params_first"
-number_underscore = "thousands"
-quote_style = "double"
+multiline_func_header = 'params_first'
+number_underscore = 'thousands'
+quote_style = 'double'
 tab_width = 4
+wrap_comments = false
+
+[profile.ybs]  # New profile for YBS contracts
+solc = "0.8.17"
+src = "lib/ybs-contract/contracts"
+out = "out"
+libs = ["lib"]
+remappings = [
+    "@openzeppelin/contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/",
+    "@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/"
+]
+via_ir = true
 optimizer = true
+optimizer_runs = 0
+fs_permissions = [{ access = "read", path = "./lib" }]
+

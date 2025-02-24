@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import {BaseHook} from "v4-periphery/src/base/hooks/BaseHook.sol";
+import {ISimpleV4Router} from "./interfaces/ISimpleV4Router.sol";
+import {BaseHook} from "v4-periphery/src/utils/BaseHook.sol";
 import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
 import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
 import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
 import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
 import {BalanceDelta} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
 import {BeforeSwapDelta, toBeforeSwapDelta} from "@uniswap/v4-core/src/types/BeforeSwapDelta.sol";
-
 import {PredicateClient} from "@predicate/mixins/PredicateClient.sol";
 import {PredicateMessage} from "@predicate/interfaces/IPredicateClient.sol";
 
@@ -16,8 +16,16 @@ import {PredicateMessage} from "@predicate/interfaces/IPredicateClient.sol";
 /// @author Predicate Labs
 /// @notice A hook for compliant swaps
 contract PredicateHook is BaseHook, PredicateClient {
-    constructor(IPoolManager _poolManager, address _serviceManager, string memory _policyID) BaseHook(_poolManager) {
-        _initPredicateClient(_serviceManager, _policyID);
+    ISimpleV4SwapRouter router;
+
+    constructor(
+            IPoolManager _poolManager,
+            ISimpleV4SwapRouter _router,
+            address _serviceManager,
+            string memory _policyID
+        ) BaseHook(_poolManager) {
+            _initPredicateClient(_serviceManager, _policyID);
+            router = _router;
     }
 
     function getHookPermissions() public pure override returns (Hooks.Permissions memory) {
@@ -49,7 +57,7 @@ contract PredicateHook is BaseHook, PredicateClient {
 
         bytes memory encodeSigAndArgs = abi.encodeWithSignature(
             "_beforeSwap(address,address,address,uint24,int24,address,bool,int256,uint160)",
-            tx.origin,
+            router.msgSender(),
             key.currency0,
             key.currency1,
             key.fee,

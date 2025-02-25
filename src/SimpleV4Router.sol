@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import { ISimpleV4Router } from "./interfaces/ISimpleV4Router.sol";
-import { Lock } from "./base/Lock.sol";
-import { SafeCallback } from "v4-periphery/src/base/SafeCallback.sol";
-import { IPoolManager } from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
-import { PoolKey } from "@uniswap/v4-core/src/types/PoolKey.sol";
-import { BalanceDelta } from "@uniswap/v4-core/src/types/BalanceDelta.sol";
-import { CurrencyLibrary, Currency } from "@uniswap/v4-core/src/types/Currency.sol";
-import { TransientStateLibrary } from "@uniswap/v4-core/src/libraries/TransientStateLibrary.sol";
-import { CurrencySettler } from "@uniswap/v4-core/test/utils/CurrencySettler.sol";
+import {ISimpleV4Router} from "./interfaces/ISimpleV4Router.sol";
+import {Lock} from "./base/Lock.sol";
+import {SafeCallback} from "v4-periphery/src/base/SafeCallback.sol";
+import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
+import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
+import {BalanceDelta} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
+import {CurrencyLibrary, Currency} from "@uniswap/v4-core/src/types/Currency.sol";
+import {TransientStateLibrary} from "@uniswap/v4-core/src/libraries/TransientStateLibrary.sol";
+import {CurrencySettler} from "@uniswap/v4-core/test/utils/CurrencySettler.sol";
 
 contract SimpleV4Router is ISimpleV4Router, SafeCallback, Lock {
     using CurrencySettler for Currency;
@@ -17,7 +17,7 @@ contract SimpleV4Router is ISimpleV4Router, SafeCallback, Lock {
 
     constructor(
         IPoolManager _poolManager
-    ) SafeCallback(_poolManager) { }
+    ) SafeCallback(_poolManager) {}
 
     function swap(
         PoolKey memory key,

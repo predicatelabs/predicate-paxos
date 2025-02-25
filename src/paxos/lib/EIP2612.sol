@@ -11,8 +11,7 @@ import {EIP712} from "./EIP712.sol";
  */
 abstract contract EIP2612 is PaxosBaseAbstract {
     // keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)")
-    bytes32 public constant PERMIT_TYPEHASH =
-        0x6e71edae12b1b97f4d1f60370fef10105fa2faae0126114a169c64845d6126c9;
+    bytes32 public constant PERMIT_TYPEHASH = 0x6e71edae12b1b97f4d1f60370fef10105fa2faae0126114a169c64845d6126c9;
 
     mapping(address => uint256) internal _nonces;
     // Storage gap: https://docs.openzeppelin.com/upgrades-plugins/1.x/writing-upgradeable#storage-gaps
@@ -26,7 +25,9 @@ abstract contract EIP2612 is PaxosBaseAbstract {
      * @param owner Token owner's address
      * @return Next nonce
      */
-    function nonces(address owner) external view returns (uint256) {
+    function nonces(
+        address owner
+    ) external view returns (uint256) {
         return _nonces[owner];
     }
 
@@ -53,16 +54,10 @@ abstract contract EIP2612 is PaxosBaseAbstract {
         if (isAddrBlocked(owner)) revert BlockedAccountOwner();
         if (isAddrBlocked(spender)) revert BlockedAccountSpender();
 
-        bytes memory data = abi.encode(
-            PERMIT_TYPEHASH,
-            owner,
-            spender,
-            value,
-            _nonces[owner]++,
-            deadline
-        );
-        if (EIP712.recover(DOMAIN_SEPARATOR(), v, r, s, data) != owner)
+        bytes memory data = abi.encode(PERMIT_TYPEHASH, owner, spender, value, _nonces[owner]++, deadline);
+        if (EIP712.recover(DOMAIN_SEPARATOR(), v, r, s, data) != owner) {
             revert InvalidSignature();
+        }
 
         _approve(owner, spender, value);
     }

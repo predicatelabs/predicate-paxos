@@ -26,7 +26,7 @@ contract AutoWrapper is TokenWrapperHook {
     IERC20Upgradeable public immutable ybs;
     PoolKey public underlyingPoolKey;
     IERC20 public immutable usdc;
-    bool public immutable wrapZeroForOne;
+    bool public immutable shouldWrap;
 
     constructor(
         IPoolManager _manager,
@@ -37,7 +37,7 @@ contract AutoWrapper is TokenWrapperHook {
         wYBS = wYBSV1(Currency.unwrap(_poolKey.currency1));
         ybs = IERC20Upgradeable(_ybsAddress);
         underlyingPoolKey = _poolKey;
-        wrapZeroForOne = Currency.unwrap(_poolKey.currency0) == _ybsAddress;
+        shouldWrap = Currency.unwrap(_poolKey.currency0) == _ybsAddress;
     }
 
     function _beforeSwap(
@@ -48,7 +48,7 @@ contract AutoWrapper is TokenWrapperHook {
     ) internal override returns (bytes4 selector, BeforeSwapDelta swapDelta, uint24 lpFeeOverride) {
         bool isExactInput = params.amountSpecified < 0;
 
-        if (wrapZeroForOne == params.zeroForOne) {
+        if (shouldWrap == params.zeroForOne) {
             uint256 inputAmount =
                 isExactInput ? uint256(-params.amountSpecified) : _getWrapInputRequired(uint256(params.amountSpecified));
             _take(underlyingCurrency, address(this), inputAmount);

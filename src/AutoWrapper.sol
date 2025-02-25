@@ -8,6 +8,7 @@ import {TokenWrapperHook} from "./base/TokenWrapperHook.sol";
 import {wYBSV1} from "./paxos/wYBSV1.sol";
 import {Hooks} from "v4-core/src/libraries/Hooks.sol";
 import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
+import {SafeCast} from "@uniswap/v4-core/src/libraries/SafeCast.sol";
 import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
 import {Currency, CurrencyLibrary} from "@uniswap/v4-core/src/types/Currency.sol";
 import {IERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
@@ -18,6 +19,9 @@ import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
 /// @author Predicate Labs
 /// @notice A hook for auto wrapping and unwrapping YBS, "USDL"
 contract AutoWrapper is TokenWrapperHook {
+    using SafeCast for uint256;
+    using SafeCast for int256;
+
     wYBSV1 public immutable wYBS;
     IERC20Upgradeable public immutable ybs;
     PoolKey public underlyingPoolKey;
@@ -50,7 +54,7 @@ contract AutoWrapper is TokenWrapperHook {
             _take(underlyingCurrency, address(this), inputAmount);
             uint256 wrappedAmount = _deposit(inputAmount);
             _settle(wrapperCurrency, address(this), wrappedAmount);
-            int128 amountUnspecified = isExactInput ? -int128(int256(wrappedAmount)) : int128(int256(inputAmount));
+            int128 amountUnspecified = isExactInput ? -SafeCast.toInt128(int256(wrappedAmount)) : SafeCast.toInt128(int256(inputAmount));
             swapDelta = toBeforeSwapDelta(int128(-params.amountSpecified), amountUnspecified);
         } else {
             uint256 inputAmount = isExactInput
@@ -59,7 +63,7 @@ contract AutoWrapper is TokenWrapperHook {
             _take(wrapperCurrency, address(this), inputAmount);
             uint256 unwrappedAmount = _withdraw(inputAmount);
             _settle(underlyingCurrency, address(this), unwrappedAmount);
-            int128 amountUnspecified = isExactInput ? -int128(int256(unwrappedAmount)) : int128(int256(inputAmount));
+            int128 amountUnspecified = isExactInput ? -SafeCast.toInt128(int256(unwrappedAmount)) : SafeCast.toInt128(int256(inputAmount));
             swapDelta = toBeforeSwapDelta(int128(-params.amountSpecified), amountUnspecified);
         }
 

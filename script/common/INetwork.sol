@@ -5,6 +5,7 @@ import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
 import {PositionManager} from "v4-periphery/src/PositionManager.sol";
 import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
 import {ISimpleV4Router} from "../../src/interfaces/ISimpleV4Router.sol";
+import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
 
 interface INetwork {
     struct Config {
@@ -15,6 +16,8 @@ interface INetwork {
         address create2Deployer;
         address serviceManager;
         string policyId;
+        address ybsAddress;
+        PoolKey poolKey;
     }
 
     struct PoolConfig {

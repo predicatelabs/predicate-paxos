@@ -12,10 +12,15 @@ jobs:
         steps:
           - uses: actions/checkout@v4
             with:
-              submodules: recursive
+              submodules: true
+
+          - name: Update Git Submodules
+            run: git submodule update --init --recursive
 
           - name: Install Foundry
             uses: foundry-rs/foundry-toolchain@v1
+            with:
+              version: nightly
 
           - name: Print forge version
             run: forge --version
@@ -27,12 +32,15 @@ jobs:
         steps:
           - uses: actions/checkout@v4
             with:
-              submodules: recursive
+              submodules: test
+
+          - name: Update Git Submodules
+            run: git submodule update --init --recursive
 
           - name: Install Foundry
             uses: foundry-rs/foundry-toolchain@v1
             with:
-              version: stable
+              version: nightly
 
           - name: Print forge version
             run: forge --version
@@ -45,10 +53,15 @@ jobs:
         steps:
           - uses: actions/checkout@v4
             with:
-              submodules: recursive
+              submodules: true
+
+          - name: Update Git Submodules
+            run: git submodule update --init --recursive
 
           - name: Install Foundry
             uses: foundry-rs/foundry-toolchain@v1
+            with:
+              version: nightly
 
           - name: Print forge version
             run: forge --version

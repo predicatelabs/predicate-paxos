@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-
 import {
     toBeforeSwapDelta, BeforeSwapDelta, BeforeSwapDeltaLibrary
 } from "@uniswap/v4-core/src/types/BeforeSwapDelta.sol";
-import { BaseTokenWrapperHook } from "v4-periphery/src/base/hooks/BaseTokenWrapperHook.sol";
+import { CustomTokenWrapperHook } from "./base/CustomTokenWrapperHook.sol";
 import { wYBSV1 } from "./paxos/wYBSV1.sol";
 import {SafeCast} from "@uniswap/v4-core/src/libraries/SafeCast.sol";
 import { Hooks } from "v4-core/src/libraries/Hooks.sol";
@@ -13,7 +12,6 @@ import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
 import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
 import { IPoolManager } from "v4-core/src/interfaces/IPoolManager.sol";
 import { Currency, CurrencyLibrary} from "@uniswap/v4-core/src/types/Currency.sol";
-import {BeforeSwapDelta} from "@uniswap/v4-core/src/types/BeforeSwapDelta.sol";
 import {IERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
@@ -21,7 +19,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 /// @title Auto Wrapper
 /// @author Predicate Labs
 /// @notice A hook for auto wrapping and unwrapping YBS, "USDL"
-contract AutoWrapper is BaseTokenWrapperHook {
+contract AutoWrapper is CustomTokenWrapperHook {
     using CurrencyLibrary for Currency;
     using SafeCast for int256;
     using SafeCast for uint256;
@@ -35,25 +33,20 @@ contract AutoWrapper is BaseTokenWrapperHook {
         IPoolManager _manager,
         address _ybsAddress, // USDL
         PoolKey memory _poolKey // token0 is USDC, token1 is wUSDL
-    ) BaseTokenWrapperHook(_manager, _poolKey.currency1, Currency.wrap(_ybsAddress)) { 
+    ) CustomTokenWrapperHook(_manager, _poolKey.currency1, Currency.wrap(_ybsAddress)) { 
         _usdc = IERC20(Currency.unwrap(_poolKey.currency0));
         _wYBS = wYBSV1(Currency.unwrap(_poolKey.currency1));
         _ybs = IERC20Upgradeable(_ybsAddress);
         _underlyingPoolKey = _poolKey;
     }
 
-    /// @notice Handles token wrapping and unwrapping during swaps
-    /// @dev Processes both exact input (amountSpecified < 0) and exact output (amountSpecified > 0) swaps
-    /// @param params The swap parameters including direction and amount
-    /// @return selector The function selector
-    /// @return swapDelta The input/output token amounts for pool accounting
-    /// @return lpFeeOverride The fee override (always 0 for wrapper pools)
     function _beforeSwap(address, PoolKey calldata, IPoolManager.SwapParams calldata params, bytes calldata)
         internal
         override
         returns (bytes4 selector, BeforeSwapDelta swapDelta, uint24 lpFeeOverride)
     {
         bool isExactInput = params.amountSpecified < 0;
+        bool wrapZeroForOne = params.zeroForOne;
 
         if (wrapZeroForOne == params.zeroForOne) {
             // we are wrapping  => USDC -> USDL   USDC/USDL

@@ -1,39 +1,41 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import { BaseTokenWrapperHook } from "v4-periphery/src/base/hooks/BaseTokenWrapperHook.sol";
-import { wYBSV1 } from "./paxos/wYBSV1.sol";
-import { Hooks } from "v4-core/src/libraries/Hooks.sol";
+import {
+    toBeforeSwapDelta, BeforeSwapDelta, BeforeSwapDeltaLibrary
+} from "@uniswap/v4-core/src/types/BeforeSwapDelta.sol";
+import {TokenWrapperHook} from "./base/TokenWrapperHook.sol";
+import {wYBSV1} from "./paxos/wYBSV1.sol";
+import {Hooks} from "v4-core/src/libraries/Hooks.sol";
 import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
-import { IPoolManager } from "v4-core/src/interfaces/IPoolManager.sol";
-import { Currency, CurrencyLibrary } from "@uniswap/v4-core/src/types/Currency.sol";
+import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
+import {Currency, CurrencyLibrary} from "@uniswap/v4-core/src/types/Currency.sol";
 import {IERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
 
 /// @title Auto Wrapper
 /// @author Predicate Labs
 /// @notice A hook for auto wrapping and unwrapping YBS, "USDL"
-contract AutoWrapper is BaseTokenWrapperHook {
+contract AutoWrapper is TokenWrapperHook {
     wYBSV1 public immutable wYBS;
     IERC20Upgradeable public immutable ybs;
-    PoolKey public immutable wrappedPoolKey;
+    PoolKey public underlyingPoolKey;
+    IERC20 public immutable usdc;
+    bool public immutable wrapZeroForOne;
 
     constructor(
         IPoolManager _manager,
-        address _wYBS,
-        address _ybs, 
+        address _ybsAddress, 
         PoolKey memory _poolKey
-    ) BaseTokenWrapperHook(_manager, Currency.wrap(_wYBS), Currency.wrap(_ybs)) {
-        wYBS = wYBSV1(wYBS);
-        ybs = IERC20Upgradeable(_ybs);
-        wrappedPoolKey = _poolKey;
+    ) TokenWrapperHook(_manager, _poolKey.currency1, Currency.wrap(_ybsAddress)) {
+        usdc = IERC20(Currency.unwrap(_poolKey.currency0));
+        wYBS = wYBSV1(Currency.unwrap(_poolKey.currency1));
+        ybs = IERC20Upgradeable(_ybsAddress);
+        underlyingPoolKey = _poolKey;
+        wrapZeroForOne = Currency.unwrap(_poolKey.currency0) == _ybsAddress;
     }
 
-    /// @notice Handles token wrapping and unwrapping during swaps
-    /// @dev Processes both exact input (amountSpecified < 0) and exact output (amountSpecified > 0) swaps
-    /// @param params The swap parameters including direction and amount
-    /// @return selector The function selector
-    /// @return swapDelta The input/output token amounts for pool accounting
-    /// @return lpFeeOverride The fee override (always 0 for wrapper pools)
     function _beforeSwap(address, PoolKey calldata, IPoolManager.SwapParams calldata params, bytes calldata)
         internal
         override
@@ -42,17 +44,15 @@ contract AutoWrapper is BaseTokenWrapperHook {
         bool isExactInput = params.amountSpecified < 0;
 
         if (wrapZeroForOne == params.zeroForOne) {
-            // we are wrapping
             uint256 inputAmount =
                 isExactInput ? uint256(-params.amountSpecified) : _getWrapInputRequired(uint256(params.amountSpecified));
             _take(underlyingCurrency, address(this), inputAmount);
             uint256 wrappedAmount = _deposit(inputAmount);
             _settle(wrapperCurrency, address(this), wrappedAmount);
             int128 amountUnspecified =
-                isExactInput ? -wrappedAmount.toInt256().toInt128() : inputAmount.toInt256().toInt128();
-            swapDelta = toBeforeSwapDelta(-params.amountSpecified.toInt128(), amountUnspecified);
+                isExactInput ? -int128(int256(wrappedAmount)) : int128(int256(inputAmount));
+            swapDelta = toBeforeSwapDelta(int128(-params.amountSpecified), amountUnspecified);
         } else {
-            // we are unwrapping
             uint256 inputAmount = isExactInput
                 ? uint256(-params.amountSpecified)
                 : _getUnwrapInputRequired(uint256(params.amountSpecified));
@@ -60,8 +60,8 @@ contract AutoWrapper is BaseTokenWrapperHook {
             uint256 unwrappedAmount = _withdraw(inputAmount);
             _settle(underlyingCurrency, address(this), unwrappedAmount);
             int128 amountUnspecified =
-                isExactInput ? -unwrappedAmount.toInt256().toInt128() : inputAmount.toInt256().toInt128();
-            swapDelta = toBeforeSwapDelta(-params.amountSpecified.toInt128(), amountUnspecified);
+                isExactInput ? -int128(int256(unwrappedAmount)) : int128(int256(inputAmount));
+            swapDelta = toBeforeSwapDelta(int128(-params.amountSpecified), amountUnspecified);
         }
 
         return (IHooks.beforeSwap.selector, swapDelta, 0);

@@ -26,7 +26,7 @@ contract AutoWrapper is TokenWrapperHook {
 
     constructor(
         IPoolManager _manager,
-        address _ybsAddress, 
+        address _ybsAddress,
         PoolKey memory _poolKey
     ) TokenWrapperHook(_manager, _poolKey.currency1, Currency.wrap(_ybsAddress)) {
         usdc = IERC20(Currency.unwrap(_poolKey.currency0));
@@ -36,11 +36,12 @@ contract AutoWrapper is TokenWrapperHook {
         wrapZeroForOne = Currency.unwrap(_poolKey.currency0) == _ybsAddress;
     }
 
-    function _beforeSwap(address, PoolKey calldata, IPoolManager.SwapParams calldata params, bytes calldata)
-        internal
-        override
-        returns (bytes4 selector, BeforeSwapDelta swapDelta, uint24 lpFeeOverride)
-    {
+    function _beforeSwap(
+        address,
+        PoolKey calldata,
+        IPoolManager.SwapParams calldata params,
+        bytes calldata
+    ) internal override returns (bytes4 selector, BeforeSwapDelta swapDelta, uint24 lpFeeOverride) {
         bool isExactInput = params.amountSpecified < 0;
 
         if (wrapZeroForOne == params.zeroForOne) {
@@ -49,8 +50,7 @@ contract AutoWrapper is TokenWrapperHook {
             _take(underlyingCurrency, address(this), inputAmount);
             uint256 wrappedAmount = _deposit(inputAmount);
             _settle(wrapperCurrency, address(this), wrappedAmount);
-            int128 amountUnspecified =
-                isExactInput ? -int128(int256(wrappedAmount)) : int128(int256(inputAmount));
+            int128 amountUnspecified = isExactInput ? -int128(int256(wrappedAmount)) : int128(int256(inputAmount));
             swapDelta = toBeforeSwapDelta(int128(-params.amountSpecified), amountUnspecified);
         } else {
             uint256 inputAmount = isExactInput
@@ -59,8 +59,7 @@ contract AutoWrapper is TokenWrapperHook {
             _take(wrapperCurrency, address(this), inputAmount);
             uint256 unwrappedAmount = _withdraw(inputAmount);
             _settle(underlyingCurrency, address(this), unwrappedAmount);
-            int128 amountUnspecified =
-                isExactInput ? -int128(int256(unwrappedAmount)) : int128(int256(inputAmount));
+            int128 amountUnspecified = isExactInput ? -int128(int256(unwrappedAmount)) : int128(int256(inputAmount));
             swapDelta = toBeforeSwapDelta(int128(-params.amountSpecified), amountUnspecified);
         }
 

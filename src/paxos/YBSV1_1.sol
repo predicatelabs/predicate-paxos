@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import {AccessControlDefaultAdminRulesUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlDefaultAdminRulesUpgradeable.sol"; // solhint-disable-line max-line-length
-import {IERC20MetadataUpgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/IERC20MetadataUpgradeable.sol"; // solhint-disable-line max-line-length
+import {AccessControlDefaultAdminRulesUpgradeable} from
+    "@openzeppelin/contracts-upgradeable/access/AccessControlDefaultAdminRulesUpgradeable.sol"; // solhint-disable-line max-line-length
+import {IERC20MetadataUpgradeable} from
+    "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/IERC20MetadataUpgradeable.sol"; // solhint-disable-line max-line-length
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {EIP2612} from "./lib/EIP2612.sol";
 import {EIP3009} from "./lib/EIP3009.sol";
@@ -104,32 +106,22 @@ contract YBSV1_1 is
     event BlockedAccountWiped(address indexed account);
     event RebasePeriodSet(uint256 indexed value);
     event MaxRebaseRateSet(uint256 indexed value);
-    event RebaseMultipliersSet(uint256 indexed beforeIncrMult_, uint256 indexed afterIncrMult_, uint256 indexed multIncrTime_);
+    event RebaseMultipliersSet(
+        uint256 indexed beforeIncrMult_, uint256 indexed afterIncrMult_, uint256 indexed multIncrTime_
+    );
     event SupplyIncreased(address indexed to, uint256 value);
     event SupplyDecreased(address indexed from, uint256 value);
 
     // ERC20 Errors from https://eips.ethereum.org/EIPS/eip-6093
-    error ERC20InsufficientBalance(
-        address sender,
-        uint256 shares,
-        uint256 sharesNeeded
-    );
+    error ERC20InsufficientBalance(address sender, uint256 shares, uint256 sharesNeeded);
     error ERC20InvalidSender(address sender);
     error ERC20InvalidReceiver(address receiver);
-    error ERC20InsufficientAllowance(
-        address spender,
-        uint256 allowance,
-        uint256 needed
-    );
+    error ERC20InsufficientAllowance(address spender, uint256 allowance, uint256 needed);
     error ERC20InvalidApprover(address approver);
     error ERC20InvalidSpender(address spender);
 
     // YBS Errors
-    error InsufficientSupply(
-        address sender,
-        uint256 shares,
-        uint256 sharesNeeded
-    );
+    error InsufficientSupply(address sender, uint256 shares, uint256 sharesNeeded);
     error InvalidRebaseMultiplier(uint256 multiplier);
     error RetroactiveRebase();
     error InvalidRebaseRate(uint256 rate);
@@ -142,7 +134,9 @@ contract YBSV1_1 is
     error CannotChangeRebaseSharesWithPendingMultiplier();
 
     modifier whenNoPendingMultiplier() {
-        if (block.timestamp < multIncrTime && beforeIncrMult != afterIncrMult) revert CannotChangeRebaseSharesWithPendingMultiplier();
+        if (block.timestamp < multIncrTime && beforeIncrMult != afterIncrMult) {
+            revert CannotChangeRebaseSharesWithPendingMultiplier();
+        }
         _;
     }
 
@@ -175,10 +169,12 @@ contract YBSV1_1 is
         address rebaserAdmin,
         address rebaser
     ) external initializer {
-        if (supplyController == address(0) || pauser == address(0) || assetProtector == address(0) || 
-            rebaserAdmin == address(0) || rebaser == address(0)) {
+        if (
+            supplyController == address(0) || pauser == address(0) || assetProtector == address(0)
+                || rebaserAdmin == address(0) || rebaser == address(0)
+        ) {
             revert ZeroAddress();
-        } 
+        }
 
         name = name_;
         symbol = symbol_;
@@ -232,7 +228,9 @@ contract YBSV1_1 is
     ) external onlyRole(ASSET_PROTECTION_ROLE) {
         for (uint256 i = 0; i < addresses.length;) {
             _blockAccount(addresses[i]);
-            unchecked { ++i; }
+            unchecked {
+                ++i;
+            }
         }
     }
 
@@ -244,10 +242,12 @@ contract YBSV1_1 is
     function blockAccountsFromReceiving(
         address[] calldata addresses
     ) external onlyRole(ASSET_PROTECTION_ROLE) {
-        for (uint256 i = 0; i < addresses.length; ) {
+        for (uint256 i = 0; i < addresses.length;) {
             _blocklistForReceiving[addresses[i]] = true;
             emit AccountBlockedFromReceivingToken(addresses[i]);
-            unchecked { ++i; }
+            unchecked {
+                ++i;
+            }
         }
     }
 
@@ -258,10 +258,12 @@ contract YBSV1_1 is
      */
     function unblockAccounts(
         address[] calldata addresses
-    ) external onlyRole(ASSET_PROTECTION_ROLE) whenNoPendingMultiplier() {
+    ) external onlyRole(ASSET_PROTECTION_ROLE) whenNoPendingMultiplier {
         for (uint256 i = 0; i < addresses.length;) {
             _unblockAccount(addresses[i]);
-            unchecked { ++i; }
+            unchecked {
+                ++i;
+            }
         }
     }
 
@@ -276,7 +278,9 @@ contract YBSV1_1 is
         for (uint256 i = 0; i < addresses.length;) {
             delete _blocklistForReceiving[addresses[i]];
             emit AccountUnblockedFromReceivingToken(addresses[i]);
-            unchecked { ++i; }
+            unchecked {
+                ++i;
+            }
         }
     }
 
@@ -344,20 +348,17 @@ contract YBSV1_1 is
      * @param rebaseRate the increase rate for the next multiplier
      * @param expectedTotalSupply the expected total supply after the rebaseRate is applied.
      */
-    function increaseRebaseMultiplier(
-        uint256 rebaseRate,
-        uint256 expectedTotalSupply
-    ) external onlyRole(REBASE_ROLE) {
+    function increaseRebaseMultiplier(uint256 rebaseRate, uint256 expectedTotalSupply) external onlyRole(REBASE_ROLE) {
         // Revert if already been set, corrective actions should use setNextMultiplier()
         if (multIncrTime > block.timestamp) {
             revert NextIncreaseAlreadySet();
         }
-        
+
         if (rebaseRate > maxRebaseRate) {
             revert InvalidRebaseRate(rebaseRate);
         }
 
-        // The multIncrTime_ can be in the past only if the multiplier does not change, i.e. rebaseRate == 0. 
+        // The multIncrTime_ can be in the past only if the multiplier does not change, i.e. rebaseRate == 0.
         // This is needed for Operations to rely on the safer function increaseRebaseMultiplier(),
         // in case the multiplier was not updated for longer than 'rebasePeriod' time.
         uint256 multIncrTime_ = multIncrTime + rebasePeriod;
@@ -384,8 +385,7 @@ contract YBSV1_1 is
      * @return An uint256 representing the total supply
      */
     function totalSupply() external view returns (uint256) {
-        return
-            _convertRebaseSharesToTokens(totalRebaseShares) + totalFixedShares;
+        return _convertRebaseSharesToTokens(totalRebaseShares) + totalFixedShares;
     }
 
     /**
@@ -394,10 +394,10 @@ contract YBSV1_1 is
      * @param account account to get the balance for.
      * @return An uint256 representing the amount owned by the passed account.
      */
-    function balanceOf(address account) external view returns (uint256) {
-        return
-            _convertRebaseSharesToTokens(_rebaseShares[account]) +
-            _fixedShares[account];
+    function balanceOf(
+        address account
+    ) external view returns (uint256) {
+        return _convertRebaseSharesToTokens(_rebaseShares[account]) + _fixedShares[account];
     }
 
     /**
@@ -405,7 +405,9 @@ contract YBSV1_1 is
      * @param account account to get the shares for.
      * @return An uint256 representing shares.
      */
-    function rebaseSharesOf(address account) external view returns (uint256) {
+    function rebaseSharesOf(
+        address account
+    ) external view returns (uint256) {
         return _rebaseShares[account];
     }
 
@@ -414,7 +416,9 @@ contract YBSV1_1 is
      * @param account account to get the shares for.
      * @return An uint256 representing shares.
      */
-    function fixedSharesOf(address account) external view returns (uint256) {
+    function fixedSharesOf(
+        address account
+    ) external view returns (uint256) {
         return _fixedShares[account];
     }
 
@@ -423,7 +427,9 @@ contract YBSV1_1 is
      * @param addr The address to check if blocked.
      * @return A bool representing whether the given address is blocked.
      */
-    function isAddrBlocked(address addr) public view override returns (bool) {
+    function isAddrBlocked(
+        address addr
+    ) public view override returns (bool) {
         return _blocklist[addr];
     }
 
@@ -432,7 +438,9 @@ contract YBSV1_1 is
      * @param addr The address to check if blocked for receiving.
      * @return A bool representing whether the given address is blocked for receiving.
      */
-    function isAddrBlockedForReceiving(address addr) public view returns (bool) {
+    function isAddrBlockedForReceiving(
+        address addr
+    ) public view returns (bool) {
         return _blocklistForReceiving[addr];
     }
 
@@ -453,7 +461,7 @@ contract YBSV1_1 is
      */
     function increaseSupply(
         uint256 value
-    ) public onlyRole(SUPPLY_CONTROLLER_ROLE) whenNoPendingMultiplier() returns (bool success) {
+    ) public onlyRole(SUPPLY_CONTROLLER_ROLE) whenNoPendingMultiplier returns (bool success) {
         // Do not allow blocked address to get rebaseShares. This check is only necessary for increaseSupply,
         // as decreaseSupply will revert due to insufficient rebaseShares.
         if (_blocklist[msg.sender]) revert BlockedAccountSender();
@@ -484,18 +492,19 @@ contract YBSV1_1 is
      */
     function decreaseSupply(
         uint256 value
-    ) public onlyRole(SUPPLY_CONTROLLER_ROLE) whenNoPendingMultiplier() returns (bool success) {
+    ) public onlyRole(SUPPLY_CONTROLLER_ROLE) whenNoPendingMultiplier returns (bool success) {
         uint256 shares = _convertToRebaseShares(value);
         if (shares == 0) revert ZeroSharesFromValue(value);
 
         uint256 hasShares = _rebaseShares[msg.sender];
-        if (shares > hasShares)
+        if (shares > hasShares) {
             revert InsufficientSupply(msg.sender, hasShares, shares);
+        }
 
         unchecked {
             // Cannot underflow, shares must be less than or equal to hasShares to get here
             _rebaseShares[msg.sender] -= shares;
-            // Cannot underflow, totalRebaseShares is always greater than or equal to account shares 
+            // Cannot underflow, totalRebaseShares is always greater than or equal to account shares
             totalRebaseShares -= shares;
         }
 
@@ -510,10 +519,7 @@ contract YBSV1_1 is
      * @param amount The amount to be transferred.
      * @return True when the operation was successful.
      */
-    function transfer(
-        address to,
-        uint256 amount
-    ) public whenNotPaused returns (bool) {
+    function transfer(address to, uint256 amount) public whenNotPaused returns (bool) {
         _transfer(msg.sender, to, amount);
         return true;
     }
@@ -524,17 +530,14 @@ contract YBSV1_1 is
      * and the new allowance by unfortunate transaction ordering. One possible solution to mitigate this
      * race condition is to first reduce the spender's allowance to 0 and set the desired value afterwards:
      * https://github.com/ethereum/EIPs/issues/20#issuecomment-263524729
-     * 
+     *
      * Recommended to use increaseApproval and decreaseApproval instead
-     * 
+     *
      * @param spender The address which will spend the funds.
      * @param amount The amount of tokens to be spent.
      * @return True when the operation was successful.
      */
-    function approve(
-        address spender,
-        uint256 amount
-    ) public whenNotPaused returns (bool) {
+    function approve(address spender, uint256 amount) public whenNotPaused returns (bool) {
         _approve(msg.sender, spender, amount);
         return true;
     }
@@ -546,10 +549,7 @@ contract YBSV1_1 is
      * @param spender The address which will spend the funds.
      * @return A uint256 specifying the amount of tokens still available for the spender.
      */
-    function allowance(
-        address owner,
-        address spender
-    ) public view returns (uint256) {
+    function allowance(address owner, address spender) public view returns (uint256) {
         return _allowances[owner][spender];
     }
 
@@ -562,10 +562,7 @@ contract YBSV1_1 is
      * @param addedValue The amount of tokens to increase the allowance by.
      * @return True when the operation was successful.
      */
-    function increaseApproval(
-        address spender,
-        uint256 addedValue
-    ) public whenNotPaused returns (bool) {
+    function increaseApproval(address spender, uint256 addedValue) public whenNotPaused returns (bool) {
         _beforeApprove(spender);
         _allowances[msg.sender][spender] += addedValue;
         emit Approval(msg.sender, spender, _allowances[msg.sender][spender]);
@@ -581,10 +578,7 @@ contract YBSV1_1 is
      * @param subtractedValue The amount of tokens to decrease the allowance by.
      * @return True when the operation was successful.
      */
-    function decreaseApproval(
-        address spender,
-        uint256 subtractedValue
-    ) public whenNotPaused returns (bool) {
+    function decreaseApproval(address spender, uint256 subtractedValue) public whenNotPaused returns (bool) {
         _beforeApprove(spender);
         uint256 oldValue = _allowances[msg.sender][spender];
         if (subtractedValue > oldValue) {
@@ -605,11 +599,7 @@ contract YBSV1_1 is
      * @param amount the amount of tokens to be transferred
      * @return True when the operation was successful.
      */
-    function transferFrom(
-        address from,
-        address to,
-        uint256 amount
-    ) public whenNotPaused returns (bool) {
+    function transferFrom(address from, address to, uint256 amount) public whenNotPaused returns (bool) {
         if (_blocklist[msg.sender]) revert BlockedAccountSpender();
         _transferFromAllowance(from, to, amount);
         return true;
@@ -626,13 +616,14 @@ contract YBSV1_1 is
         address[] calldata from,
         address[] calldata to,
         uint256[] calldata value
-    ) public whenNotPaused returns (bool)
-    {
+    ) public whenNotPaused returns (bool) {
         if (!(to.length == from.length && value.length == from.length)) revert ArgumentLengthMismatch();
         if (_blocklist[msg.sender]) revert BlockedAccountSpender();
         for (uint256 i = 0; i < from.length;) {
             _transferFromAllowance(from[i], to[i], value[i]);
-            unchecked { ++i; }
+            unchecked {
+                ++i;
+            }
         }
         return true;
     }
@@ -670,16 +661,19 @@ contract YBSV1_1 is
         if (_blocklist[from]) revert BlockedAccountSender();
         if (_blocklist[to]) revert BlockedAccountReceiver();
         if (_blocklistForReceiving[to]) revert BlockedAccountReceiver();
-        
+
         // To prevent inflation attacks on the wYBS contract, block direct transfers.
-        if (hasRole(WRAPPED_YBS_ROLE, to) && (!hasRole(WRAPPED_YBS_ROLE, msg.sender) || hasRole(WRAPPED_YBS_ROLE, from))) revert WYBSTransferNotAllowed();
+        if (
+            hasRole(WRAPPED_YBS_ROLE, to) && (!hasRole(WRAPPED_YBS_ROLE, msg.sender) || hasRole(WRAPPED_YBS_ROLE, from))
+        ) revert WYBSTransferNotAllowed();
 
         uint256 shares = _convertToRebaseShares(amount);
         if (shares == 0) revert ZeroSharesFromValue(amount);
 
         uint256 fromShares = _rebaseShares[from];
-        if (shares > fromShares)
+        if (shares > fromShares) {
             revert ERC20InsufficientBalance(from, fromShares, shares);
+        }
 
         unchecked {
             _rebaseShares[from] -= shares;
@@ -693,7 +687,9 @@ contract YBSV1_1 is
      * @dev Internal function to set the rebase period.
      * @param rebasePeriod_ The new rebase period.
      */
-    function _setRebasePeriod(uint256 rebasePeriod_) internal {
+    function _setRebasePeriod(
+        uint256 rebasePeriod_
+    ) internal {
         rebasePeriod = rebasePeriod_;
 
         emit RebasePeriodSet(rebasePeriod_);
@@ -703,7 +699,9 @@ contract YBSV1_1 is
      * @dev Internal function to set the max rebase rate.
      * @param maxRebaseRate_ The new max rebase rate.
      */
-    function _setMaxRebaseRate(uint256 maxRebaseRate_) internal {
+    function _setMaxRebaseRate(
+        uint256 maxRebaseRate_
+    ) internal {
         if (maxRebaseRate_ > _BASE) {
             revert InvalidMaxRebaseRate(maxRebaseRate_);
         }
@@ -720,11 +718,13 @@ contract YBSV1_1 is
      * @param multIncrTime_ The rebase multiplier increase time.
      * @param expectedTotalSupply The expected total supply after the increase based on afterIncrMult_.
      */
-    function _setRebaseMultipliers(uint256 beforeIncrMult_,
-                                   uint256 afterIncrMult_,
-                                   uint256 multIncrTime_,
-                                   uint256 expectedTotalSupply) internal {
-        if ((totalRebaseShares * afterIncrMult_ / _BASE ) + totalFixedShares > expectedTotalSupply) {
+    function _setRebaseMultipliers(
+        uint256 beforeIncrMult_,
+        uint256 afterIncrMult_,
+        uint256 multIncrTime_,
+        uint256 expectedTotalSupply
+    ) internal {
+        if ((totalRebaseShares * afterIncrMult_ / _BASE) + totalFixedShares > expectedTotalSupply) {
             revert UnexpectedTotalSupply();
         }
 
@@ -736,7 +736,7 @@ contract YBSV1_1 is
     }
 
     /**
-     * @dev required by the OZ UUPS module to authorize an upgrade 
+     * @dev required by the OZ UUPS module to authorize an upgrade
      * of the contract. Restricted to DEFAULT_ADMIN_ROLE.
      */
     function _authorizeUpgrade(
@@ -747,7 +747,9 @@ contract YBSV1_1 is
      * @dev Private helper function used by approve and increase/decreaseApproval
      * @param spender The address which will spend the funds.
      */
-    function _beforeApprove(address spender) private view {
+    function _beforeApprove(
+        address spender
+    ) private view {
         if (msg.sender == address(0)) revert ERC20InvalidApprover(msg.sender);
         if (spender == address(0)) revert ERC20InvalidSpender(spender);
         if (_blocklist[spender]) revert BlockedAccountSpender();
@@ -759,7 +761,9 @@ contract YBSV1_1 is
      * The token holder's rebase shares are converted to fixed shares.
      * @param account The account to block.
      */
-    function _blockAccount(address account) private {
+    function _blockAccount(
+        address account
+    ) private {
         _convertRebaseSharesToFixedShares(account);
 
         _blocklist[account] = true;
@@ -771,7 +775,9 @@ contract YBSV1_1 is
      * The token holder's fixed shares are converted back to rebase shares.
      * @param account The account to unblock.
      */
-    function _unblockAccount(address account) private {
+    function _unblockAccount(
+        address account
+    ) private {
         _convertFixedSharesToRebaseShares(account);
 
         delete _blocklist[account];
@@ -782,14 +788,16 @@ contract YBSV1_1 is
      * @dev Private function that converts rebase shares to fixed shares.
      * @param account The account whose shares will be converted
      */
-    function _convertRebaseSharesToFixedShares(address account) private {
+    function _convertRebaseSharesToFixedShares(
+        address account
+    ) private {
         if (_rebaseShares[account] == 0) return;
 
         uint256 shares = _rebaseShares[account];
         uint256 amount = _convertRebaseSharesToTokens(shares);
 
         delete _rebaseShares[account];
-        unchecked{
+        unchecked {
             totalRebaseShares -= shares;
         }
 
@@ -801,7 +809,9 @@ contract YBSV1_1 is
      * @dev Private function that converts fixed shares to rebase shares.
      * @param account The account whose shares will be converted
      */
-    function _convertFixedSharesToRebaseShares(address account) private {
+    function _convertFixedSharesToRebaseShares(
+        address account
+    ) private {
         if (_fixedShares[account] == 0) return;
 
         uint256 amount = _fixedShares[account];
@@ -825,7 +835,7 @@ contract YBSV1_1 is
         if (block.timestamp >= multIncrTime) {
             return afterIncrMult;
         }
-        
+
         return beforeIncrMult;
     }
 
@@ -857,11 +867,7 @@ contract YBSV1_1 is
      * @param spender The address which will spend the funds.
      * @param value The amount of tokens to be approved.
      */
-    function _approve(
-        address owner,
-        address spender,
-        uint256 value
-    ) internal override {
+    function _approve(address owner, address spender, uint256 value) internal override {
         _beforeApprove(spender);
         _allowances[owner][spender] = value;
         emit Approval(owner, spender, value);
@@ -874,21 +880,12 @@ contract YBSV1_1 is
      * @param to The address which you want to transfer to
      * @param value the amount of tokens to be transferred
      */
-    function _transferFromAllowance(
-        address from,
-        address to,
-        uint256 value
-    )
-    internal
-    {
+    function _transferFromAllowance(address from, address to, uint256 value) internal {
         uint256 currentAllowance = _allowances[from][msg.sender];
         if (currentAllowance != type(uint256).max) {
-            if (value > currentAllowance)
-                revert ERC20InsufficientAllowance(
-                    msg.sender,
-                    currentAllowance,
-                    value
-                );
+            if (value > currentAllowance) {
+                revert ERC20InsufficientAllowance(msg.sender, currentAllowance, value);
+            }
 
             unchecked {
                 _allowances[from][msg.sender] -= value;

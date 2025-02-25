@@ -5,7 +5,8 @@ import {ERC4626Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC2
 import {ERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import {SafeERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import {IERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
-import {AccessControlDefaultAdminRulesUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlDefaultAdminRulesUpgradeable.sol"; // solhint-disable-line max-line-length
+import {AccessControlDefaultAdminRulesUpgradeable} from
+    "@openzeppelin/contracts-upgradeable/access/AccessControlDefaultAdminRulesUpgradeable.sol"; // solhint-disable-line max-line-length
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {PaxosBaseAbstract} from "./lib/PaxosBaseAbstract.sol";
 import {EIP2612} from "./lib/EIP2612.sol";
@@ -18,13 +19,7 @@ import {EIP712} from "./lib/EIP712.sol";
  * @custom:security-contact smart-contract-security@paxos.com
  */
 // solhint-disable-next-line contract-name-camelcase
-contract wYBSV1 is
-    ERC4626Upgradeable,
-    AccessControlDefaultAdminRulesUpgradeable,
-    UUPSUpgradeable,
-    EIP2612,
-    EIP3009
-{
+contract wYBSV1 is ERC4626Upgradeable, AccessControlDefaultAdminRulesUpgradeable, UUPSUpgradeable, EIP2612, EIP3009 {
     // BLOCKLIST / FREEZE & SEIZE
     // Mapping of block/freeze status per account
     mapping(address => bool) private _blocklist;
@@ -123,7 +118,9 @@ contract wYBSV1 is
     ) external onlyRole(ASSET_PROTECTION_ROLE) {
         for (uint256 i = 0; i < addresses.length;) {
             _blockAccount(addresses[i]);
-            unchecked { ++i; }
+            unchecked {
+                ++i;
+            }
         }
     }
 
@@ -137,7 +134,9 @@ contract wYBSV1 is
     ) external onlyRole(ASSET_PROTECTION_ROLE) {
         for (uint256 i = 0; i < addresses.length;) {
             _unblockAccount(addresses[i]);
-            unchecked { ++i; }
+            unchecked {
+                ++i;
+            }
         }
     }
 
@@ -147,15 +146,13 @@ contract wYBSV1 is
      * @param blockedAddr The blocked address to wipe.
      * @param receiverAddr The address to send assets to.
      */
-    function seizeAssets(
-        address blockedAddr, address receiverAddr
-    ) external onlyRole(ASSET_PROTECTION_ROLE) {
+    function seizeAssets(address blockedAddr, address receiverAddr) external onlyRole(ASSET_PROTECTION_ROLE) {
         if (!_blocklist[blockedAddr]) revert AccountNotBlocked();
         if (_blocklist[receiverAddr]) revert BlockedAccountReceiver();
 
         uint256 shares = balanceOf(blockedAddr);
         uint256 assets = previewRedeem(shares);
-        
+
         _burn(blockedAddr, shares);
         SafeERC20Upgradeable.safeTransfer(IERC20Upgradeable(asset()), receiverAddr, assets);
 
@@ -174,12 +171,13 @@ contract wYBSV1 is
         address[] calldata from,
         address[] calldata to,
         uint256[] calldata amount
-    ) external returns (bool)
-    {
+    ) external returns (bool) {
         if (!(to.length == from.length && amount.length == from.length)) revert ArgumentLengthMismatch();
         for (uint256 i = 0; i < from.length;) {
             transferFrom(from[i], to[i], amount[i]);
-            unchecked { ++i; }
+            unchecked {
+                ++i;
+            }
         }
         return true;
     }
@@ -189,7 +187,9 @@ contract wYBSV1 is
      * @param addr The address to check if blocked.
      * @return A bool representing whether the given address is blocked.
      */
-    function isAddrBlocked(address addr) public view override returns (bool) {
+    function isAddrBlocked(
+        address addr
+    ) public view override returns (bool) {
         return _blocklist[addr];
     }
 
@@ -208,7 +208,11 @@ contract wYBSV1 is
      * @param amount the amount of tokens to be transferred
      * @return True when the operation was successful.
      */
-    function transferFrom(address from, address to, uint256 amount) public override(ERC20Upgradeable, IERC20Upgradeable) returns (bool) {
+    function transferFrom(
+        address from,
+        address to,
+        uint256 amount
+    ) public override(ERC20Upgradeable, IERC20Upgradeable) returns (bool) {
         if (_blocklist[msg.sender]) revert BlockedAccountSpender();
 
         return super.transferFrom(from, to, amount);
@@ -220,7 +224,10 @@ contract wYBSV1 is
      * @param amount The amount of tokens to be spent.
      * @return True when the operation was successful.
      */
-    function approve(address spender, uint256 amount) public override(ERC20Upgradeable, IERC20Upgradeable)  returns (bool) {
+    function approve(
+        address spender,
+        uint256 amount
+    ) public override(ERC20Upgradeable, IERC20Upgradeable) returns (bool) {
         _beforeApprove(msg.sender, spender);
 
         return super.approve(spender, amount);
@@ -257,7 +264,11 @@ contract wYBSV1 is
      * @param to The address to transfer to.
      * @param amount The amount to be transferred.
      */
-    function _transfer(address from, address to, uint256 amount) internal override(ERC20Upgradeable, PaxosBaseAbstract) {
+    function _transfer(
+        address from,
+        address to,
+        uint256 amount
+    ) internal override(ERC20Upgradeable, PaxosBaseAbstract) {
         super._transfer(from, to, amount);
     }
 
@@ -333,7 +344,7 @@ contract wYBSV1 is
     }
 
     /**
-     * @dev required by the OZ UUPS module to authorize an upgrade 
+     * @dev required by the OZ UUPS module to authorize an upgrade
      * of the contract. Restricted to DEFAULT_ADMIN_ROLE.
      */
     function _authorizeUpgrade(
@@ -344,7 +355,9 @@ contract wYBSV1 is
      * @dev Private function to add an account to the _blocklist.
      * @param account The account to block.
      */
-    function _blockAccount(address account) private {
+    function _blockAccount(
+        address account
+    ) private {
         _blocklist[account] = true;
         emit AccountBlocked(account);
     }
@@ -353,7 +366,9 @@ contract wYBSV1 is
      * @dev Private function to remove an account from the _blocklist.
      * @param account The account to unblock.
      */
-    function _unblockAccount(address account) private {
+    function _unblockAccount(
+        address account
+    ) private {
         delete _blocklist[account];
         emit AccountUnblocked(account);
     }

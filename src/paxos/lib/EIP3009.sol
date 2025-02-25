@@ -7,9 +7,9 @@ import {EIP712} from "./EIP712.sol";
 /**
  * @title EIP3009 contract
  * @dev An abstract contract to provide EIP3009 functionality.
- * @notice These functions do not prevent replay attacks when an initial 
+ * @notice These functions do not prevent replay attacks when an initial
  * transaction fails. If conditions change, such as the contract going
- * from paused to unpaused, an external observer can reuse the data from the 
+ * from paused to unpaused, an external observer can reuse the data from the
  * failed transaction to execute it later.
  * @custom:security-contact smart-contract-security@paxos.com
  */
@@ -34,10 +34,7 @@ abstract contract EIP3009 is PaxosBaseAbstract {
     uint256[10] private __gap_EIP3009; // solhint-disable-line var-name-mixedcase
 
     event AuthorizationUsed(address indexed authorizer, bytes32 indexed nonce);
-    event AuthorizationCanceled(
-        address indexed authorizer,
-        bytes32 indexed nonce
-    );
+    event AuthorizationCanceled(address indexed authorizer, bytes32 indexed nonce);
     event AuthorizationAlreadyUsed(address indexed authorizer, bytes32 indexed nonce);
 
     error CallerMustBePayee();
@@ -53,10 +50,7 @@ abstract contract EIP3009 is PaxosBaseAbstract {
      * @param nonce         Nonce of the authorization
      * @return True if the nonce is used
      */
-    function authorizationState(
-        address authorizer,
-        bytes32 nonce
-    ) external view returns (bool) {
+    function authorizationState(address authorizer, bytes32 nonce) external view returns (bool) {
         return _authorizationStates[authorizer][nonce];
     }
 
@@ -84,16 +78,7 @@ abstract contract EIP3009 is PaxosBaseAbstract {
         bytes32 s
     ) external whenNotPaused {
         _transferWithAuthorization(
-            TRANSFER_WITH_AUTHORIZATION_TYPEHASH,
-            from,
-            to,
-            value,
-            validAfter,
-            validBefore,
-            nonce,
-            v,
-            r,
-            s
+            TRANSFER_WITH_AUTHORIZATION_TYPEHASH, from, to, value, validAfter, validBefore, nonce, v, r, s
         );
     }
 
@@ -121,14 +106,11 @@ abstract contract EIP3009 is PaxosBaseAbstract {
         bytes32[] memory s
     ) external whenNotPaused {
         if (
-            !(to.length == from.length &&
-                value.length == from.length &&
-                validAfter.length == from.length &&
-                validBefore.length == from.length &&
-                nonce.length == from.length &&
-                v.length == from.length &&
-                r.length == from.length &&
-                s.length == from.length)
+            !(
+                to.length == from.length && value.length == from.length && validAfter.length == from.length
+                    && validBefore.length == from.length && nonce.length == from.length && v.length == from.length
+                    && r.length == from.length && s.length == from.length
+            )
         ) {
             revert ArgumentLengthMismatch();
         }
@@ -146,7 +128,9 @@ abstract contract EIP3009 is PaxosBaseAbstract {
                 r[i],
                 s[i]
             );
-            unchecked { ++i; }
+            unchecked {
+                ++i;
+            }
         }
     }
 
@@ -179,16 +163,7 @@ abstract contract EIP3009 is PaxosBaseAbstract {
         if (to != msg.sender) revert CallerMustBePayee();
 
         _transferWithAuthorization(
-            RECEIVE_WITH_AUTHORIZATION_TYPEHASH,
-            from,
-            to,
-            value,
-            validAfter,
-            validBefore,
-            nonce,
-            v,
-            r,
-            s
+            RECEIVE_WITH_AUTHORIZATION_TYPEHASH, from, to, value, validAfter, validBefore, nonce, v, r, s
         );
     }
 
@@ -214,14 +189,11 @@ abstract contract EIP3009 is PaxosBaseAbstract {
             return; //Return instead of throwing an error to prevent revert of a complex transaction with authorized inner transactions. Helps preventing the frontrunning tx to cause griefing
         }
 
-        bytes memory data = abi.encode(
-            CANCEL_AUTHORIZATION_TYPEHASH,
-            authorizer,
-            nonce
-        );
+        bytes memory data = abi.encode(CANCEL_AUTHORIZATION_TYPEHASH, authorizer, nonce);
 
-        if (EIP712.recover(DOMAIN_SEPARATOR(), v, r, s, data) != authorizer)
+        if (EIP712.recover(DOMAIN_SEPARATOR(), v, r, s, data) != authorizer) {
             revert InvalidSignature();
+        }
 
         _authorizationStates[authorizer][nonce] = true;
         emit AuthorizationCanceled(authorizer, nonce);
@@ -260,17 +232,10 @@ abstract contract EIP3009 is PaxosBaseAbstract {
             return; //Return instead of throwing an error to prevent revert of a complex transaction with authorized inner transactions. Helps preventing the frontrunning tx to cause griefing
         }
 
-        bytes memory data = abi.encode(
-            typeHash,
-            from,
-            to,
-            value,
-            validAfter,
-            validBefore,
-            nonce
-        );
-        if (EIP712.recover(DOMAIN_SEPARATOR(), v, r, s, data) != from)
+        bytes memory data = abi.encode(typeHash, from, to, value, validAfter, validBefore, nonce);
+        if (EIP712.recover(DOMAIN_SEPARATOR(), v, r, s, data) != from) {
             revert InvalidSignature();
+        }
 
         _authorizationStates[from][nonce] = true;
         emit AuthorizationUsed(from, nonce);

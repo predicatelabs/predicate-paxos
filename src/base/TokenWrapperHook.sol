@@ -54,20 +54,19 @@ abstract contract TokenWrapperHook is BaseHook {
     ) internal virtual override returns (bytes4 selector, BeforeSwapDelta swapDelta, uint24 lpFeeOverride) {
         bool isExactInput = params.amountSpecified < 0;
 
-        int128 amountUnspecified = isExactInput 
-            ? params.amountSpecified.toInt128()
-            : params.amountSpecified.toInt128();
+        int128 amountUnspecified = isExactInput ? params.amountSpecified.toInt128() : params.amountSpecified.toInt128();
 
-        swapDelta = toBeforeSwapDelta(
-            params.amountSpecified.toInt128(),
-            amountUnspecified
-        );
+        swapDelta = toBeforeSwapDelta(params.amountSpecified.toInt128(), amountUnspecified);
 
         return (IHooks.beforeSwap.selector, swapDelta, 0);
     }
 
-    function _deposit(uint256 underlyingAmount) internal virtual returns (uint256 wrapperAmount);
-    function _withdraw(uint256 wrapperAmount) internal virtual returns (uint256 underlyingAmount);
+    function _deposit(
+        uint256 underlyingAmount
+    ) internal virtual returns (uint256 wrapperAmount);
+    function _withdraw(
+        uint256 wrapperAmount
+    ) internal virtual returns (uint256 underlyingAmount);
 
     function _take(Currency currency, address to, uint256 amount) internal {
         poolManager.take(currency, to, amount);
@@ -77,11 +76,15 @@ abstract contract TokenWrapperHook is BaseHook {
         poolManager.settle();
     }
 
-    function _getWrapInputRequired(uint256 outputAmount) internal pure returns (uint256) {
+    function _getWrapInputRequired(
+        uint256 outputAmount
+    ) internal pure returns (uint256) {
         return outputAmount;
     }
 
-    function _getUnwrapInputRequired(uint256 outputAmount) internal pure returns (uint256) {
+    function _getUnwrapInputRequired(
+        uint256 outputAmount
+    ) internal pure returns (uint256) {
         return outputAmount;
     }
 }

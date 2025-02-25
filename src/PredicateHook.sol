@@ -49,7 +49,7 @@ contract PredicateHook is BaseHook, PredicateClient {
     }
 
     function _beforeSwap(
-        address sender,
+        address,
         PoolKey calldata key,
         IPoolManager.SwapParams calldata params,
         bytes calldata hookData

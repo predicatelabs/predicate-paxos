@@ -3,6 +3,11 @@ pragma solidity ^0.8.12;
 
 import "../common/INetwork.sol";
 import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
+import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
+import {PositionManager} from "v4-periphery/src/PositionManager.sol";
+import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
+import {ISimpleV4Router} from "../../src/interfaces/ISimpleV4Router.sol";
+import {IHooks} from "v4-core/src/interfaces/IHooks.sol";
 
 contract Local is INetwork {
     function config() external pure override returns (Config memory) {
@@ -13,7 +18,15 @@ contract Local is INetwork {
             permit2: IAllowanceTransfer(address(0x1f98407aaB862CdDeF78Ed252D6f557aA5b0f00d)), // not used
             create2Deployer: address(0x4e59b44847b379578588920cA78FbF26c0B4956C),
             serviceManager: address(0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0),
-            policyId: "strict-membership-policy"
+            policyId: "strict-membership-policy",
+            ybsAddress: address(0x6B175474E89094C44Da98b954EedeAC495271d0F),
+            poolKey: PoolKey({
+                currency0: Currency.wrap(address(0x6B175474E89094C44Da98b954EedeAC495271d0F)),
+                currency1: Currency.wrap(address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2)),
+                fee: 3000,
+                tickSpacing: 60,
+                hooks: IHooks(address(0))
+            })
         });
     }
 

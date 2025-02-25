@@ -29,17 +29,17 @@ abstract contract TokenWrapperHook is BaseHook {
 
     function getHookPermissions() public pure override returns (Hooks.Permissions memory) {
         return Hooks.Permissions({
-            beforeInitialize: true,
-            beforeAddLiquidity: true,
-            beforeSwap: true,
-            beforeSwapReturnDelta: true,
-            afterSwap: false,
+            beforeInitialize: false,
             afterInitialize: false,
-            beforeRemoveLiquidity: false,
+            beforeAddLiquidity: true,
             afterAddLiquidity: false,
+            beforeRemoveLiquidity: false,
             afterRemoveLiquidity: false,
+            beforeSwap: true,
+            afterSwap: false,
             beforeDonate: false,
             afterDonate: false,
+            beforeSwapReturnDelta: true,
             afterSwapReturnDelta: false,
             afterAddLiquidityReturnDelta: false,
             afterRemoveLiquidityReturnDelta: false

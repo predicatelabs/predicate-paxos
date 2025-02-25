@@ -54,7 +54,8 @@ contract AutoWrapper is TokenWrapperHook {
             _take(underlyingCurrency, address(this), inputAmount);
             uint256 wrappedAmount = _deposit(inputAmount);
             _settle(wrapperCurrency, address(this), wrappedAmount);
-            int128 amountUnspecified = isExactInput ? -SafeCast.toInt128(int256(wrappedAmount)) : SafeCast.toInt128(int256(inputAmount));
+            int128 amountUnspecified =
+                isExactInput ? -SafeCast.toInt128(int256(wrappedAmount)) : SafeCast.toInt128(int256(inputAmount));
             swapDelta = toBeforeSwapDelta(int128(-params.amountSpecified), amountUnspecified);
         } else {
             uint256 inputAmount = isExactInput
@@ -63,7 +64,8 @@ contract AutoWrapper is TokenWrapperHook {
             _take(wrapperCurrency, address(this), inputAmount);
             uint256 unwrappedAmount = _withdraw(inputAmount);
             _settle(underlyingCurrency, address(this), unwrappedAmount);
-            int128 amountUnspecified = isExactInput ? -SafeCast.toInt128(int256(unwrappedAmount)) : SafeCast.toInt128(int256(inputAmount));
+            int128 amountUnspecified =
+                isExactInput ? -SafeCast.toInt128(int256(unwrappedAmount)) : SafeCast.toInt128(int256(inputAmount));
             swapDelta = toBeforeSwapDelta(int128(-params.amountSpecified), amountUnspecified);
         }
 

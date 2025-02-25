@@ -47,10 +47,10 @@ abstract contract TokenWrapperHook is BaseHook {
     }
 
     function _beforeSwap(
-        address sender,
-        PoolKey calldata key,
+        address,
+        PoolKey calldata,
         IPoolManager.SwapParams calldata params,
-        bytes calldata data
+        bytes calldata
     ) internal virtual override returns (bytes4 selector, BeforeSwapDelta swapDelta, uint24 lpFeeOverride) {
         bool isExactInput = params.amountSpecified < 0;
 
@@ -73,15 +73,15 @@ abstract contract TokenWrapperHook is BaseHook {
         poolManager.take(currency, to, amount);
     }
 
-    function _settle(Currency currency, address to, uint256 amount) internal {
+    function _settle(Currency, address, uint256) internal {
         poolManager.settle();
     }
 
-    function _getWrapInputRequired(uint256 outputAmount) internal view returns (uint256) {
+    function _getWrapInputRequired(uint256 outputAmount) internal pure returns (uint256) {
         return outputAmount;
     }
 
-    function _getUnwrapInputRequired(uint256 outputAmount) internal view returns (uint256) {
+    function _getUnwrapInputRequired(uint256 outputAmount) internal pure returns (uint256) {
         return outputAmount;
     }
 }

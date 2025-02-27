@@ -32,11 +32,7 @@ contract AutoWrapper is BaseHook {
     IERC20 public immutable usdc;
     bool public immutable shouldWrap;
 
-    constructor(
-        IPoolManager _manager,
-        address _ybsAddress,
-        PoolKey memory _poolKey
-    ) BaseHook(_manager) {
+    constructor(IPoolManager _manager, address _ybsAddress, PoolKey memory _poolKey) BaseHook(_manager) {
         wrapperCurrency = Currency.wrap(_ybsAddress);
         underlyingCurrency = _poolKey.currency0;
         usdc = IERC20(Currency.unwrap(_poolKey.currency0));
@@ -120,11 +116,15 @@ contract AutoWrapper is BaseHook {
         poolManager.settle();
     }
 
-    function _getWrapInputRequired(uint256 outputAmount) internal pure returns (uint256) {
+    function _getWrapInputRequired(
+        uint256 outputAmount
+    ) internal pure returns (uint256) {
         return outputAmount;
     }
 
-    function _getUnwrapInputRequired(uint256 outputAmount) internal pure returns (uint256) {
+    function _getUnwrapInputRequired(
+        uint256 outputAmount
+    ) internal pure returns (uint256) {
         return outputAmount;
     }
 }

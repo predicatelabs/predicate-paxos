@@ -98,7 +98,7 @@ contract AutoWrapperTest is TestWrapperSetup, Test {
     }
 
     function testRevertOnInsufficientBalance() public {
-        uint256 ybsAmount = 200e18; 
+        uint256 ybsAmount = 200e18;
         ybs.approve(address(wrapper), ybsAmount);
 
         IPoolManager.SwapParams memory params =

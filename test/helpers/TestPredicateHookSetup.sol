@@ -10,7 +10,7 @@ import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
 import {STMSetup} from "@predicate-test/helpers/utility/STMSetup.sol";
 import {HookMiner} from "test/utils/HookMiner.sol";
 
-contract TestSetup is STMSetup {
+contract TestPredicateHookSetup is STMSetup {
     PredicateHook public hook;
     IPoolManager public poolManager;
     ISimpleV4Router public router;

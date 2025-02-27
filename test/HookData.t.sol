@@ -6,9 +6,9 @@ import {PredicateMessage} from "@predicate/interfaces/IPredicateClient.sol";
 import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
 import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
 import {HookMiner} from "test/utils/HookMiner.sol";
-import {TestSetup} from "test/helpers/TestSetup.sol";
+import {TestPredicateHookSetup} from "test/helpers/TestPredicateHookSetup.sol";
 
-contract HookDataTest is TestSetup {
+contract HookDataTest is TestPredicateHookSetup {
     function setUp() public override {
         super.setUp();
         setUpHook();

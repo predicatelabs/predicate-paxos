@@ -13,7 +13,6 @@ import {wYBSV1} from "../src/paxos/wYBSV1.sol";
 import "forge-std/Test.sol";
 
 contract AutoWrapperTest is TestWrapperSetup, Test {
-
     function setUp() public override {
         super.setUp();
     }
@@ -22,28 +21,14 @@ contract AutoWrapperTest is TestWrapperSetup, Test {
         uint256 ybsAmount = 100e18;
         ybs.approve(address(wrapper), ybsAmount);
 
-        IPoolManager.SwapParams memory params = IPoolManager.SwapParams({
-            zeroForOne: true,
-            amountSpecified: -int256(ybsAmount),
-            sqrtPriceLimitX96: 0
-        });
+        IPoolManager.SwapParams memory params =
+            IPoolManager.SwapParams({zeroForOne: true, amountSpecified: -int256(ybsAmount), sqrtPriceLimitX96: 0});
 
-        (
-            Currency currency0,
-            Currency currency1,
-            uint24 fee,
-            int24 tickSpacing,
-            IHooks hooks
-        ) = wrapper.underlyingPoolKey();
+        (Currency currency0, Currency currency1, uint24 fee, int24 tickSpacing, IHooks hooks) =
+            wrapper.underlyingPoolKey();
         wrapper.beforeSwap(
             address(this),
-            PoolKey({
-                currency0: currency0,
-                currency1: currency1,
-                fee: fee,
-                tickSpacing: tickSpacing,
-                hooks: hooks
-            }),
+            PoolKey({currency0: currency0, currency1: currency1, fee: fee, tickSpacing: tickSpacing, hooks: hooks}),
             params,
             ""
         );
@@ -56,28 +41,14 @@ contract AutoWrapperTest is TestWrapperSetup, Test {
         uint256 wrappedAmount = 100e18;
         wYBS.approve(address(wrapper), wrappedAmount);
 
-        IPoolManager.SwapParams memory params = IPoolManager.SwapParams({
-            zeroForOne: false,
-            amountSpecified: -int256(wrappedAmount),
-            sqrtPriceLimitX96: 0
-        });
+        IPoolManager.SwapParams memory params =
+            IPoolManager.SwapParams({zeroForOne: false, amountSpecified: -int256(wrappedAmount), sqrtPriceLimitX96: 0});
 
-        (
-            Currency currency0,
-            Currency currency1,
-            uint24 fee,
-            int24 tickSpacing,
-            IHooks hooks
-        ) = wrapper.underlyingPoolKey();
+        (Currency currency0, Currency currency1, uint24 fee, int24 tickSpacing, IHooks hooks) =
+            wrapper.underlyingPoolKey();
         wrapper.beforeSwap(
             address(this),
-            PoolKey({
-                currency0: currency0,
-                currency1: currency1,
-                fee: fee,
-                tickSpacing: tickSpacing,
-                hooks: hooks
-            }),
+            PoolKey({currency0: currency0, currency1: currency1, fee: fee, tickSpacing: tickSpacing, hooks: hooks}),
             params,
             ""
         );
@@ -90,28 +61,14 @@ contract AutoWrapperTest is TestWrapperSetup, Test {
         uint256 ybsAmount = 100e18;
         ybs.approve(address(wrapper), ybsAmount);
 
-        IPoolManager.SwapParams memory params = IPoolManager.SwapParams({
-            zeroForOne: true,
-            amountSpecified: int256(ybsAmount),
-            sqrtPriceLimitX96: 0
-        });
+        IPoolManager.SwapParams memory params =
+            IPoolManager.SwapParams({zeroForOne: true, amountSpecified: int256(ybsAmount), sqrtPriceLimitX96: 0});
 
-        (
-            Currency currency0,
-            Currency currency1,
-            uint24 fee,
-            int24 tickSpacing,
-            IHooks hooks
-        ) = wrapper.underlyingPoolKey();
+        (Currency currency0, Currency currency1, uint24 fee, int24 tickSpacing, IHooks hooks) =
+            wrapper.underlyingPoolKey();
         wrapper.beforeSwap(
             address(this),
-            PoolKey({
-                currency0: currency0,
-                currency1: currency1,
-                fee: fee,
-                tickSpacing: tickSpacing,
-                hooks: hooks
-            }),
+            PoolKey({currency0: currency0, currency1: currency1, fee: fee, tickSpacing: tickSpacing, hooks: hooks}),
             params,
             ""
         );
@@ -124,28 +81,14 @@ contract AutoWrapperTest is TestWrapperSetup, Test {
         uint256 wrappedAmount = 100e18;
         wYBS.approve(address(wrapper), wrappedAmount);
 
-        IPoolManager.SwapParams memory params = IPoolManager.SwapParams({
-            zeroForOne: false,
-            amountSpecified: int256(wrappedAmount),
-            sqrtPriceLimitX96: 0
-        });
+        IPoolManager.SwapParams memory params =
+            IPoolManager.SwapParams({zeroForOne: false, amountSpecified: int256(wrappedAmount), sqrtPriceLimitX96: 0});
 
-        (
-            Currency currency0,
-            Currency currency1,
-            uint24 fee,
-            int24 tickSpacing,
-            IHooks hooks
-        ) = wrapper.underlyingPoolKey();
+        (Currency currency0, Currency currency1, uint24 fee, int24 tickSpacing, IHooks hooks) =
+            wrapper.underlyingPoolKey();
         wrapper.beforeSwap(
             address(this),
-            PoolKey({
-                currency0: currency0,
-                currency1: currency1,
-                fee: fee,
-                tickSpacing: tickSpacing,
-                hooks: hooks
-            }),
+            PoolKey({currency0: currency0, currency1: currency1, fee: fee, tickSpacing: tickSpacing, hooks: hooks}),
             params,
             ""
         );
@@ -158,30 +101,16 @@ contract AutoWrapperTest is TestWrapperSetup, Test {
         uint256 ybsAmount = 200e18; // More than available balance
         ybs.approve(address(wrapper), ybsAmount);
 
-        IPoolManager.SwapParams memory params = IPoolManager.SwapParams({
-            zeroForOne: true,
-            amountSpecified: -int256(ybsAmount),
-            sqrtPriceLimitX96: 0
-        });
+        IPoolManager.SwapParams memory params =
+            IPoolManager.SwapParams({zeroForOne: true, amountSpecified: -int256(ybsAmount), sqrtPriceLimitX96: 0});
 
-        (
-            Currency currency0,
-            Currency currency1,
-            uint24 fee,
-            int24 tickSpacing,
-            IHooks hooks
-        ) = wrapper.underlyingPoolKey();
+        (Currency currency0, Currency currency1, uint24 fee, int24 tickSpacing, IHooks hooks) =
+            wrapper.underlyingPoolKey();
 
         vm.expectRevert();
         wrapper.beforeSwap(
             address(this),
-            PoolKey({
-                currency0: currency0,
-                currency1: currency1,
-                fee: fee,
-                tickSpacing: tickSpacing,
-                hooks: hooks
-            }),
+            PoolKey({currency0: currency0, currency1: currency1, fee: fee, tickSpacing: tickSpacing, hooks: hooks}),
             params,
             ""
         );

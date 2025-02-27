@@ -39,25 +39,18 @@ contract TestWrapperSetup {
 
         PoolKey memory poolKey = PoolKey({
             currency0: Currency.wrap(address(usdc)),
-            currency1: Currency.wrap(address(wYBS)), 
+            currency1: Currency.wrap(address(wYBS)),
             fee: 3000,
             tickSpacing: 60,
             hooks: IHooks(address(0))
         });
 
-        uint160 flags = uint160(
-            Hooks.BEFORE_SWAP_FLAG | 
-            Hooks.BEFORE_SWAP_RETURNS_DELTA_FLAG |
-            Hooks.BEFORE_ADD_LIQUIDITY_FLAG
-        );
+        uint160 flags =
+            uint160(Hooks.BEFORE_SWAP_FLAG | Hooks.BEFORE_SWAP_RETURNS_DELTA_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG);
         bytes memory constructorArgs = abi.encode(poolManager, address(ybs), poolKey);
-        (address hookAddress, bytes32 salt) = HookMiner.find(
-            CREATE2_DEPLOYER,
-            flags,
-            type(AutoWrapper).creationCode,
-            constructorArgs
-        );
-        
+        (address hookAddress, bytes32 salt) =
+            HookMiner.find(CREATE2_DEPLOYER, flags, type(AutoWrapper).creationCode, constructorArgs);
+
         wrapper = new AutoWrapper{salt: salt}(poolManager, address(ybs), poolKey);
         require(address(wrapper) == hookAddress, "AutoWrapper deployed at wrong address");
 

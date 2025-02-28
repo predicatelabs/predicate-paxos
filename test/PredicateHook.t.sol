@@ -94,6 +94,7 @@ contract PredicateHookTest is TestPredicateHookSetup, TestPrep {
 
         assertEq(hook.getPolicy(), "x-aleo-6a52de9724a6e8f2", "Policy update failed");
     }
+
     function testDecodeHookDataEncoding() public view {
         string memory taskId = "task123";
         uint256 expireByBlockNumber = 100;

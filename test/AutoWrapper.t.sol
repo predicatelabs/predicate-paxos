@@ -30,10 +30,7 @@ contract AutoWrapperTest is Test {
         wYBS = new wYBSV1();
         usdc = new MockERC20("USD Coin", "USDC", 6);
 
-        uint160 flags = uint160(
-            Hooks.BEFORE_SWAP_FLAG |
-            Hooks.BEFORE_SWAP_RETURNS_DELTA_FLAG
-        );
+        uint160 flags = uint160(Hooks.BEFORE_SWAP_FLAG | Hooks.BEFORE_SWAP_RETURNS_DELTA_FLAG);
 
         PoolKey memory poolKey = PoolKey({
             currency0: Currency.wrap(address(usdc)),
@@ -44,16 +41,11 @@ contract AutoWrapperTest is Test {
         });
 
         (address hookAddress, bytes32 salt) = HookMiner.find(
-            address(this),
-            flags,
-            type(AutoWrapper).creationCode,
-            abi.encode(poolManager, address(ybs), poolKey)
+            address(this), flags, type(AutoWrapper).creationCode, abi.encode(poolManager, address(ybs), poolKey)
         );
-
 
         wrapper = new AutoWrapper{salt: salt}(poolManager, address(ybs), poolKey);
         require(address(wrapper) == hookAddress, "Hook deployment address mismatch");
-
 
         poolKey.hooks = IHooks(address(wrapper));
 

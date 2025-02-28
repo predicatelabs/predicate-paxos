@@ -30,7 +30,7 @@ contract AutoWrapperTest is Test {
         wYBS = new wYBSV1();
         usdc = new MockERC20("USD Coin", "USDC", 6);
 
-        uint160 flags = uint160(Hooks.BEFORE_SWAP_FLAG | Hooks.BEFORE_SWAP_RETURNS_DELTA_FLAG);
+        uint160 flags = uint160(Hooks.BEFORE_SWAP_FLAG);
 
         PoolKey memory poolKey = PoolKey({
             currency0: Currency.wrap(address(usdc)),

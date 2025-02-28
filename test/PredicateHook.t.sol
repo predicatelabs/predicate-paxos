@@ -13,7 +13,7 @@ import {TestPrep} from "@predicate-test/helpers/utility/TestPrep.sol";
 import {STMSetup} from "@predicate-test/helpers/utility/STMSetup.sol";
 import {HookMiner} from "./utils/HookMiner.sol";
 import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
-import {TestPredicateHookSetup} from "./helpers/TestPredicateHookSetup.sol";
+import {TestPredicateHookSetup} from "./utils/TestPredicateHookSetup.sol";
 
 contract PredicateHookTest is TestPredicateHookSetup, TestPrep {
     function setUp() public override {

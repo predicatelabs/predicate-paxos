@@ -37,7 +37,7 @@ contract AutoWrapperTest is Test {
             hooks: IHooks(address(0))
         });
 
-        uint160 flags = uint160(Hooks.BEFORE_SWAP_FLAG | Hooks.BEFORE_SWAP_RETURNS_DELTA_FLAG);
+        uint160 flags = uint160(Hooks.BEFORE_SWAP_FLAG);
         bytes memory constructorArgs = abi.encode(poolManager, address(ybs), poolKey);
         (address hookAddress, bytes32 salt) =
             HookMiner.find(CREATE2_DEPLOYER, flags, type(AutoWrapper).creationCode, constructorArgs);

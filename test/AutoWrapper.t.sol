@@ -24,10 +24,16 @@ contract AutoWrapperTest is Test {
 
     function setUp() public {
         poolManager = IPoolManager(0x000000000004444c5dc75cB358380D2e3dE08A90);
+        require(address(poolManager) != address(0), "Invalid PoolManager address");
 
         ybs = new MockERC20("YBS Token", "YBS", 18);
         wYBS = new wYBSV1();
         usdc = new MockERC20("USD Coin", "USDC", 6);
+
+        uint160 flags = uint160(
+            Hooks.BEFORE_SWAP_FLAG |
+            Hooks.BEFORE_SWAP_RETURNS_DELTA_FLAG
+        );
 
         PoolKey memory poolKey = PoolKey({
             currency0: Currency.wrap(address(usdc)),
@@ -37,13 +43,19 @@ contract AutoWrapperTest is Test {
             hooks: IHooks(address(0))
         });
 
-        uint160 flags = uint160(Hooks.BEFORE_SWAP_FLAG);
-        bytes memory constructorArgs = abi.encode(poolManager, address(ybs), poolKey);
-        (address hookAddress, bytes32 salt) =
-            HookMiner.find(CREATE2_DEPLOYER, flags, type(AutoWrapper).creationCode, constructorArgs);
+        (address hookAddress, bytes32 salt) = HookMiner.find(
+            address(this),
+            flags,
+            type(AutoWrapper).creationCode,
+            abi.encode(poolManager, address(ybs), poolKey)
+        );
+
 
         wrapper = new AutoWrapper{salt: salt}(poolManager, address(ybs), poolKey);
-        require(address(wrapper) == hookAddress, "AutoWrapper deployed at wrong address");
+        require(address(wrapper) == hookAddress, "Hook deployment address mismatch");
+
+
+        poolKey.hooks = IHooks(address(wrapper));
 
         ybs.mint(address(this), 1000e18);
         usdc.mint(address(this), 1000e6);

@@ -31,6 +31,7 @@ contract PredicateHookSetup is STMSetup, PoolSetup {
 
         hook = new PredicateHook{salt: salt}(manager, swapRouter, address(serviceManager), "x-aleo-6a52de9724a6e8f2");
         require(address(hook) == hookAddress, "Hook deployment failed");
+
         initPoolAndSetApprovals(hook);
     }
 }

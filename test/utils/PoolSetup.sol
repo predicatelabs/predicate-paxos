@@ -8,18 +8,20 @@ import {PositionManager} from "v4-periphery/src/PositionManager.sol";
 import {IPositionManager} from "v4-periphery/src/interfaces/IPositionManager.sol";
 import {Hooks} from "v4-core/src/libraries/Hooks.sol";
 import {PoolKey} from "v4-core/src/types/PoolKey.sol";
-import {Deployers} from "v4-core/test/utils/Deployers.sol";
 import {IERC20} from "forge-std/interfaces/IERC20.sol";
 import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
 import {DeployPermit2} from "./forks/DeployPermit2.sol";
-import {IERC721Permit_v4} from "v4-periphery/src/interfaces/IERC721Permit_v4.sol";
-import {IEIP712_v4} from "v4-periphery/src/interfaces/IEIP712_v4.sol";
-import {ERC721PermitHash} from "v4-periphery/src/libraries/ERC721PermitHash.sol";
+import {PoolModifyLiquidityTest} from "v4-core/src/test/PoolModifyLiquidityTest.sol";
 import {IPositionDescriptor} from "v4-periphery/src/interfaces/IPositionDescriptor.sol";
 import {IWETH9} from "v4-periphery/src/interfaces/external/IWETH9.sol";
 import {EasyPosm} from "./EasyPosm.sol";
 import {SimpleV4Router} from "../../src/SimpleV4Router.sol";
 import {ISimpleV4Router} from "../../src/interfaces/ISimpleV4Router.sol";
+import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
+import {MockERC20} from "solmate/src/test/utils/mocks/MockERC20.sol";
+import {PoolManager} from "v4-core/src/PoolManager.sol";
+import {Constants} from "v4-core/src/../test/utils/Constants.sol";
+import {TickMath} from "v4-core/src/libraries/TickMath.sol";
 
 contract PoolSetup is DeployPermit2 {
     using EasyPosm for IPositionManager;
@@ -67,11 +69,13 @@ contract PoolSetup is DeployPermit2 {
         require(address(manager) != address(0), "Manager not deployed");
         etchPermit2();
         posm = IPositionManager(
-            new PositionManager(poolManager, permit2, 300_000, IPositionDescriptor(address(0)), IWETH9(address(0)))
+            new PositionManager(manager, permit2, 300_000, IPositionDescriptor(address(0)), IWETH9(address(0)))
         );
     }
 
-    function approvePosmCurrency(IPositionManager posm, Currency currency) internal {
+    function approvePosmCurrency(
+        Currency currency
+    ) internal {
         // Because POSM uses permit2, we must execute 2 permits/approvals.
         // 1. First, the caller must approve permit2 on the token.
         IERC20(Currency.unwrap(currency)).approve(address(permit2), type(uint256).max);
@@ -97,9 +101,6 @@ contract PoolSetup is DeployPermit2 {
         currency0 = Currency.wrap(address(token0));
         currency1 = Currency.wrap(address(token1));
 
-        console.log("Deployed Token0: %s", address(token0));
-        console.log("Deployed Token1: %s", address(token1));
-
         token0.mint(msg.sender, STARTING_USER_BALANCE);
         token1.mint(msg.sender, STARTING_USER_BALANCE);
     }
@@ -115,13 +116,16 @@ contract PoolSetup is DeployPermit2 {
         manager.initialize(poolKey, Constants.SQRT_PRICE_1_1);
 
         // approve the tokens to the routers
+        IERC20 token0 = IERC20(Currency.unwrap(currency0));
+        IERC20 token1 = IERC20(Currency.unwrap(currency1));
+
         token0.approve(address(lpRouter), type(uint256).max);
         token1.approve(address(lpRouter), type(uint256).max);
         token0.approve(address(swapRouter), type(uint256).max);
         token1.approve(address(swapRouter), type(uint256).max);
 
-        approvePosmCurrency(posm, Currency.wrap(address(token0)));
-        approvePosmCurrency(posm, Currency.wrap(address(token1)));
+        approvePosmCurrency(currency0);
+        approvePosmCurrency(currency1);
 
         // add full range liquidity to the pool
         lpRouter.modifyLiquidity(

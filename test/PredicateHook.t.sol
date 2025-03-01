@@ -53,7 +53,7 @@ contract PredicateHookTest is PredicateHookSetup, TestPrep {
             value: 0,
             encodedSigAndArgs: abi.encodeWithSignature(
                 "_beforeSwap(address,address,address,uint24,int24,address,bool,int256,uint160)",
-                router.msgSender(),
+                swapRouter.msgSender(),
                 key.currency0,
                 key.currency1,
                 key.fee,
@@ -89,7 +89,7 @@ contract PredicateHookTest is PredicateHookSetup, TestPrep {
             signatures: operatorSignatures
         });
 
-        vm.prank(address(poolManager));
+        vm.prank(address(manager));
         hook.beforeSwap(testSender, key, params, abi.encode(message, testSender, 0));
 
         assertEq(hook.getPolicy(), "x-aleo-6a52de9724a6e8f2", "Policy update failed");

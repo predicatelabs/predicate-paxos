@@ -24,7 +24,7 @@ contract AutoWrapperTest is Test {
 
     function setUp() public {
         poolManager = IPoolManager(0x000000000004444c5dc75cB358380D2e3dE08A90);
-        require(address(poolManager) != address(0), "Invalid PoolManager address");
+        // todo: set up pool manager and permissions here
 
         ybs = new MockERC20("YBS Token", "YBS", 18);
         wYBS = new wYBSV1();

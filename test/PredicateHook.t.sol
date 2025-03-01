@@ -13,12 +13,12 @@ import {TestPrep} from "@predicate-test/helpers/utility/TestPrep.sol";
 import {STMSetup} from "@predicate-test/helpers/utility/STMSetup.sol";
 import {HookMiner} from "./utils/HookMiner.sol";
 import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
-import {TestPredicateHookSetup} from "./utils/TestPredicateHookSetup.sol";
+import {PredicateHookSetup} from "./utils/PredicateHookSetup.sol";
 
-contract PredicateHookTest is TestPredicateHookSetup, TestPrep {
+contract PredicateHookTest is PredicateHookSetup, TestPrep {
     function setUp() public override {
         super.setUp();
-        setUpHook();
+        setUpPoolAndHook();
     }
 
     modifier permissionedOperators() {
@@ -137,4 +137,6 @@ contract PredicateHookTest is TestPredicateHookSetup, TestPrep {
             require(keccak256(decodedMsg.signatures[i]) == keccak256(signatures[i]), "Signature mismatch");
         }
     }
+
+    // todo: add swap tests
 }

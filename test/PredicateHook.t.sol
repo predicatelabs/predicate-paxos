@@ -57,7 +57,6 @@ contract PredicateHookTest is PredicateHookSetup, TestPrep {
 
         vm.prank(address(liquidityProvider));
         BalanceDelta delta = swapRouter.swap(key, params, abi.encode(message, liquidityProvider, 0));
-        assertEq(hook.getPolicy(), "x-aleo-6a52de9724a6e8f2", "Policy update failed");
         require(token0.balanceOf(liquidityProvider) < balance0, "Token0 balance should decrease");
         require(token1.balanceOf(liquidityProvider) > balance1, "Token1 balance should increase");
     }

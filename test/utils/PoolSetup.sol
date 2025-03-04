@@ -26,8 +26,6 @@ import {TickMath} from "v4-core/src/libraries/TickMath.sol";
 contract PoolSetup is DeployPermit2 {
     using EasyPosm for IPositionManager;
 
-    uint256 constant STARTING_USER_BALANCE = 10_000_000 ether;
-
     // Global variables
     Currency internal currency0;
     Currency internal currency1;
@@ -100,9 +98,8 @@ contract PoolSetup is DeployPermit2 {
 
         currency0 = Currency.wrap(address(token0));
         currency1 = Currency.wrap(address(token1));
-
-        token0.mint(msg.sender, STARTING_USER_BALANCE);
-        token1.mint(msg.sender, STARTING_USER_BALANCE);
+        token0.mint(msg.sender, 100_000 ether);
+        token1.mint(msg.sender, 100_000 ether);
     }
 
     function initPoolAndSetApprovals(

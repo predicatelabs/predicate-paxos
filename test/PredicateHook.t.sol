@@ -13,12 +13,12 @@ import {TestPrep} from "@predicate-test/helpers/utility/TestPrep.sol";
 import {STMSetup} from "@predicate-test/helpers/utility/STMSetup.sol";
 import {HookMiner} from "./utils/HookMiner.sol";
 import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
-import {TestSetup} from "./helpers/TestSetup.sol";
+import {PredicateHookSetup} from "./utils/PredicateHookSetup.sol";
 
-contract HookValidationTest is TestSetup, TestPrep {
+contract PredicateHookTest is PredicateHookSetup, TestPrep {
     function setUp() public override {
         super.setUp();
-        setUpHook();
+        setUpPoolAndHook();
     }
 
     modifier permissionedOperators() {
@@ -53,7 +53,7 @@ contract HookValidationTest is TestSetup, TestPrep {
             value: 0,
             encodedSigAndArgs: abi.encodeWithSignature(
                 "_beforeSwap(address,address,address,uint24,int24,address,bool,int256,uint160)",
-                router.msgSender(),
+                swapRouter.msgSender(),
                 key.currency0,
                 key.currency1,
                 key.fee,
@@ -89,9 +89,54 @@ contract HookValidationTest is TestSetup, TestPrep {
             signatures: operatorSignatures
         });
 
-        vm.prank(address(poolManager));
+        vm.prank(address(manager));
         hook.beforeSwap(testSender, key, params, abi.encode(message, testSender, 0));
 
         assertEq(hook.getPolicy(), "x-aleo-6a52de9724a6e8f2", "Policy update failed");
     }
+
+    function testDecodeHookDataEncoding() public view {
+        string memory taskId = "task123";
+        uint256 expireByBlockNumber = 100;
+
+        address[] memory signerAddresses = new address[](2);
+        signerAddresses[0] = 0x0000000000000000000000000000000000000123;
+        signerAddresses[1] = 0x0000000000000000000000000000000000000456;
+
+        bytes[] memory signatures = new bytes[](2);
+        signatures[0] = hex"abcdef";
+        signatures[1] = hex"123456";
+
+        address msgSender = 0x0000000000000000000000000000000000000789; // replace
+        uint256 msgValue = 42;
+
+        PredicateMessage memory predicateMessage = PredicateMessage({
+            taskId: taskId,
+            expireByBlockNumber: expireByBlockNumber,
+            signerAddresses: signerAddresses,
+            signatures: signatures
+        });
+
+        bytes memory hookData = abi.encode(predicateMessage, msgSender, msgValue);
+
+        (PredicateMessage memory decodedMsg, address decodedMsgSender, uint256 decodedMsgValue) =
+            hook.decodeHookData(hookData);
+
+        require(keccak256(bytes(decodedMsg.taskId)) == keccak256(bytes(taskId)), "TaskId mismatch");
+        require(decodedMsg.expireByBlockNumber == expireByBlockNumber, "Expire block number mismatch");
+        require(decodedMsg.signerAddresses.length == signerAddresses.length, "Signer addresses length mismatch");
+        require(decodedMsg.signatures.length == signatures.length, "Signatures length mismatch");
+        require(decodedMsgSender == msgSender, "Message sender mismatch");
+        require(decodedMsgValue == msgValue, "Message value mismatch");
+
+        for (uint256 i = 0; i < signerAddresses.length; i++) {
+            require(decodedMsg.signerAddresses[i] == signerAddresses[i], "Signer address mismatch");
+        }
+
+        for (uint256 i = 0; i < signatures.length; i++) {
+            require(keccak256(decodedMsg.signatures[i]) == keccak256(signatures[i]), "Signature mismatch");
+        }
+    }
+
+    // todo: add swap tests
 }

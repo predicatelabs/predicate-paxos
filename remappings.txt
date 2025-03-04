@@ -9,3 +9,6 @@ v4-periphery/=lib/v4-periphery/
 openzeppelin=lib/openzeppelin-contracts/contracts
 @openzeppelin/contracts/=lib/openzeppelin-contracts/contracts
 forge-std/=lib/forge-std/src/
+@openzeppelin/=lib/openzeppelin-contracts/
+ds-test/=lib/forge-std/lib/ds-test/src/
+@solmate/=lib/solmate/src/

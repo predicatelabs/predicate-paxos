@@ -2,6 +2,7 @@
 src = "src"
 out = "out"
 ffi = true
+via_ir = true
 build_info = true
 ast = true
 extra_output = ["storageLayout", "abi", "metadata", "devdoc", "userdoc"]

@@ -12,7 +12,7 @@ import {HookMiner} from "test/utils/HookMiner.sol";
 import {PoolSetup} from "./PoolSetup.sol";
 
 contract PredicateHookSetup is STMSetup, PoolSetup {
-    PredicateHook public hook;
+    PredicateHook public predicateHook;
     address public sender;
 
     function setUpPoolAndHook() internal {
@@ -31,11 +31,12 @@ contract PredicateHookSetup is STMSetup, PoolSetup {
         (address hookAddress, bytes32 salt) =
             HookMiner.find(address(this), flags, type(PredicateHook).creationCode, constructorArgs);
 
-        hook = new PredicateHook{salt: salt}(manager, swapRouter, address(serviceManager), "x-aleo-6a52de9724a6e8f2");
-        require(address(hook) == hookAddress, "Hook deployment failed");
+        predicateHook =
+            new PredicateHook{salt: salt}(manager, swapRouter, address(serviceManager), "x-aleo-6a52de9724a6e8f2");
+        require(address(predicateHook) == hookAddress, "Hook deployment failed");
 
         vm.startPrank(sender);
-        initPoolAndSetApprovals(hook);
+        initPoolAndSetApprovals(predicateHook);
         vm.stopPrank();
     }
 }

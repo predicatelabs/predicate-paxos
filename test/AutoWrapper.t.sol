@@ -20,8 +20,6 @@ pragma solidity ^0.8.0;
 //     MockERC20 public usdc;
 //     IPoolManager public poolManager;
 
-//     address constant CREATE2_DEPLOYER = address(0x4e59b44847b379578588920cA78FbF26c0B4956C);
-
 //     function setUp() public {
 //         poolManager = IPoolManager(0x000000000004444c5dc75cB358380D2e3dE08A90);
 //         // todo: set up pool manager and permissions here

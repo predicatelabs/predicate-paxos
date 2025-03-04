@@ -14,10 +14,14 @@ import {STMSetup} from "@predicate-test/helpers/utility/STMSetup.sol";
 import {HookMiner} from "./utils/HookMiner.sol";
 import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
 import {PredicateHookSetup} from "./utils/PredicateHookSetup.sol";
+import {BalanceDelta} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
+import {IERC20} from "forge-std/interfaces/IERC20.sol";
 
 contract PredicateHookTest is PredicateHookSetup, TestPrep {
+    address liquidityProvider;
+
     function setUp() public override {
-        address liquidityProvider = makeAddr("liquidityProvider");
+        liquidityProvider = makeAddr("liquidityProvider");
         super.setUp();
         setUpPredicateHook(liquidityProvider);
     }
@@ -32,48 +36,38 @@ contract PredicateHookTest is PredicateHookSetup, TestPrep {
         _;
     }
 
-    function testBeforeSwap() public permissionedOperators prepOperatorRegistration(false) {
-        uint256 expireByBlock = block.number + 100;
-        string memory taskId = "unique-identifier";
-
-        PoolKey memory key = PoolKey({
-            currency0: Currency.wrap(address(0)),
-            currency1: Currency.wrap(address(0)),
-            fee: 0,
-            tickSpacing: 0,
-            hooks: IHooks(address(0))
-        });
-
-        IPoolManager.SwapParams memory params =
-            IPoolManager.SwapParams({zeroForOne: false, amountSpecified: 0, sqrtPriceLimitX96: 0});
-
-        Task memory task = Task({
-            taskId: taskId,
-            msgSender: testSender,
-            target: address(hook),
-            value: 0,
-            encodedSigAndArgs: abi.encodeWithSignature(
-                "_beforeSwap(address,address,address,uint24,int24,address,bool,int256,uint160)",
-                swapRouter.msgSender(),
-                key.currency0,
-                key.currency1,
-                key.fee,
-                key.tickSpacing,
-                address(key.hooks),
-                params.zeroForOne,
-                params.amountSpecified,
-                params.sqrtPriceLimitX96
-            ),
-            policyID: "x-aleo-6a52de9724a6e8f2",
-            quorumThresholdCount: 1,
-            expireByBlockNumber: expireByBlock
-        });
-
+    function testSwap() public permissionedOperators prepOperatorRegistration(false) {
         vm.prank(operatorOne);
         serviceManager.registerOperatorToAVS(operatorOneAlias, operatorSignature);
 
-        bytes32 taskHash = serviceManager.hashTaskWithExpiry(task);
+        PoolKey memory key = getPoolKey();
+        string memory taskId = "unique-identifier";
+        IPoolManager.SwapParams memory params = IPoolManager.SwapParams({
+            zeroForOne: true,
+            amountSpecified: 1e18,
+            sqrtPriceLimitX96: uint160(4_295_128_740)
+        });
 
+        PredicateMessage memory message = getPredicateMessage(taskId, params);
+
+        IERC20 token0 = IERC20(Currency.unwrap(key.currency0));
+        IERC20 token1 = IERC20(Currency.unwrap(key.currency1));
+        uint256 balance0 = token0.balanceOf(liquidityProvider);
+        uint256 balance1 = token1.balanceOf(liquidityProvider);
+
+        vm.prank(address(liquidityProvider));
+        BalanceDelta delta = swapRouter.swap(key, params, abi.encode(message, liquidityProvider, 0));
+        assertEq(hook.getPolicy(), "x-aleo-6a52de9724a6e8f2", "Policy update failed");
+        require(token0.balanceOf(liquidityProvider) < balance0, "Token0 balance should decrease");
+        require(token1.balanceOf(liquidityProvider) > balance1, "Token1 balance should increase");
+    }
+
+    function getPredicateMessage(
+        string memory taskId,
+        IPoolManager.SwapParams memory params
+    ) public returns (PredicateMessage memory) {
+        Task memory task = getTask(taskId, params);
+        bytes32 taskHash = serviceManager.hashTaskWithExpiry(task);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(operatorOneAliasPk, taskHash);
 
         bytes memory signature = abi.encodePacked(r, s, v);
@@ -85,15 +79,37 @@ contract PredicateHookTest is PredicateHookSetup, TestPrep {
 
         PredicateMessage memory message = PredicateMessage({
             taskId: taskId,
-            expireByBlockNumber: expireByBlock,
+            expireByBlockNumber: task.expireByBlockNumber,
             signerAddresses: signerAddresses,
             signatures: operatorSignatures
         });
 
-        vm.prank(address(manager));
-        hook.beforeSwap(testSender, key, params, abi.encode(message, testSender, 0));
+        return message;
+    }
 
-        assertEq(hook.getPolicy(), "x-aleo-6a52de9724a6e8f2", "Policy update failed");
+    function getTask(string memory taskId, IPoolManager.SwapParams memory params) public returns (Task memory) {
+        PoolKey memory key = getPoolKey();
+        return Task({
+            taskId: taskId,
+            msgSender: liquidityProvider,
+            target: address(hook),
+            value: 0,
+            encodedSigAndArgs: abi.encodeWithSignature(
+                "_beforeSwap(address,address,address,uint24,int24,address,bool,int256,uint160)",
+                liquidityProvider,
+                key.currency0,
+                key.currency1,
+                key.fee,
+                key.tickSpacing,
+                address(key.hooks),
+                params.zeroForOne,
+                params.amountSpecified,
+                params.sqrtPriceLimitX96
+            ),
+            policyID: "x-aleo-6a52de9724a6e8f2",
+            quorumThresholdCount: 1,
+            expireByBlockNumber: block.number + 100
+        });
     }
 
     function testDecodeHookDataEncoding() public view {

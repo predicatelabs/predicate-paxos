@@ -93,13 +93,16 @@ contract PoolSetup is DeployPermit2 {
         }
     }
 
-    function deployAndMintTokens() internal {
+    function deployAndMintTokens(
+        address sender
+    ) internal {
         (MockERC20 token0, MockERC20 token1) = deployTokens();
 
         currency0 = Currency.wrap(address(token0));
         currency1 = Currency.wrap(address(token1));
-        token0.mint(msg.sender, 100_000 ether);
-        token1.mint(msg.sender, 100_000 ether);
+
+        token0.mint(sender, 100_000 ether);
+        token1.mint(sender, 100_000 ether);
     }
 
     function initPoolAndSetApprovals(

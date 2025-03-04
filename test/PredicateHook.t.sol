@@ -19,7 +19,7 @@ contract PredicateHookTest is PredicateHookSetup, TestPrep {
     function setUp() public override {
         address liquidityProvider = makeAddr("liquidityProvider");
         super.setUp();
-        setUpPoolAndHook(liquidityProvider);
+        setUpPredicateHook(liquidityProvider);
     }
 
     modifier permissionedOperators() {

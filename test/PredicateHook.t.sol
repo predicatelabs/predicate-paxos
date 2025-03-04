@@ -16,6 +16,7 @@ import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
 import {PredicateHookSetup} from "./utils/PredicateHookSetup.sol";
 import {BalanceDelta} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
 import {IERC20} from "forge-std/interfaces/IERC20.sol";
+import {Constants} from "v4-core/src/../test/utils/Constants.sol";
 
 contract PredicateHookTest is PredicateHookSetup, TestPrep {
     address liquidityProvider;
@@ -36,7 +37,7 @@ contract PredicateHookTest is PredicateHookSetup, TestPrep {
         _;
     }
 
-    function testSwap() public permissionedOperators prepOperatorRegistration(false) {
+    function testSwapZeroForOne() public permissionedOperators prepOperatorRegistration(false) {
         vm.prank(operatorOne);
         serviceManager.registerOperatorToAVS(operatorOneAlias, operatorSignature);
 
@@ -59,6 +60,69 @@ contract PredicateHookTest is PredicateHookSetup, TestPrep {
         BalanceDelta delta = swapRouter.swap(key, params, abi.encode(message, liquidityProvider, 0));
         require(token0.balanceOf(liquidityProvider) < balance0, "Token0 balance should decrease");
         require(token1.balanceOf(liquidityProvider) > balance1, "Token1 balance should increase");
+    }
+
+    function testSwapWithInvalidMessage() public permissionedOperators prepOperatorRegistration(false) {
+        vm.prank(operatorOne);
+        serviceManager.registerOperatorToAVS(operatorOneAlias, operatorSignature);
+
+        PoolKey memory key = getPoolKey();
+        string memory taskId = "unique-identifier";
+        IPoolManager.SwapParams memory params = IPoolManager.SwapParams({
+            zeroForOne: true,
+            amountSpecified: 1e18,
+            sqrtPriceLimitX96: uint160(4_295_128_740)
+        });
+
+        PredicateMessage memory message = getPredicateMessage(taskId, params);
+        message.taskId = "invalid-task-id";
+
+        vm.prank(address(liquidityProvider));
+        vm.expectRevert();
+        swapRouter.swap(key, params, abi.encode(message, liquidityProvider, 0));
+    }
+
+    function testDecodeHookDataEncoding() public view {
+        string memory taskId = "task123";
+        uint256 expireByBlockNumber = 100;
+
+        address[] memory signerAddresses = new address[](2);
+        signerAddresses[0] = 0x0000000000000000000000000000000000000123;
+        signerAddresses[1] = 0x0000000000000000000000000000000000000456;
+
+        bytes[] memory signatures = new bytes[](2);
+        signatures[0] = hex"abcdef";
+        signatures[1] = hex"123456";
+
+        address msgSender = 0x0000000000000000000000000000000000000789; // replace
+        uint256 msgValue = 42;
+
+        PredicateMessage memory predicateMessage = PredicateMessage({
+            taskId: taskId,
+            expireByBlockNumber: expireByBlockNumber,
+            signerAddresses: signerAddresses,
+            signatures: signatures
+        });
+
+        bytes memory hookData = abi.encode(predicateMessage, msgSender, msgValue);
+
+        (PredicateMessage memory decodedMsg, address decodedMsgSender, uint256 decodedMsgValue) =
+            hook.decodeHookData(hookData);
+
+        require(keccak256(bytes(decodedMsg.taskId)) == keccak256(bytes(taskId)), "TaskId mismatch");
+        require(decodedMsg.expireByBlockNumber == expireByBlockNumber, "Expire block number mismatch");
+        require(decodedMsg.signerAddresses.length == signerAddresses.length, "Signer addresses length mismatch");
+        require(decodedMsg.signatures.length == signatures.length, "Signatures length mismatch");
+        require(decodedMsgSender == msgSender, "Message sender mismatch");
+        require(decodedMsgValue == msgValue, "Message value mismatch");
+
+        for (uint256 i = 0; i < signerAddresses.length; i++) {
+            require(decodedMsg.signerAddresses[i] == signerAddresses[i], "Signer address mismatch");
+        }
+
+        for (uint256 i = 0; i < signatures.length; i++) {
+            require(keccak256(decodedMsg.signatures[i]) == keccak256(signatures[i]), "Signature mismatch");
+        }
     }
 
     function getPredicateMessage(
@@ -109,49 +173,6 @@ contract PredicateHookTest is PredicateHookSetup, TestPrep {
             quorumThresholdCount: 1,
             expireByBlockNumber: block.number + 100
         });
-    }
-
-    function testDecodeHookDataEncoding() public view {
-        string memory taskId = "task123";
-        uint256 expireByBlockNumber = 100;
-
-        address[] memory signerAddresses = new address[](2);
-        signerAddresses[0] = 0x0000000000000000000000000000000000000123;
-        signerAddresses[1] = 0x0000000000000000000000000000000000000456;
-
-        bytes[] memory signatures = new bytes[](2);
-        signatures[0] = hex"abcdef";
-        signatures[1] = hex"123456";
-
-        address msgSender = 0x0000000000000000000000000000000000000789; // replace
-        uint256 msgValue = 42;
-
-        PredicateMessage memory predicateMessage = PredicateMessage({
-            taskId: taskId,
-            expireByBlockNumber: expireByBlockNumber,
-            signerAddresses: signerAddresses,
-            signatures: signatures
-        });
-
-        bytes memory hookData = abi.encode(predicateMessage, msgSender, msgValue);
-
-        (PredicateMessage memory decodedMsg, address decodedMsgSender, uint256 decodedMsgValue) =
-            hook.decodeHookData(hookData);
-
-        require(keccak256(bytes(decodedMsg.taskId)) == keccak256(bytes(taskId)), "TaskId mismatch");
-        require(decodedMsg.expireByBlockNumber == expireByBlockNumber, "Expire block number mismatch");
-        require(decodedMsg.signerAddresses.length == signerAddresses.length, "Signer addresses length mismatch");
-        require(decodedMsg.signatures.length == signatures.length, "Signatures length mismatch");
-        require(decodedMsgSender == msgSender, "Message sender mismatch");
-        require(decodedMsgValue == msgValue, "Message value mismatch");
-
-        for (uint256 i = 0; i < signerAddresses.length; i++) {
-            require(decodedMsg.signerAddresses[i] == signerAddresses[i], "Signer address mismatch");
-        }
-
-        for (uint256 i = 0; i < signatures.length; i++) {
-            require(keccak256(decodedMsg.signatures[i]) == keccak256(signatures[i]), "Signature mismatch");
-        }
     }
 
     // todo: add swap tests

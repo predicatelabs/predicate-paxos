@@ -34,18 +34,8 @@ contract PoolSetup is DeployPermit2 {
     PoolModifyLiquidityTest lpRouter;
     ISimpleV4Router swapRouter;
     address feeController;
-
-    function initPool(
-        Currency _currency0,
-        Currency _currency1,
-        IHooks hooks,
-        uint24 fee,
-        int24 tickSpacing,
-        uint160 sqrtPriceX96
-    ) internal returns (PoolKey memory _key) {
-        _key = PoolKey(_currency0, _currency1, fee, tickSpacing, hooks);
-        manager.initialize(_key, sqrtPriceX96);
-    }
+    PoolKey poolKey;
+    int24 tickSpacing = 60;
 
     // -----------------------------------------------------------
     // Helpers
@@ -105,28 +95,8 @@ contract PoolSetup is DeployPermit2 {
         token1.mint(sender, 100_000 ether);
     }
 
-    function initPoolAndSetApprovals(
-        IHooks hook
-    ) internal {
+    function provisionLiquidity() internal {
         bytes memory ZERO_BYTES = new bytes(0);
-
-        // initialize the pool
-        int24 tickSpacing = 60;
-        PoolKey memory poolKey = PoolKey(currency0, currency1, 3000, tickSpacing, IHooks(hook));
-        manager.initialize(poolKey, Constants.SQRT_PRICE_1_1);
-
-        // approve the tokens to the routers
-        IERC20 token0 = IERC20(Currency.unwrap(currency0));
-        IERC20 token1 = IERC20(Currency.unwrap(currency1));
-
-        token0.approve(address(lpRouter), type(uint256).max);
-        token1.approve(address(lpRouter), type(uint256).max);
-        token0.approve(address(swapRouter), type(uint256).max);
-        token1.approve(address(swapRouter), type(uint256).max);
-
-        approvePosmCurrency(currency0);
-        approvePosmCurrency(currency1);
-
         // add full range liquidity to the pool
         lpRouter.modifyLiquidity(
             poolKey,
@@ -147,5 +117,25 @@ contract PoolSetup is DeployPermit2 {
             block.timestamp + 300,
             ZERO_BYTES
         );
+    }
+
+    function initPoolAndSetApprovals(
+        IHooks hook
+    ) internal {
+        // initialize the pool
+        poolKey = PoolKey(currency0, currency1, 3000, tickSpacing, IHooks(hook));
+        manager.initialize(poolKey, Constants.SQRT_PRICE_1_1);
+
+        // approve the tokens to the routers
+        IERC20 token0 = IERC20(Currency.unwrap(currency0));
+        IERC20 token1 = IERC20(Currency.unwrap(currency1));
+
+        token0.approve(address(lpRouter), type(uint256).max);
+        token1.approve(address(lpRouter), type(uint256).max);
+        token0.approve(address(swapRouter), type(uint256).max);
+        token1.approve(address(swapRouter), type(uint256).max);
+
+        approvePosmCurrency(currency0);
+        approvePosmCurrency(currency1);
     }
 }

@@ -13,14 +13,14 @@ import {PoolSetup} from "./PoolSetup.sol";
 
 contract PredicateHookSetup is STMSetup, PoolSetup {
     PredicateHook public hook;
-    address public sender;
 
-    function setUpPoolAndHook() internal {
-        sender = makeAddr("sender");
+    function setUpPoolAndHook(
+        address liquidityProvider
+    ) internal {
         deployPoolManager();
         deployRouters();
         deployPosm();
-        deployAndMintTokens(sender);
+        deployAndMintTokens(liquidityProvider);
 
         serviceManager.deployPolicy("x-aleo-6a52de9724a6e8f2", "test-policy", 1);
 
@@ -34,8 +34,9 @@ contract PredicateHookSetup is STMSetup, PoolSetup {
         hook = new PredicateHook{salt: salt}(manager, swapRouter, address(serviceManager), "x-aleo-6a52de9724a6e8f2");
         require(address(hook) == hookAddress, "Hook deployment failed");
 
-        vm.startPrank(sender);
+        vm.startPrank(liquidityProvider);
         initPoolAndSetApprovals(hook);
+        provisionLiquidity();
         vm.stopPrank();
     }
 }

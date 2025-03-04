@@ -17,8 +17,9 @@ import {PredicateHookSetup} from "./utils/PredicateHookSetup.sol";
 
 contract PredicateHookTest is PredicateHookSetup, TestPrep {
     function setUp() public override {
+        address liquidityProvider = makeAddr("liquidityProvider");
         super.setUp();
-        setUpPoolAndHook();
+        setUpPoolAndHook(liquidityProvider);
     }
 
     modifier permissionedOperators() {
@@ -31,7 +32,7 @@ contract PredicateHookTest is PredicateHookSetup, TestPrep {
         _;
     }
 
-    function testHappyPathSwapWithSTM() public permissionedOperators prepOperatorRegistration(false) {
+    function testBeforeSwap() public permissionedOperators prepOperatorRegistration(false) {
         uint256 expireByBlock = block.number + 100;
         string memory taskId = "unique-identifier";
 

@@ -25,7 +25,10 @@ contract AutoWrapper is BaseTokenWrapperHook {
     /// @param _manager The Uniswap V4 pool manager
     /// @param _wUSDL The wUSDL contract address
     /// @dev Initializes with wUSDL as wrapper token and USDL as underlying token
-    constructor(IPoolManager _manager, IwYBSV1 _wUSDL)
+    constructor(
+        IPoolManager _manager,
+        IwYBSV1 _wUSDL
+    )
         BaseTokenWrapperHook(
             _manager,
             Currency.wrap(address(_wUSDL)), // wrapper token is wUSDL
@@ -41,7 +44,9 @@ contract AutoWrapper is BaseTokenWrapperHook {
     /// @notice Wraps USDL to wUSDL
     /// @param underlyingAmount Amount of USDL to wrap
     /// @return Amount of wUSDL received
-    function _deposit(uint256 underlyingAmount) internal override returns (uint256) {
+    function _deposit(
+        uint256 underlyingAmount
+    ) internal override returns (uint256) {
         return wUSDL.deposit(underlyingAmount, address(this));
     }
 
@@ -49,7 +54,9 @@ contract AutoWrapper is BaseTokenWrapperHook {
     /// @notice Unwraps wUSDL to USDL
     /// @param wrapperAmount Amount of wUSDL to unwrap
     /// @return Amount of USDL received
-    function _withdraw(uint256 wrapperAmount) internal override returns (uint256) {
+    function _withdraw(
+        uint256 wrapperAmount
+    ) internal override returns (uint256) {
         return wUSDL.redeem(wrapperAmount, address(this), address(this));
     }
 
@@ -58,7 +65,9 @@ contract AutoWrapper is BaseTokenWrapperHook {
     /// @param wrappedAmount Desired amount of wUSDL
     /// @return Amount of USDL required
     /// @dev Uses current USDL/wUSDL exchange rate for calculation
-    function _getWrapInputRequired(uint256 wrappedAmount) internal view override returns (uint256) {
+    function _getWrapInputRequired(
+        uint256 wrappedAmount
+    ) internal view override returns (uint256) {
         return wUSDL.previewMint(wrappedAmount);
     }
 
@@ -67,7 +76,9 @@ contract AutoWrapper is BaseTokenWrapperHook {
     /// @param underlyingAmount Desired amount of USDL
     /// @return Amount of wUSDL required
     /// @dev Uses current USDL/wUSDL exchange rate for calculation
-    function _getUnwrapInputRequired(uint256 underlyingAmount) internal view override returns (uint256) {
+    function _getUnwrapInputRequired(
+        uint256 underlyingAmount
+    ) internal view override returns (uint256) {
         return wUSDL.previewWithdraw(underlyingAmount);
     }
 }

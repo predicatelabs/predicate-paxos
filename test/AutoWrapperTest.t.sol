@@ -51,8 +51,8 @@ contract AutoWrapperTest is Test, Deployers {
                 address(
                     uint160(
                         type(uint160).max & clearAllHookPermissionsMask | Hooks.BEFORE_SWAP_FLAG
-                        | Hooks.BEFORE_ADD_LIQUIDITY_FLAG | Hooks.BEFORE_SWAP_RETURNS_DELTA_FLAG
-                        | Hooks.BEFORE_INITIALIZE_FLAG
+                            | Hooks.BEFORE_ADD_LIQUIDITY_FLAG | Hooks.BEFORE_SWAP_RETURNS_DELTA_FLAG
+                            | Hooks.BEFORE_INITIALIZE_FLAG
                     )
                 )
             )
@@ -102,7 +102,7 @@ contract AutoWrapperTest is Test, Deployers {
         uint256 managerWusdlBefore = wUSDL.balanceOf(address(manager));
 
         PoolSwapTest.TestSettings memory testSettings =
-                            PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false});
+            PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false});
         swapRouter.swap(
             poolKey,
             IPoolManager.SwapParams({
@@ -135,7 +135,7 @@ contract AutoWrapperTest is Test, Deployers {
         uint256 managerWusdlBefore = wUSDL.balanceOf(address(manager));
 
         PoolSwapTest.TestSettings memory testSettings =
-                            PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false});
+            PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false});
         swapRouter.swap(
             poolKey,
             IPoolManager.SwapParams({
@@ -168,7 +168,7 @@ contract AutoWrapperTest is Test, Deployers {
         uint256 managerWusdlBefore = wUSDL.balanceOf(address(manager));
 
         PoolSwapTest.TestSettings memory testSettings =
-                            PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false});
+            PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false});
         swapRouter.swap(
             poolKey,
             IPoolManager.SwapParams({
@@ -201,7 +201,7 @@ contract AutoWrapperTest is Test, Deployers {
         uint256 managerWusdlBefore = wUSDL.balanceOf(address(manager));
 
         PoolSwapTest.TestSettings memory testSettings =
-                            PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false});
+            PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false});
         swapRouter.swap(
             poolKey,
             IPoolManager.SwapParams({
@@ -272,7 +272,7 @@ contract AutoWrapperTest is Test, Deployers {
             ? (Currency.wrap(address(randomToken)), Currency.wrap(address(wUSDL)))
             : (Currency.wrap(address(wUSDL)), Currency.wrap(address(randomToken)));
         invalidKey =
-                        PoolKey({currency0: currency0, currency1: currency1, fee: 0, tickSpacing: 60, hooks: IHooks(address(hook))});
+            PoolKey({currency0: currency0, currency1: currency1, fee: 0, tickSpacing: 60, hooks: IHooks(address(hook))});
 
         vm.expectRevert(
             abi.encodeWithSelector(

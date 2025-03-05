@@ -8,11 +8,15 @@ contract MockWUSDL is ERC20 {
     address public immutable asset;
     uint256 public exchangeRate = 1e18; // 1:1 initial exchange rate
 
-    constructor(address _asset) ERC20("Wrapped USDL", "wUSDL", 18) {
+    constructor(
+        address _asset
+    ) ERC20("Wrapped USDL", "wUSDL", 18) {
         asset = _asset;
     }
 
-    function setExchangeRate(uint256 _rate) external {
+    function setExchangeRate(
+        uint256 _rate
+    ) external {
         exchangeRate = _rate;
     }
 
@@ -20,27 +24,39 @@ contract MockWUSDL is ERC20 {
         return ERC20(asset).balanceOf(address(this));
     }
 
-    function convertToShares(uint256 assets) public view returns (uint256) {
+    function convertToShares(
+        uint256 assets
+    ) public view returns (uint256) {
         return (assets * 1e18) / exchangeRate;
     }
 
-    function convertToAssets(uint256 shares) public view returns (uint256) {
+    function convertToAssets(
+        uint256 shares
+    ) public view returns (uint256) {
         return (shares * exchangeRate) / 1e18;
     }
 
-    function previewDeposit(uint256 assets) public view returns (uint256) {
+    function previewDeposit(
+        uint256 assets
+    ) public view returns (uint256) {
         return convertToShares(assets);
     }
 
-    function previewMint(uint256 shares) public view returns (uint256) {
+    function previewMint(
+        uint256 shares
+    ) public view returns (uint256) {
         return convertToAssets(shares);
     }
 
-    function previewWithdraw(uint256 assets) public view returns (uint256) {
+    function previewWithdraw(
+        uint256 assets
+    ) public view returns (uint256) {
         return (assets * 1e18) / exchangeRate;
     }
 
-    function previewRedeem(uint256 shares) public view returns (uint256) {
+    function previewRedeem(
+        uint256 shares
+    ) public view returns (uint256) {
         return convertToAssets(shares);
     }
 

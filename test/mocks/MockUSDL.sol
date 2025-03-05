@@ -13,7 +13,9 @@ contract MockUSDL is ERC20 {
         return rebaseMultiplier;
     }
 
-    function setRebaseMultiplier(uint256 newMultiplier) external {
+    function setRebaseMultiplier(
+        uint256 newMultiplier
+    ) external {
         rebaseMultiplier = newMultiplier;
     }
 

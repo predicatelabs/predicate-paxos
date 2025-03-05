@@ -27,13 +27,14 @@ contract PoolSetup is DeployPermit2 {
     using EasyPosm for IPositionManager;
 
     // Global variables
-    Currency internal currency0;
-    Currency internal currency1;
     IPoolManager manager;
     IPositionManager posm;
     PoolModifyLiquidityTest lpRouter;
     ISimpleV4Router swapRouter;
-    address feeController;
+
+    // -----------------------------------------------------------
+    // Helpers
+    // -----------------------------------------------------------
 
     function initPool(
         Currency _currency0,
@@ -46,10 +47,6 @@ contract PoolSetup is DeployPermit2 {
         _key = PoolKey(_currency0, _currency1, fee, tickSpacing, hooks);
         manager.initialize(_key, sqrtPriceX96);
     }
-
-    // -----------------------------------------------------------
-    // Helpers
-    // -----------------------------------------------------------
 
     function deployPoolManager() internal virtual {
         manager = IPoolManager(new PoolManager(address(this)));
@@ -94,27 +91,48 @@ contract PoolSetup is DeployPermit2 {
     }
 
     function deployAndMintTokens(
-        address sender
-    ) internal {
+        address sender,
+        uint256 amount
+    ) internal returns (Currency currency0, Currency currency1) {
         (MockERC20 token0, MockERC20 token1) = deployTokens();
-
+        token0.mint(sender, amount);
+        token1.mint(sender, amount);
         currency0 = Currency.wrap(address(token0));
         currency1 = Currency.wrap(address(token1));
-
-        token0.mint(sender, 100_000 ether);
-        token1.mint(sender, 100_000 ether);
     }
 
-    function initPoolAndSetApprovals(
-        IHooks hook
+    function provisionLiquidity(
+        int24 tickSpacing,
+        PoolKey memory poolKey,
+        uint256 liquidity,
+        address sender,
+        uint256 amount0Max,
+        uint256 amount1Max
     ) internal {
         bytes memory ZERO_BYTES = new bytes(0);
+        // add full range liquidity to the pool
+        lpRouter.modifyLiquidity(
+            poolKey,
+            IPoolManager.ModifyLiquidityParams(
+                TickMath.minUsableTick(tickSpacing), TickMath.maxUsableTick(tickSpacing), int256(liquidity), 0
+            ),
+            ZERO_BYTES
+        );
 
-        // initialize the pool
-        int24 tickSpacing = 60;
-        PoolKey memory poolKey = PoolKey(currency0, currency1, 3000, tickSpacing, IHooks(hook));
-        manager.initialize(poolKey, Constants.SQRT_PRICE_1_1);
+        posm.mint(
+            poolKey,
+            TickMath.minUsableTick(tickSpacing),
+            TickMath.maxUsableTick(tickSpacing),
+            liquidity,
+            amount0Max,
+            amount1Max,
+            sender,
+            block.timestamp + 300,
+            ZERO_BYTES
+        );
+    }
 
+    function setApprovals(Currency currency0, Currency currency1) internal {
         // approve the tokens to the routers
         IERC20 token0 = IERC20(Currency.unwrap(currency0));
         IERC20 token1 = IERC20(Currency.unwrap(currency1));
@@ -126,26 +144,5 @@ contract PoolSetup is DeployPermit2 {
 
         approvePosmCurrency(currency0);
         approvePosmCurrency(currency1);
-
-        // add full range liquidity to the pool
-        lpRouter.modifyLiquidity(
-            poolKey,
-            IPoolManager.ModifyLiquidityParams(
-                TickMath.minUsableTick(tickSpacing), TickMath.maxUsableTick(tickSpacing), 100 ether, 0
-            ),
-            ZERO_BYTES
-        );
-
-        posm.mint(
-            poolKey,
-            TickMath.minUsableTick(tickSpacing),
-            TickMath.maxUsableTick(tickSpacing),
-            100e18,
-            10_000e18,
-            10_000e18,
-            msg.sender,
-            block.timestamp + 300,
-            ZERO_BYTES
-        );
     }
 }

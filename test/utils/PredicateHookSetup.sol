@@ -6,6 +6,10 @@ import {SimpleV4Router} from "../../src/SimpleV4Router.sol";
 import {ISimpleV4Router} from "../../src/interfaces/ISimpleV4Router.sol";
 
 import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
+import {Currency} from "v4-core/src/types/Currency.sol";
+import {PoolKey} from "v4-core/src/types/PoolKey.sol";
+import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
+import {Constants} from "v4-core/src/../test/utils/Constants.sol";
 import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
 import {STMSetup} from "@predicate-test/helpers/utility/STMSetup.sol";
 import {HookMiner} from "test/utils/HookMiner.sol";
@@ -13,15 +17,23 @@ import {PoolSetup} from "./PoolSetup.sol";
 
 contract PredicateHookSetup is STMSetup, PoolSetup {
     PredicateHook public hook;
-    address public sender;
+    Currency currency0;
+    Currency currency1;
+    int24 tickSpacing = 60;
+    PoolKey poolKey;
 
-    function setUpPoolAndHook() internal {
-        sender = makeAddr("sender");
+    function setUpPredicateHook(
+        address liquidityProvider
+    ) internal {
         deployPoolManager();
         deployRouters();
         deployPosm();
-        deployAndMintTokens(sender);
+        (currency0, currency1) = deployAndMintTokens(liquidityProvider, 100_000 ether);
+        vm.startPrank(liquidityProvider);
+        setApprovals(currency0, currency1);
+        vm.stopPrank();
 
+        // deploy policy for test
         serviceManager.deployPolicy("x-aleo-6a52de9724a6e8f2", "test-policy", 1);
 
         // create hook here
@@ -34,8 +46,28 @@ contract PredicateHookSetup is STMSetup, PoolSetup {
         hook = new PredicateHook{salt: salt}(manager, swapRouter, address(serviceManager), "x-aleo-6a52de9724a6e8f2");
         require(address(hook) == hookAddress, "Hook deployment failed");
 
-        vm.startPrank(sender);
-        initPoolAndSetApprovals(hook);
+        // initialize the pool
+        poolKey = PoolKey(currency0, currency1, 3000, tickSpacing, IHooks(hook));
+        manager.initialize(poolKey, Constants.SQRT_PRICE_1_1);
+
+        vm.startPrank(liquidityProvider);
+        provisionLiquidity(tickSpacing, poolKey, 100 ether, liquidityProvider, 100_000 ether, 100_000 ether);
         vm.stopPrank();
+    }
+
+    function getPoolKey() public view returns (PoolKey memory) {
+        return poolKey;
+    }
+
+    function getCurrency0() public view returns (Currency) {
+        return currency0;
+    }
+
+    function getCurrency1() public view returns (Currency) {
+        return currency1;
+    }
+
+    function getTickSpacing() public view returns (int24) {
+        return tickSpacing;
     }
 }

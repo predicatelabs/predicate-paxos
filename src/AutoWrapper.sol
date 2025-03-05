@@ -14,8 +14,6 @@ import {Currency, CurrencyLibrary} from "@uniswap/v4-core/src/types/Currency.sol
 import {IERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {IERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 
 /// @title Auto Wrapper
 /// @author Predicate Labs
@@ -29,17 +27,17 @@ contract AutoWrapper is BaseHook {
     wYBSV1 public immutable wYBS;
     IERC20Upgradeable public immutable ybs;
     PoolKey public underlyingPoolKey;
-    IERC20 public immutable usdc;
     bool public immutable shouldWrap;
+
+    bytes4 constant BEFORE_SWAP_SELECTOR = IHooks.beforeSwap.selector;
+    uint24 private constant DEFAULT_LP_FEE = 0;
 
     constructor(IPoolManager _manager, address _ybsAddress, PoolKey memory _poolKey) BaseHook(_manager) {
         wrapperCurrency = Currency.wrap(_ybsAddress);
         underlyingCurrency = _poolKey.currency0;
-        usdc = IERC20(Currency.unwrap(_poolKey.currency0));
         wYBS = wYBSV1(Currency.unwrap(_poolKey.currency1));
         ybs = IERC20Upgradeable(_ybsAddress);
-        underlyingPoolKey = _poolKey;
-        shouldWrap = Currency.unwrap(_poolKey.currency0) == _ybsAddress;
+        shouldWrap = Currency.unwrap(underlyingCurrency) == _ybsAddress;
     }
 
     function getHookPermissions() public pure override returns (Hooks.Permissions memory) {
@@ -90,13 +88,15 @@ contract AutoWrapper is BaseHook {
             swapDelta = toBeforeSwapDelta(int128(-params.amountSpecified), amountUnspecified);
         }
 
-        return (IHooks.beforeSwap.selector, swapDelta, 0);
+        return (BEFORE_SWAP_SELECTOR, swapDelta, DEFAULT_LP_FEE);
     }
 
     function _deposit(
         uint256 underlyingAmount
     ) internal returns (uint256 wrapperAmount) {
-        ybs.approve(address(wYBS), underlyingAmount);
+        if (ybs.allowance(address(this), address(wYBS)) < underlyingAmount) {
+            ybs.approve(address(wYBS), type(uint256).max);
+        }
         wYBS.deposit(underlyingAmount, address(this));
         return underlyingAmount;
     }

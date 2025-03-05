@@ -1,154 +1,135 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-// import {AutoWrapper} from "../src/AutoWrapper.sol";
-// import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
-// import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
-// import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
-// import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
-// import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
-// import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-// import {wYBSV1} from "../src/paxos/wYBSV1.sol";
-// import {HookMiner} from "./utils/HookMiner.sol";
-// import {MockERC20} from "./mocks/MockERC20.sol";
-// import "forge-std/Test.sol";
+import {AutoWrapper} from "../src/AutoWrapper.sol";
+import {PredicateMessage} from "@predicate/interfaces/IPredicateClient.sol";
+import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
+import {Task, SignatureWithSaltAndExpiry} from "@predicate/interfaces/IPredicateManager.sol";
+import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
+import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
+import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
+import {TestUtils} from "@predicate-test/helpers/utility/TestUtils.sol";
+import {OperatorTestPrep} from "@predicate-test/helpers/utility/OperatorTestPrep.sol";
+import {HookMiner} from "./utils/HookMiner.sol";
+import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
+import {AutoWrapperSetup} from "./utils/AutoWrapperSetup.sol";
+import {BalanceDelta} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
+import {IERC20} from "forge-std/interfaces/IERC20.sol";
+import {Constants} from "@uniswap/v4-core/src/../test/utils/Constants.sol"; // what in world is this
 
-// contract AutoWrapperTest is Test {
-//     AutoWrapper public wrapper;
-//     MockERC20 public ybs;
-//     wYBSV1 public wYBS;
-//     MockERC20 public usdc;
-//     IPoolManager public poolManager;
+contract AutoWrapperTest is AutoWrapperSetup, OperatorTestPrep {
+    address liquidityProvider;
 
-//     address constant CREATE2_DEPLOYER = address(0x4e59b44847b379578588920cA78FbF26c0B4956C);
+    function setUp() public override {
+        liquidityProvider = makeAddr("liquidityProvider");
+        super.setUp();
+        setUpHooksAndPools(liquidityProvider);
+    }
 
-//     function setUp() public {
-//         poolManager = IPoolManager(0x000000000004444c5dc75cB358380D2e3dE08A90);
-//         // todo: set up pool manager and permissions here
+    modifier permissionedOperators() {
+        vm.startPrank(address(this));
+        address[] memory operators = new address[](2);
+        operators[0] = operatorOne;
+        operators[1] = operatorTwo;
+        serviceManager.addPermissionedOperators(operators);
+        vm.stopPrank();
+        _;
+    }
 
-//         ybs = new MockERC20("YBS Token", "YBS", 18);
-//         wYBS = new wYBSV1();
-//         usdc = new MockERC20("USD Coin", "USDC", 6);
+    function testSwapZeroForOne() public permissionedOperators prepOperatorRegistration(false) {
+        vm.prank(operatorOne);
+        serviceManager.registerOperatorToAVS(operatorOneAlias, operatorSignature);
 
-//         uint160 flags = uint160(Hooks.BEFORE_SWAP_FLAG);
+        PoolKey memory key = getPoolKey();
+        string memory taskId = "unique-identifier";
+        IPoolManager.SwapParams memory params = IPoolManager.SwapParams({
+            zeroForOne: true,
+            amountSpecified: 1e18,
+            sqrtPriceLimitX96: uint160(4_295_128_740)
+        });
 
-//         PoolKey memory poolKey = PoolKey({
-//             currency0: Currency.wrap(address(usdc)),
-//             currency1: Currency.wrap(address(wYBS)),
-//             fee: 3000,
-//             tickSpacing: 60,
-//             hooks: IHooks(address(0))
-//         });
+        PredicateMessage memory message = getPredicateMessage(taskId, params);
 
-//         (address hookAddress, bytes32 salt) = HookMiner.find(
-//             address(this), flags, type(AutoWrapper).creationCode, abi.encode(poolManager, address(ybs), poolKey)
-//         );
+        IERC20 token0 = IERC20(Currency.unwrap(key.currency0));
+        IERC20 token1 = IERC20(Currency.unwrap(key.currency1));
+        uint256 balance0 = token0.balanceOf(liquidityProvider);
+        uint256 balance1 = token1.balanceOf(liquidityProvider);
 
-//         wrapper = new AutoWrapper{salt: salt}(poolManager, address(ybs), poolKey);
-//         require(address(wrapper) == hookAddress, "Hook deployment address mismatch");
+        vm.prank(address(liquidityProvider));
+        BalanceDelta delta = swapRouter.swap(key, params, abi.encode(message, liquidityProvider, 0));
+        require(token0.balanceOf(liquidityProvider) < balance0, "Token0 balance should decrease");
+        require(token1.balanceOf(liquidityProvider) > balance1, "Token1 balance should increase");
+    }
 
-//         poolKey.hooks = IHooks(address(wrapper));
+    function testSwapWithInvalidMessage() public permissionedOperators prepOperatorRegistration(false) {
+        vm.prank(operatorOne);
+        serviceManager.registerOperatorToAVS(operatorOneAlias, operatorSignature);
 
-//         ybs.mint(address(this), 1000e18);
-//         usdc.mint(address(this), 1000e6);
-//     }
+        PoolKey memory key = getPoolKey();
+        string memory taskId = "unique-identifier";
+        IPoolManager.SwapParams memory params = IPoolManager.SwapParams({
+            zeroForOne: true,
+            amountSpecified: 1e18,
+            sqrtPriceLimitX96: uint160(4_295_128_740)
+        });
 
-//     function testWrapAndSwap() public {
-//         uint256 ybsAmount = 100e18;
-//         ybs.approve(address(wrapper), ybsAmount);
+        PredicateMessage memory message = getPredicateMessage(taskId, params);
+        message.taskId = "invalid-task-id";
 
-//         IPoolManager.SwapParams memory params =
-//             IPoolManager.SwapParams({zeroForOne: true, amountSpecified: -int256(ybsAmount), sqrtPriceLimitX96: 0});
+        vm.prank(address(liquidityProvider));
+        vm.expectRevert();
+        swapRouter.swap(key, params, abi.encode(message, liquidityProvider, 0));
+    }
 
-//         (Currency currency0, Currency currency1, uint24 fee, int24 tickSpacing, IHooks hooks) =
-//             wrapper.underlyingPoolKey();
-//         wrapper.beforeSwap(
-//             address(this),
-//             PoolKey({currency0: currency0, currency1: currency1, fee: fee, tickSpacing: tickSpacing, hooks: hooks}),
-//             params,
-//             ""
-//         );
+    function getPredicateMessage(
+        string memory taskId,
+        IPoolManager.SwapParams memory params
+    ) public returns (PredicateMessage memory) {
+        Task memory task = getTask(taskId, params);
+        bytes32 taskHash = serviceManager.hashTaskWithExpiry(task);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(operatorOneAliasPk, taskHash);
 
-//         assertEq(ybs.balanceOf(address(this)), 900e18);
-//         assertEq(wYBS.balanceOf(address(wrapper)), 100e18);
-//     }
+        bytes memory signature = abi.encodePacked(r, s, v);
 
-//     function testUnwrapAndSwap() public {
-//         uint256 wrappedAmount = 100e18;
-//         wYBS.approve(address(wrapper), wrappedAmount);
+        address[] memory signerAddresses = new address[](1);
+        bytes[] memory operatorSignatures = new bytes[](1);
+        signerAddresses[0] = operatorOneAlias;
+        operatorSignatures[0] = signature;
 
-//         IPoolManager.SwapParams memory params =
-//             IPoolManager.SwapParams({zeroForOne: false, amountSpecified: -int256(wrappedAmount), sqrtPriceLimitX96: 0});
+        PredicateMessage memory message = PredicateMessage({
+            taskId: taskId,
+            expireByBlockNumber: task.expireByBlockNumber,
+            signerAddresses: signerAddresses,
+            signatures: operatorSignatures
+        });
 
-//         (Currency currency0, Currency currency1, uint24 fee, int24 tickSpacing, IHooks hooks) =
-//             wrapper.underlyingPoolKey();
-//         wrapper.beforeSwap(
-//             address(this),
-//             PoolKey({currency0: currency0, currency1: currency1, fee: fee, tickSpacing: tickSpacing, hooks: hooks}),
-//             params,
-//             ""
-//         );
+        return message;
+    }
 
-//         assertEq(wYBS.balanceOf(address(this)), 0);
-//         assertEq(ybs.balanceOf(address(wrapper)), 100e18);
-//     }
+    function getTask(string memory taskId, IPoolManager.SwapParams memory params) public returns (Task memory) {
+        PoolKey memory key = getPredicatePoolKey();
+        return Task({
+            taskId: taskId,
+            msgSender: liquidityProvider,
+            target: address(key.hooks),
+            value: 0,
+            encodedSigAndArgs: abi.encodeWithSignature(
+                "_beforeSwap(address,address,address,uint24,int24,address,bool,int256,uint160)",
+                liquidityProvider,
+                key.currency0,
+                key.currency1,
+                key.fee,
+                key.tickSpacing,
+                address(key.hooks),
+                params.zeroForOne,
+                params.amountSpecified,
+                params.sqrtPriceLimitX96
+            ),
+            policyID: "testPolicy",
+            quorumThresholdCount: 1,
+            expireByBlockNumber: block.number + 100
+        });
+    }
 
-//     function testWrapWithExactOutput() public {
-//         uint256 ybsAmount = 100e18;
-//         ybs.approve(address(wrapper), ybsAmount);
-
-//         IPoolManager.SwapParams memory params =
-//             IPoolManager.SwapParams({zeroForOne: true, amountSpecified: int256(ybsAmount), sqrtPriceLimitX96: 0});
-
-//         (Currency currency0, Currency currency1, uint24 fee, int24 tickSpacing, IHooks hooks) =
-//             wrapper.underlyingPoolKey();
-//         wrapper.beforeSwap(
-//             address(this),
-//             PoolKey({currency0: currency0, currency1: currency1, fee: fee, tickSpacing: tickSpacing, hooks: hooks}),
-//             params,
-//             ""
-//         );
-
-//         assertEq(ybs.balanceOf(address(this)), 900e18);
-//         assertEq(wYBS.balanceOf(address(wrapper)), 100e18);
-//     }
-
-//     function testUnwrapWithExactOutput() public {
-//         uint256 wrappedAmount = 100e18;
-//         wYBS.approve(address(wrapper), wrappedAmount);
-
-//         IPoolManager.SwapParams memory params =
-//             IPoolManager.SwapParams({zeroForOne: false, amountSpecified: int256(wrappedAmount), sqrtPriceLimitX96: 0});
-
-//         (Currency currency0, Currency currency1, uint24 fee, int24 tickSpacing, IHooks hooks) =
-//             wrapper.underlyingPoolKey();
-//         wrapper.beforeSwap(
-//             address(this),
-//             PoolKey({currency0: currency0, currency1: currency1, fee: fee, tickSpacing: tickSpacing, hooks: hooks}),
-//             params,
-//             ""
-//         );
-
-//         assertEq(wYBS.balanceOf(address(this)), 0);
-//         assertEq(ybs.balanceOf(address(wrapper)), 100e18);
-//     }
-
-//     function testRevertOnInsufficientBalance() public {
-//         uint256 ybsAmount = 200e18;
-//         ybs.approve(address(wrapper), ybsAmount);
-
-//         IPoolManager.SwapParams memory params =
-//             IPoolManager.SwapParams({zeroForOne: true, amountSpecified: -int256(ybsAmount), sqrtPriceLimitX96: 0});
-
-//         (Currency currency0, Currency currency1, uint24 fee, int24 tickSpacing, IHooks hooks) =
-//             wrapper.underlyingPoolKey();
-
-//         vm.expectRevert();
-//         wrapper.beforeSwap(
-//             address(this),
-//             PoolKey({currency0: currency0, currency1: currency1, fee: fee, tickSpacing: tickSpacing, hooks: hooks}),
-//             params,
-//             ""
-//         );
-//     }
-// }
+    // todo: add swap tests
+}

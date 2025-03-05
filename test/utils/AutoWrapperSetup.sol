@@ -2,6 +2,7 @@
 pragma solidity ^0.8.12;
 
 import {PredicateHook} from "../../src/PredicateHook.sol";
+import {AutoWrapper} from "../../src/AutoWrapper.sol";
 import {SimpleV4Router} from "../../src/SimpleV4Router.sol";
 import {ISimpleV4Router} from "../../src/interfaces/ISimpleV4Router.sol";
 import {YBSV1_1} from "../../src/paxos/YBSV1_1.sol";
@@ -21,15 +22,17 @@ import {PoolSetup} from "./PoolSetup.sol";
 
 contract AutoWrapperSetup is MetaCoinTestSetup, PoolSetup {
     PredicateHook public predicateHook;
+    AutoWrapper public autoWrapper;
     Currency currency0;
     Currency currency1;
     Currency ybs;
     int24 tickSpacing = 60;
     PoolKey predicatePoolKey;
+    PoolKey ghostPoolKey;
     // YBSV1_1 ybs;
     wYBSV1 wYBS;
 
-    function setUpHooks(
+    function setUpHooksAndPools(
         address liquidityProvider
     ) internal {
         // deploy pool manager, routers and posm
@@ -64,6 +67,16 @@ contract AutoWrapperSetup is MetaCoinTestSetup, PoolSetup {
         predicatePoolKey = PoolKey(currency0, currency1, 3000, tickSpacing, IHooks(predicateHook));
         manager.initialize(predicatePoolKey, Constants.SQRT_PRICE_1_1);
 
+        // initialize the auto wrapper
+        constructorArgs = abi.encode(manager, Currency.unwrap(ybs), predicatePoolKey);
+        (hookAddress, salt) = HookMiner.find(address(this), flags, type(AutoWrapper).creationCode, constructorArgs);
+        autoWrapper = new AutoWrapper{salt: salt}(manager, Currency.unwrap(ybs), predicatePoolKey);
+        require(address(autoWrapper) == hookAddress, "Hook deployment failed");
+
+        // initialize the ghost pool
+        ghostPoolKey = PoolKey(currency0, ybs, 3000, tickSpacing, IHooks(autoWrapper));
+        manager.initialize(ghostPoolKey, Constants.SQRT_PRICE_1_1);
+
         // mint wYBS shares to liquidity provider
         vm.startPrank(liquidityProvider);
         wYBS.deposit(1_000_000 ether, liquidityProvider);
@@ -74,38 +87,6 @@ contract AutoWrapperSetup is MetaCoinTestSetup, PoolSetup {
         provisionLiquidity(tickSpacing, predicatePoolKey, 100 ether, liquidityProvider, 100_000 ether, 100_000 ether);
         vm.stopPrank();
     }
-
-    // function deployYBS() internal {
-    //     YBSV1_1 ybs = new YBSV1_1();
-
-    //     /// @notice Encode initializer data
-    //     bytes memory initData = abi.encodeCall(
-    //         YBSV1_1.initialize,
-    //         (
-    //             "Yield Bearing Stablecoin",
-    //             "YBS",
-    //             18, // assume 18 decimals for test setup
-    //             address(0),
-    //             address(0),
-    //             address(0),
-    //             address(0),
-    //             address(0),
-    //             address(0)
-    //         )
-    //     );
-    //     /// @notice deploys TransparentUpgradeableProxy
-    //     TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(
-    //         address(ybs), // ybs
-    //         msg.sender, // proxy
-    //         initData // initialization call data
-    //     );
-    //     ybs = YBSV1_1(address(proxy));
-
-    //     // mint ybs to liquidity provider
-    //     vm.startPrank(liquidityProvider);
-    //     ybs.deposit(liquidityProvider, 100_000 ether);
-    //     vm.stopPrank();
-    // }
 
     function deployWYBS() internal {
         wYBSV1 impl = new wYBSV1();
@@ -132,6 +113,10 @@ contract AutoWrapperSetup is MetaCoinTestSetup, PoolSetup {
 
     function getPredicatePoolKey() public view returns (PoolKey memory) {
         return predicatePoolKey;
+    }
+
+    function getPoolKey() public view returns (PoolKey memory) {
+        return ghostPoolKey;
     }
 
     function getCurrency0() public view returns (Currency) {

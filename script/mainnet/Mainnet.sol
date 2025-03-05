@@ -2,10 +2,10 @@
 pragma solidity ^0.8.12;
 
 import "../common/INetwork.sol";
-import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
-import {PositionManager} from "v4-periphery/src/PositionManager.sol";
+import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
+import {PositionManager} from "@uniswap/v4-periphery/src/PositionManager.sol";
 import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
-import {IHooks} from "v4-core/src/interfaces/IHooks.sol";
+import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
 import {ISimpleV4Router} from "../../src/interfaces/ISimpleV4Router.sol";
 import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
 

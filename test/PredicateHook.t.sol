@@ -9,16 +9,15 @@ import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
 import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
 import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
 import {TestUtils} from "@predicate-test/helpers/utility/TestUtils.sol";
-import {TestPrep} from "@predicate-test/helpers/utility/TestPrep.sol";
-import {STMSetup} from "@predicate-test/helpers/utility/STMSetup.sol";
+import {OperatorTestPrep} from "@predicate-test/helpers/utility/OperatorTestPrep.sol";
 import {HookMiner} from "./utils/HookMiner.sol";
 import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
 import {PredicateHookSetup} from "./utils/PredicateHookSetup.sol";
 import {BalanceDelta} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
 import {IERC20} from "forge-std/interfaces/IERC20.sol";
-import {Constants} from "v4-core/src/../test/utils/Constants.sol";
+import {Constants} from "@uniswap/v4-core/src/../test/utils/Constants.sol"; // what in world is this
 
-contract PredicateHookTest is PredicateHookSetup, TestPrep {
+contract PredicateHookTest is PredicateHookSetup, OperatorTestPrep {
     address liquidityProvider;
 
     function setUp() public override {

@@ -145,4 +145,13 @@ contract PoolSetup is DeployPermit2 {
         approvePosmCurrency(currency0);
         approvePosmCurrency(currency1);
     }
+
+    function setApprovals(
+        Currency currency0
+    ) internal {
+        IERC20 token0 = IERC20(Currency.unwrap(currency0));
+        token0.approve(address(lpRouter), type(uint256).max);
+        token0.approve(address(swapRouter), type(uint256).max);
+        approvePosmCurrency(currency0);
+    }
 }

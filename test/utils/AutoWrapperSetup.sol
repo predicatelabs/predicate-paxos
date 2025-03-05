@@ -22,20 +22,32 @@ contract AutoWrapperSetup is MetaCoinTestSetup, PoolSetup {
     PredicateHook public predicateHook;
     Currency currency0;
     Currency currency1;
+    Currency ybs;
     int24 tickSpacing = 60;
-    PoolKey poolKey;
-    YBSV1_1 ybs;
+    PoolKey predicatePoolKey;
+    // YBSV1_1 ybs;
     wYBSV1 wYBS;
 
-    function setUpPredicateHook(
+    function setUpHooks(
         address liquidityProvider
     ) internal {
+        // deploy pool manager, routers and posm
         deployPoolManager();
         deployRouters();
         deployPosm();
-        (currency0, currency1) = deployAndMintTokens(liquidityProvider, 100_000 ether);
+
+        // deploy ybs and wYBS
+        // deployYBS(liquidityProvider);
+        deployWYBS(liquidityProvider);
+
+        // deploy tokens
+        (currency0, ybs) = deployAndMintTokens(liquidityProvider, 100_000_000 ether);
+        currency1 = Currency.wrap(address(wYBS));
+
+        // set approvals
         vm.startPrank(liquidityProvider);
-        setApprovals(currency0, currency1);
+        setApprovals(currency0, currency1); // currency1 is wYBS
+        setApprovals(ybs);
         vm.stopPrank();
 
         // create hook here
@@ -44,44 +56,55 @@ contract AutoWrapperSetup is MetaCoinTestSetup, PoolSetup {
         (address hookAddress, bytes32 salt) =
             HookMiner.find(address(this), flags, type(PredicateHook).creationCode, constructorArgs);
 
-        hook = new PredicateHook{salt: salt}(manager, swapRouter, address(serviceManager), "testPolicy");
-        require(address(hook) == hookAddress, "Hook deployment failed");
+        predicateHook = new PredicateHook{salt: salt}(manager, swapRouter, address(serviceManager), "testPolicy");
+        require(address(predicateHook) == hookAddress, "Hook deployment failed");
 
         // initialize the pool
-        poolKey = PoolKey(currency0, currency1, 3000, tickSpacing, IHooks(hook));
-        manager.initialize(poolKey, Constants.SQRT_PRICE_1_1);
+        predicatePoolKey = PoolKey(currency0, currency1, 3000, tickSpacing, IHooks(predicateHook));
+        manager.initialize(predicatePoolKey, Constants.SQRT_PRICE_1_1);
 
+        // mint wYBS shares to liquidity provider
         vm.startPrank(liquidityProvider);
-        provisionLiquidity(tickSpacing, poolKey, 100 ether, liquidityProvider, 100_000 ether, 100_000 ether);
+        wYBS.deposit(1_000_000 ether, liquidityProvider);
+        vm.stopPrank();
+
+        // provision liquidity
+        vm.startPrank(liquidityProvider);
+        provisionLiquidity(tickSpacing, predicatePoolKey, 100 ether, liquidityProvider, 100_000 ether, 100_000 ether);
         vm.stopPrank();
     }
 
-    function deployYBS() internal {
-        YBSV1_1 ybs = new YBSV1_1();
+    // function deployYBS() internal {
+    //     YBSV1_1 ybs = new YBSV1_1();
 
-        /// @notice Encode initializer data
-        bytes memory initData = abi.encodeCall(
-            YBSV1_1.initialize,
-            (
-                "Yield Bearing Stablecoin",
-                "YBS",
-                18, // assume 18 decimals for test setup
-                address(0),
-                address(0),
-                address(0),
-                address(0),
-                address(0),
-                address(0)
-            )
-        );
-        /// @notice deploys TransparentUpgradeableProxy
-        TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(
-            address(ybs), // ybs
-            msg.sender, // proxy
-            initData // initialization call data
-        );
-        ybs = YBSV1_1(address(proxy));
-    }
+    //     /// @notice Encode initializer data
+    //     bytes memory initData = abi.encodeCall(
+    //         YBSV1_1.initialize,
+    //         (
+    //             "Yield Bearing Stablecoin",
+    //             "YBS",
+    //             18, // assume 18 decimals for test setup
+    //             address(0),
+    //             address(0),
+    //             address(0),
+    //             address(0),
+    //             address(0),
+    //             address(0)
+    //         )
+    //     );
+    //     /// @notice deploys TransparentUpgradeableProxy
+    //     TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(
+    //         address(ybs), // ybs
+    //         msg.sender, // proxy
+    //         initData // initialization call data
+    //     );
+    //     ybs = YBSV1_1(address(proxy));
+
+    //     // mint ybs to liquidity provider
+    //     vm.startPrank(liquidityProvider);
+    //     ybs.deposit(liquidityProvider, 100_000 ether);
+    //     vm.stopPrank();
+    // }
 
     function deployWYBS() internal {
         wYBSV1 wYBS = new wYBSV1();
@@ -89,7 +112,7 @@ contract AutoWrapperSetup is MetaCoinTestSetup, PoolSetup {
         /// @notice Encode initializer data
         bytes memory initData = abi.encodeCall(
             wYBSV1.initialize,
-            ("Wrapped Yield Bearing Stablecoin", "wYBS", address(ybs), address(0), address(0), address(0))
+            ("Wrapped Yield Bearing Stablecoin", "wYBS", Currency.unwrap(currency1), address(0), address(0), address(0))
         );
         TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(
             address(wYBS), // wYBS
@@ -106,8 +129,8 @@ contract AutoWrapperSetup is MetaCoinTestSetup, PoolSetup {
         deployWYBS();
     }
 
-    function getPoolKey() public view returns (PoolKey memory) {
-        return poolKey;
+    function getPredicatePoolKey() public view returns (PoolKey memory) {
+        return predicatePoolKey;
     }
 
     function getCurrency0() public view returns (Currency) {

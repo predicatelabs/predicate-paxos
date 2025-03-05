@@ -40,12 +40,9 @@ contract AutoWrapperSetup is MetaCoinTestSetup, PoolSetup {
         deployRouters();
         deployPosm();
 
-        // deploy ybs and wYBS
-        // deployYBS(liquidityProvider);
-        deployWYBS();
-
         // deploy tokens
         (currency0, ybs) = deployAndMintTokens(liquidityProvider, 100_000_000 ether);
+        deployWYBS(liquidityProvider);
         currency1 = Currency.wrap(address(wYBS));
 
         // set approvals
@@ -88,7 +85,9 @@ contract AutoWrapperSetup is MetaCoinTestSetup, PoolSetup {
         vm.stopPrank();
     }
 
-    function deployWYBS() internal {
+    function deployWYBS(
+        address liquidityProvider
+    ) internal {
         wYBSV1 impl = new wYBSV1();
 
         /// @notice Encode initializer data
@@ -98,14 +97,14 @@ contract AutoWrapperSetup is MetaCoinTestSetup, PoolSetup {
                 "Wrapped Yield Bearing Stablecoin",
                 "wYBS",
                 IERC20Upgradeable(Currency.unwrap(ybs)),
-                address(0),
-                address(0),
-                address(0)
+                liquidityProvider,
+                liquidityProvider,
+                liquidityProvider
             )
         );
         TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(
             address(impl), // wYBS
-            msg.sender,
+            liquidityProvider,
             initData // initialization call data
         );
         wYBS = wYBSV1(address(proxy));

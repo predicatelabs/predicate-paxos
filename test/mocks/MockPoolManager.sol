@@ -30,7 +30,9 @@ contract MockPoolManager {
         return _unlocked;
     }
 
-    function _getPool(PoolId id) internal view returns (Pool.State storage) {
+    function _getPool(
+        PoolId id
+    ) internal view returns (Pool.State storage) {
         return _pools[id];
     }
 
@@ -38,10 +40,11 @@ contract MockPoolManager {
         return 0;
     }
 
-    function swap(PoolKey memory key, IPoolManager.SwapParams memory params, bytes calldata hookData)
-        external
-        pure returns (BalanceDelta)
-    {
+    function swap(
+        PoolKey memory key,
+        IPoolManager.SwapParams memory params,
+        bytes calldata hookData
+    ) external pure returns (BalanceDelta) {
         return toBalanceDelta(0, 0);
     }
 
@@ -87,7 +90,6 @@ contract MockPoolManager {
 
     // function setProtocolFee(PoolKey memory key, uint24 newProtocolFee) external {
     // }
-
 
     // function setProtocolFeeController(address controller) external {
     // }

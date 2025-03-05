@@ -10,12 +10,12 @@ import {Currency} from "v4-core/src/types/Currency.sol";
 import {PoolKey} from "v4-core/src/types/PoolKey.sol";
 import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
 import {Constants} from "v4-core/src/../test/utils/Constants.sol";
+import {MetaCoinTestSetup} from "@predicate-test/helpers/utility/MetaCoinTestSetup.sol";
 import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
-import {STMSetup} from "@predicate-test/helpers/utility/STMSetup.sol";
 import {HookMiner} from "test/utils/HookMiner.sol";
 import {PoolSetup} from "./PoolSetup.sol";
 
-contract PredicateHookSetup is STMSetup, PoolSetup {
+contract PredicateHookSetup is MetaCoinTestSetup, PoolSetup {
     PredicateHook public hook;
     Currency currency0;
     Currency currency1;

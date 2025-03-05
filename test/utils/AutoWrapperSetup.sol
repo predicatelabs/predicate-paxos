@@ -71,7 +71,7 @@ contract AutoWrapperSetup is MetaCoinTestSetup, PoolSetup {
         require(address(autoWrapper) == hookAddress, "Hook deployment failed");
 
         // initialize the ghost pool
-        ghostPoolKey = PoolKey(currency0, ybs, 3000, tickSpacing, IHooks(autoWrapper));
+        ghostPoolKey = PoolKey(currency0, ybs, 0, tickSpacing, IHooks(autoWrapper));
         manager.initialize(ghostPoolKey, Constants.SQRT_PRICE_1_1);
 
         // mint wYBS shares to liquidity provider

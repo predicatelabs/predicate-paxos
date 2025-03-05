@@ -3,7 +3,7 @@ pragma solidity ^0.8.24;
 
 import {ISimpleV4Router} from "./interfaces/ISimpleV4Router.sol";
 import {Lock} from "./base/Lock.sol";
-import {SafeCallback} from "v4-periphery/src/base/SafeCallback.sol";
+import {SafeCallback} from "@uniswap/v4-periphery/src/base/SafeCallback.sol";
 import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
 import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
 import {BalanceDelta} from "@uniswap/v4-core/src/types/BalanceDelta.sol";

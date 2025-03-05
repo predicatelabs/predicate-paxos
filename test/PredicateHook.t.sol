@@ -15,7 +15,7 @@ import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
 import {PredicateHookSetup} from "./utils/PredicateHookSetup.sol";
 import {BalanceDelta} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
 import {IERC20} from "forge-std/interfaces/IERC20.sol";
-import {Constants} from "v4-core/src/../test/utils/Constants.sol";
+import {Constants} from "@uniswap/v4-core/src/../test/utils/Constants.sol"; // what in world is this
 
 contract PredicateHookTest is PredicateHookSetup, OperatorTestPrep {
     address liquidityProvider;

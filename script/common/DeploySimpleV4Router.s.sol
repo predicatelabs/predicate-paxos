@@ -2,7 +2,7 @@
 pragma solidity ^0.8.19;
 
 import "forge-std/Script.sol";
-import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
+import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
 import {INetwork} from "./INetwork.sol";
 import {NetworkSelector} from "./NetworkSelector.sol";
 import {SimpleV4Router} from "../../src/SimpleV4Router.sol";

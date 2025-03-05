@@ -7,6 +7,7 @@ import {ISimpleV4Router} from "../../src/interfaces/ISimpleV4Router.sol";
 import {YBSV1_1} from "../../src/paxos/YBSV1_1.sol";
 import {wYBSV1} from "../../src/paxos/wYBSV1.sol";
 import {TransparentUpgradeableProxy} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import {IERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 
 import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
 import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
@@ -38,7 +39,7 @@ contract AutoWrapperSetup is MetaCoinTestSetup, PoolSetup {
 
         // deploy ybs and wYBS
         // deployYBS(liquidityProvider);
-        deployWYBS(liquidityProvider);
+        deployWYBS();
 
         // deploy tokens
         (currency0, ybs) = deployAndMintTokens(liquidityProvider, 100_000_000 ether);
@@ -107,26 +108,26 @@ contract AutoWrapperSetup is MetaCoinTestSetup, PoolSetup {
     // }
 
     function deployWYBS() internal {
-        wYBSV1 wYBS = new wYBSV1();
+        wYBSV1 impl = new wYBSV1();
 
         /// @notice Encode initializer data
         bytes memory initData = abi.encodeCall(
             wYBSV1.initialize,
-            ("Wrapped Yield Bearing Stablecoin", "wYBS", Currency.unwrap(currency1), address(0), address(0), address(0))
+            (
+                "Wrapped Yield Bearing Stablecoin",
+                "wYBS",
+                IERC20Upgradeable(Currency.unwrap(ybs)),
+                address(0),
+                address(0),
+                address(0)
+            )
         );
         TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(
-            address(wYBS), // wYBS
+            address(impl), // wYBS
             msg.sender,
             initData // initialization call data
         );
         wYBS = wYBSV1(address(proxy));
-    }
-
-    function setUpAutoWrapper() internal {
-        // deploy ybs
-        deployYBS();
-        // deploy wYBS
-        deployWYBS();
     }
 
     function getPredicatePoolKey() public view returns (PoolKey memory) {

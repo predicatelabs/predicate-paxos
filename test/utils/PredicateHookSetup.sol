@@ -33,17 +33,13 @@ contract PredicateHookSetup is MetaCoinTestSetup, PoolSetup {
         setApprovals(currency0, currency1);
         vm.stopPrank();
 
-        // deploy policy for test
-        serviceManager.deployPolicy("x-aleo-6a52de9724a6e8f2", "test-policy", 1);
-
         // create hook here
         uint160 flags = uint160(Hooks.BEFORE_SWAP_FLAG);
-        bytes memory constructorArgs =
-            abi.encode(manager, swapRouter, address(serviceManager), "x-aleo-6a52de9724a6e8f2");
+        bytes memory constructorArgs = abi.encode(manager, swapRouter, address(serviceManager), "testPolicy");
         (address hookAddress, bytes32 salt) =
             HookMiner.find(address(this), flags, type(PredicateHook).creationCode, constructorArgs);
 
-        hook = new PredicateHook{salt: salt}(manager, swapRouter, address(serviceManager), "x-aleo-6a52de9724a6e8f2");
+        hook = new PredicateHook{salt: salt}(manager, swapRouter, address(serviceManager), "testPolicy");
         require(address(hook) == hookAddress, "Hook deployment failed");
 
         // initialize the pool

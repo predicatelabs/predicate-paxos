@@ -16,6 +16,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import {console} from "forge-std/console.sol";
 
 /// @title Auto Wrapper
 /// @author Predicate Labs
@@ -33,6 +34,7 @@ contract AutoWrapper is BaseHook {
     bool public immutable shouldWrap;
 
     constructor(IPoolManager _manager, address _ybsAddress, PoolKey memory _poolKey) BaseHook(_manager) {
+        console.log("Deploying AutoWrapper with YBS address:", _ybsAddress);
         wrapperCurrency = Currency.wrap(_ybsAddress);
         underlyingCurrency = _poolKey.currency0;
         usdc = IERC20(Currency.unwrap(_poolKey.currency0));
@@ -40,6 +42,7 @@ contract AutoWrapper is BaseHook {
         ybs = IERC20Upgradeable(_ybsAddress);
         underlyingPoolKey = _poolKey;
         shouldWrap = Currency.unwrap(_poolKey.currency0) == _ybsAddress;
+        console.log("shouldWrap set to:", shouldWrap);
     }
 
     function getHookPermissions() public pure override returns (Hooks.Permissions memory) {
@@ -68,22 +71,31 @@ contract AutoWrapper is BaseHook {
         bytes calldata
     ) internal override returns (bytes4 selector, BeforeSwapDelta swapDelta, uint24 lpFeeOverride) {
         bool isExactInput = params.amountSpecified < 0;
+        console.log("_beforeSwap called with amountSpecified:", uint256(params.amountSpecified < 0 ? -params.amountSpecified : params.amountSpecified));
+        console.log("isExactInput:", isExactInput);
+        console.log("zeroForOne:", params.zeroForOne);
 
         if (shouldWrap == params.zeroForOne) {
+            console.log("Performing wrap operation");
             uint256 inputAmount =
                 isExactInput ? uint256(-params.amountSpecified) : _getWrapInputRequired(uint256(params.amountSpecified));
+            console.log("Input amount for wrap:", inputAmount);
             _take(underlyingCurrency, address(this), inputAmount);
             uint256 wrappedAmount = _deposit(inputAmount);
+            console.log("Wrapped amount:", wrappedAmount);
             _settle();
             int128 amountUnspecified =
                 isExactInput ? -SafeCast.toInt128(int256(wrappedAmount)) : SafeCast.toInt128(int256(inputAmount));
             swapDelta = toBeforeSwapDelta(int128(-params.amountSpecified), amountUnspecified);
         } else {
+            console.log("Performing unwrap operation");
             uint256 inputAmount = isExactInput
                 ? uint256(-params.amountSpecified)
                 : _getUnwrapInputRequired(uint256(params.amountSpecified));
+            console.log("Input amount for unwrap:", inputAmount);
             _take(wrapperCurrency, address(this), inputAmount);
             uint256 unwrappedAmount = _withdraw(inputAmount);
+            console.log("Unwrapped amount:", unwrappedAmount);
             _settle();
             int128 amountUnspecified =
                 isExactInput ? -SafeCast.toInt128(int256(unwrappedAmount)) : SafeCast.toInt128(int256(inputAmount));
@@ -96,6 +108,7 @@ contract AutoWrapper is BaseHook {
     function _deposit(
         uint256 underlyingAmount
     ) internal returns (uint256 wrapperAmount) {
+        console.log("Depositing underlying amount:", underlyingAmount);
         ybs.approve(address(wYBS), underlyingAmount);
         wYBS.deposit(underlyingAmount, address(this));
         return underlyingAmount;
@@ -104,15 +117,19 @@ contract AutoWrapper is BaseHook {
     function _withdraw(
         uint256 wrapperAmount
     ) internal returns (uint256 underlyingAmount) {
+        console.log("Withdrawing wrapper amount:", wrapperAmount);
         wYBS.redeem(wrapperAmount, address(this), address(this));
         return wrapperAmount;
     }
 
     function _take(Currency currency, address to, uint256 amount) internal {
+        console.log("Taking from currency:", address(Currency.unwrap(currency)));
+        console.log("Amount:", amount);
         poolManager.take(currency, to, amount);
     }
 
     function _settle() internal {
+        console.log("Settling with pool manager");
         poolManager.settle();
     }
 

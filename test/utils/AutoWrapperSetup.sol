@@ -15,6 +15,7 @@ import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
 import {Constants} from "@uniswap/v4-core/src/../test/utils/Constants.sol";
 import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
 import {HookMiner} from "test/utils/HookMiner.sol";
+import {IERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 
 contract AutoWrapperSetup is PoolSetup {
     AutoWrapper public wrapper;
@@ -23,6 +24,22 @@ contract AutoWrapperSetup is PoolSetup {
     int24 tickSpacing = 60;
     PoolKey poolKey;
     YBSV1_1 ybs;
+    wYBSV1 wYBS;
+
+    function setUpAutoWrapper() internal virtual {
+        deployPoolManager();
+        deployRouters();
+        deployPosm();
+    }
+
+    function initializeYBS() internal returns (YBSV1_1, wYBSV1) {
+        YBSV1_1 _ybs = new YBSV1_1();
+        wYBSV1 _wYBS = new wYBSV1();
+        _wYBS.initialize(
+            "Wrapped YBS", "wYBS", IERC20Upgradeable(address(_ybs)), address(this), address(this), address(this)
+        );
+        return (_ybs, _wYBS);
+    }
 
     function setUpAutoWrapper(
         address liquidityProvider
@@ -30,6 +47,9 @@ contract AutoWrapperSetup is PoolSetup {
         deployPoolManager();
         deployRouters();
         deployPosm();
+
+        (ybs, wYBS) = initializeYBS();
+
         (currency0, currency1) = deployAndMintTokens(liquidityProvider, 100_000 ether);
         vm.startPrank(liquidityProvider);
         setApprovals(currency0, currency1);
@@ -65,5 +85,16 @@ contract AutoWrapperSetup is PoolSetup {
 
     function getTickSpacing() public view returns (int24) {
         return tickSpacing;
+    }
+
+    function deployProxy(address implementation, bytes memory initData) internal returns (address) {
+        bytes memory code = abi.encodePacked(vm.getCode("ERC1967Proxy.sol:ERC1967Proxy"));
+        address proxy;
+        assembly {
+            proxy := create(0, add(code, 0x20), mload(code))
+        }
+        (bool success,) = proxy.call(abi.encodeWithSignature("initialize(address,bytes)", implementation, initData));
+        require(success, "Proxy initialization failed");
+        return proxy;
     }
 }

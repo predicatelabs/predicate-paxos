@@ -14,8 +14,6 @@ A Uniswap V4 Hook that enables Paxos to offer compliant, decentralized exchange 
 #### Install dependencies:
 ```bash
 make install
-
-git submodule update --init --recursive && git config --local core.hooksPath .githooks/ && chmod +x .githooks/pre-commit
 ```
 
 #### Run tests:

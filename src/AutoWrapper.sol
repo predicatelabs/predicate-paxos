@@ -1,130 +1,81 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import {BaseHook} from "@uniswap/v4-periphery/src/utils/BaseHook.sol";
-import {
-    toBeforeSwapDelta, BeforeSwapDelta, BeforeSwapDeltaLibrary
-} from "@uniswap/v4-core/src/types/BeforeSwapDelta.sol";
-import {wYBSV1} from "./paxos/wYBSV1.sol";
-import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
-import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
-import {SafeCast} from "@uniswap/v4-core/src/libraries/SafeCast.sol";
 import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
-import {Currency, CurrencyLibrary} from "@uniswap/v4-core/src/types/Currency.sol";
-import {IERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {IERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import {BaseTokenWrapperHook} from "@uniswap/v4-periphery/src/base/hooks/BaseTokenWrapperHook.sol";
+import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
 
-/// @title Auto Wrapper
-/// @author Predicate Labs
-/// @notice A hook for auto wrapping and unwrapping YBS, "USDL"
-contract AutoWrapper is BaseHook {
-    using SafeCast for uint256;
-    using SafeCast for int256;
+import {ERC20} from "solmate/src/tokens/ERC20.sol";
+import {ERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 
-    Currency public immutable underlyingCurrency;
-    Currency public immutable wrapperCurrency;
-    wYBSV1 public immutable wYBS;
-    IERC20Upgradeable public immutable ybs;
-    PoolKey public underlyingPoolKey;
-    IERC20 public immutable usdc;
-    bool public immutable shouldWrap;
+/**
+ * @title USDL Auto Wrapper Hook
+ * @author Predicate Labs
+ * @notice Uniswap V4 hook implementing an automatic wrapper/unwrapper for USDL and wUSDL
+ * @dev This contract extends BaseTokenWrapperHook to provide a conversion between the yield bearing
+ *      Lift Dollar (USDL) and its wrapped version (wUSDL) through a V4 Ghost pool.
+ */
+contract AutoWrapper is BaseTokenWrapperHook {
+    /// @notice The ERC4626 vault contract
+    ERC4626 public immutable vault;
 
-    constructor(IPoolManager _manager, address _ybsAddress, PoolKey memory _poolKey) BaseHook(_manager) {
-        wrapperCurrency = Currency.wrap(_ybsAddress);
-        underlyingCurrency = _poolKey.currency0;
-        usdc = IERC20(Currency.unwrap(_poolKey.currency0));
-        wYBS = wYBSV1(Currency.unwrap(_poolKey.currency1));
-        ybs = IERC20Upgradeable(_ybsAddress);
-        underlyingPoolKey = _poolKey;
-        shouldWrap = Currency.unwrap(_poolKey.currency0) == _ybsAddress;
+    /// @notice Creates a new ERC4626 wrapper hook
+    /// @param _manager The Uniswap V4 pool manager
+    /// @param _vault The ERC4626 vault contract address
+    /// @dev Initializes with the ERC4626 vault as wrapper token and the ERC4626 underlying asset as underlying token
+    constructor(
+        IPoolManager _manager,
+        ERC4626 _vault
+    )
+        BaseTokenWrapperHook(
+            _manager,
+            Currency.wrap(address(_vault)), // wrapper token is the ERC4626 vault itself
+            Currency.wrap(address(_vault.asset())) // underlying token is the underlying asset of ERC4626 vault i.e. USDL
+        )
+    {
+        vault = _vault;
+        ERC20(Currency.unwrap(underlyingCurrency)).approve(address(vault), type(uint256).max);
     }
 
-    function getHookPermissions() public pure override returns (Hooks.Permissions memory) {
-        return Hooks.Permissions({
-            beforeInitialize: false,
-            afterInitialize: false,
-            beforeAddLiquidity: false,
-            afterAddLiquidity: false,
-            beforeRemoveLiquidity: false,
-            afterRemoveLiquidity: false,
-            beforeSwap: true,
-            afterSwap: false,
-            beforeDonate: false,
-            afterDonate: false,
-            beforeSwapReturnDelta: false,
-            afterSwapReturnDelta: false,
-            afterAddLiquidityReturnDelta: false,
-            afterRemoveLiquidityReturnDelta: false
-        });
-    }
-
-    function _beforeSwap(
-        address,
-        PoolKey calldata,
-        IPoolManager.SwapParams calldata params,
-        bytes calldata
-    ) internal override returns (bytes4 selector, BeforeSwapDelta swapDelta, uint24 lpFeeOverride) {
-        bool isExactInput = params.amountSpecified < 0;
-
-        if (shouldWrap == params.zeroForOne) {
-            uint256 inputAmount =
-                isExactInput ? uint256(-params.amountSpecified) : _getWrapInputRequired(uint256(params.amountSpecified));
-            _take(underlyingCurrency, address(this), inputAmount);
-            uint256 wrappedAmount = _deposit(inputAmount);
-            _settle();
-            int128 amountUnspecified =
-                isExactInput ? -SafeCast.toInt128(int256(wrappedAmount)) : SafeCast.toInt128(int256(inputAmount));
-            swapDelta = toBeforeSwapDelta(int128(-params.amountSpecified), amountUnspecified);
-        } else {
-            uint256 inputAmount = isExactInput
-                ? uint256(-params.amountSpecified)
-                : _getUnwrapInputRequired(uint256(params.amountSpecified));
-            _take(wrapperCurrency, address(this), inputAmount);
-            uint256 unwrappedAmount = _withdraw(inputAmount);
-            _settle();
-            int128 amountUnspecified =
-                isExactInput ? -SafeCast.toInt128(int256(unwrappedAmount)) : SafeCast.toInt128(int256(inputAmount));
-            swapDelta = toBeforeSwapDelta(int128(-params.amountSpecified), amountUnspecified);
-        }
-
-        return (IHooks.beforeSwap.selector, swapDelta, 0);
-    }
-
+    /// @inheritdoc BaseTokenWrapperHook
+    /// @notice Wraps assets to shares in the ERC4626 vault
+    /// @param underlyingAmount Amount of assets to wrap
+    /// @return Amount of shares received
     function _deposit(
         uint256 underlyingAmount
-    ) internal returns (uint256 wrapperAmount) {
-        ybs.approve(address(wYBS), underlyingAmount);
-        wYBS.deposit(underlyingAmount, address(this));
-        return underlyingAmount;
+    ) internal override returns (uint256) {
+        return vault.deposit({assets: underlyingAmount, receiver: address(this)});
     }
 
+    /// @inheritdoc BaseTokenWrapperHook
+    /// @notice Unwraps shares to assets in the ERC4626 vault
+    /// @param wrappedAmount Amount of shares to unwrap
+    /// @return Amount of assets received
     function _withdraw(
-        uint256 wrapperAmount
-    ) internal returns (uint256 underlyingAmount) {
-        wYBS.redeem(wrapperAmount, address(this), address(this));
-        return wrapperAmount;
+        uint256 wrappedAmount
+    ) internal override returns (uint256) {
+        return vault.redeem({shares: wrappedAmount, receiver: address(this), owner: address(this)});
     }
 
-    function _take(Currency currency, address to, uint256 amount) internal {
-        poolManager.take(currency, to, amount);
-    }
-
-    function _settle() internal {
-        poolManager.settle();
-    }
-
+    /// @inheritdoc BaseTokenWrapperHook
+    /// @notice Calculates how much assets are needed to receive a specific amount of shares
+    /// @param wrappedAmount Desired amount of shares
+    /// @return Amount of assets required
+    /// @dev Uses current ERC4626 shares-to-assets exchange rate for calculation
     function _getWrapInputRequired(
-        uint256 outputAmount
-    ) internal pure returns (uint256) {
-        return outputAmount;
+        uint256 wrappedAmount
+    ) internal view override returns (uint256) {
+        return vault.convertToAssets({shares: wrappedAmount});
     }
 
+    /// @inheritdoc BaseTokenWrapperHook
+    /// @notice Calculates how much shares are needed to receive a specific amount of assets
+    /// @param underlyingAmount Desired amount of assets
+    /// @return Amount of shares required
+    /// @dev Uses current ERC4626 assets-to-shares exchange rate for calculation
     function _getUnwrapInputRequired(
-        uint256 outputAmount
-    ) internal pure returns (uint256) {
-        return outputAmount;
+        uint256 underlyingAmount
+    ) internal view override returns (uint256) {
+        return vault.convertToShares({assets: underlyingAmount});
     }
 }

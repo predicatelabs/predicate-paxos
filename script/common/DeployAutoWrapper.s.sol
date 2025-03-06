@@ -6,6 +6,7 @@ import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
 import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
 import {INetwork} from "./INetwork.sol";
 import {NetworkSelector} from "./NetworkSelector.sol";
+import {ERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 
 import {AutoWrapper} from "../../src/AutoWrapper.sol";
 import {HookMiner} from "../../test/utils/HookMiner.sol";
@@ -34,7 +35,7 @@ contract DeployAutoWrapper is Script {
             HookMiner.find(config.create2Deployer, flags, type(AutoWrapper).creationCode, constructorArgs);
         console.log("Deploying AutoWrapper at address: ", hookAddress);
         vm.startBroadcast();
-        AutoWrapper autoWrapper = new AutoWrapper{salt: salt}(config.poolManager, config.ybsAddress, config.poolKey);
+        AutoWrapper autoWrapper = new AutoWrapper{salt: salt}(config.poolManager, ERC4626(config.ybsAddress));
         require(address(autoWrapper) == hookAddress, "AutoWrapper address does not match expected address");
         console.log("AutoWrapper deployed at: ", address(autoWrapper));
         vm.stopBroadcast();

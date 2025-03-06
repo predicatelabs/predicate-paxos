@@ -20,7 +20,7 @@ clean:
 	rm -rf ./out ./build
 
 format:
-	forge fmt --via-ir
+	forge fmt 
 
 build:
 	forge build --via-ir

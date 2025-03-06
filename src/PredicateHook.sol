@@ -12,12 +12,25 @@ import {BalanceDelta} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
 import {BeforeSwapDelta, toBeforeSwapDelta} from "@uniswap/v4-core/src/types/BeforeSwapDelta.sol";
 import {PredicateClient} from "@predicate/mixins/PredicateClient.sol";
 import {PredicateMessage} from "@predicate/interfaces/IPredicateClient.sol";
+import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
 
 /// @title Predicated Hook
 /// @author Predicate Labs
 /// @notice A hook for compliant swaps
 contract PredicateHook is BaseHook, PredicateClient {
     ISimpleV4Router public immutable router;
+
+    struct SwapParams {
+        address sender;
+        address currency0;
+        address currency1;
+        uint24 fee;
+        int24 tickSpacing;
+        address hooks;
+        bool zeroForOne;
+        int256 amountSpecified;
+        uint160 sqrtPriceLimitX96;
+    }
 
     constructor(
         IPoolManager _poolManager,
@@ -56,17 +69,29 @@ contract PredicateHook is BaseHook, PredicateClient {
     ) internal override returns (bytes4, BeforeSwapDelta, uint24) {
         (PredicateMessage memory predicateMessage, address msgSender, uint256 msgValue) = this.decodeHookData(hookData);
 
+        SwapParams memory sp = SwapParams({
+            sender: router.msgSender(),
+            currency0: Currency.unwrap(key.currency0),
+            currency1: Currency.unwrap(key.currency1),
+            fee: key.fee,
+            tickSpacing: key.tickSpacing,
+            hooks: address(key.hooks),
+            zeroForOne: params.zeroForOne,
+            amountSpecified: params.amountSpecified,
+            sqrtPriceLimitX96: params.sqrtPriceLimitX96
+        });
+
         bytes memory encodeSigAndArgs = abi.encodeWithSignature(
             "_beforeSwap(address,address,address,uint24,int24,address,bool,int256,uint160)",
-            router.msgSender(),
-            key.currency0,
-            key.currency1,
-            key.fee,
-            key.tickSpacing,
-            address(key.hooks),
-            params.zeroForOne,
-            params.amountSpecified,
-            params.sqrtPriceLimitX96
+            sp.sender,
+            sp.currency0,
+            sp.currency1,
+            sp.fee,
+            sp.tickSpacing,
+            sp.hooks,
+            sp.zeroForOne,
+            sp.amountSpecified,
+            sp.sqrtPriceLimitX96
         );
 
         require(
@@ -80,13 +105,13 @@ contract PredicateHook is BaseHook, PredicateClient {
 
     function setPolicy(
         string memory _policyID
-    ) external {
+    ) external onlyPredicateServiceManager {
         _setPolicy(_policyID);
     }
 
     function setPredicateManager(
         address _predicateManager
-    ) public {
+    ) public onlyPredicateServiceManager {
         _setPredicateManager(_predicateManager);
     }
 

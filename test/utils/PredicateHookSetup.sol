@@ -30,7 +30,8 @@ contract PredicateHookSetup is MetaCoinTestSetup, PoolSetup {
         deployPosm();
         (currency0, currency1) = deployAndMintTokens(liquidityProvider, 100_000 ether);
         vm.startPrank(liquidityProvider);
-        setApprovals(currency0, currency1);
+        setTokenApprovalForRouters(currency0);
+        setTokenApprovalForRouters(currency1);
         vm.stopPrank();
 
         // create hook here

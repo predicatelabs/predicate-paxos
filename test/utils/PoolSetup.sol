@@ -101,6 +101,16 @@ contract PoolSetup is DeployPermit2 {
         currency1 = Currency.wrap(address(token1));
     }
 
+    function deployAndMintToken(address sender, uint256 amount) internal returns (Currency currency) {
+        (MockERC20 token) = deployToken();
+        token.mint(sender, amount);
+        currency = Currency.wrap(address(token));
+    }
+
+    function deployToken() internal returns (MockERC20 token) {
+        token = new MockERC20("MockToken", "MT", 18);
+    }
+
     function provisionLiquidity(
         int24 tickSpacing,
         PoolKey memory poolKey,
@@ -132,23 +142,10 @@ contract PoolSetup is DeployPermit2 {
         );
     }
 
-    function setApprovals(Currency currency0, Currency currency1) internal {
-        // approve the tokens to the routers
-        IERC20 token0 = IERC20(Currency.unwrap(currency0));
-        IERC20 token1 = IERC20(Currency.unwrap(currency1));
-
-        token0.approve(address(lpRouter), type(uint256).max);
-        token1.approve(address(lpRouter), type(uint256).max);
-        token0.approve(address(swapRouter), type(uint256).max);
-        token1.approve(address(swapRouter), type(uint256).max);
-
-        approvePosmCurrency(currency0);
-        approvePosmCurrency(currency1);
-    }
-
-    function setApprovals(
+    function setTokenApprovalForRouters(
         Currency currency0
     ) internal {
+        // approve the tokens to the routers
         IERC20 token0 = IERC20(Currency.unwrap(currency0));
         token0.approve(address(lpRouter), type(uint256).max);
         token0.approve(address(swapRouter), type(uint256).max);

@@ -9,6 +9,9 @@ import {YBSV1_1} from "../../src/paxos/YBSV1_1.sol";
 import {wYBSV1} from "../../src/paxos/wYBSV1.sol";
 import {TransparentUpgradeableProxy} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import {IERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {ERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
+import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
 import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
 import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
@@ -23,93 +26,145 @@ import {PoolSetup} from "./PoolSetup.sol";
 contract AutoWrapperSetup is MetaCoinTestSetup, PoolSetup {
     PredicateHook public predicateHook;
     AutoWrapper public autoWrapper;
-    Currency currency0;
-    Currency currency1;
-    Currency ybs;
-    int24 tickSpacing = 60;
+    YBSV1_1 public USDL;
+    wYBSV1 public wUSDL;
+    Currency USDC;
     PoolKey predicatePoolKey;
     PoolKey ghostPoolKey;
-    // YBSV1_1 ybs;
-    wYBSV1 wYBS;
+    uint160 initSqrtPriceX96;
+
+    address admin;
+    address supplyController;
+    address pauser;
+    address assetProtector;
+    address rebaserAdmin;
+    address rebaser;
+    address alice;
+
+    uint256 public initialSupply = 1000 * 10 ** 18; // 1000 token
+    int24 tickSpacing = 60;
 
     function setUpHooksAndPools(
         address liquidityProvider
     ) internal {
         // deploy pool manager, routers and posm
+
+        admin = makeAddr("admin");
+        supplyController = makeAddr("supplyController");
+        pauser = makeAddr("pauser");
+        assetProtector = makeAddr("assetProtector");
+        rebaserAdmin = makeAddr("rebaserAdmin");
+        rebaser = makeAddr("rebaser");
+        alice = makeAddr("alice");
+
         deployPoolManager();
         deployRouters();
         deployPosm();
 
         // deploy tokens
-        (currency0, ybs) = deployAndMintTokens(liquidityProvider, 100_000_000 ether);
-        deployWYBS(liquidityProvider);
-        currency1 = Currency.wrap(address(wYBS));
+        setupUSDLandVault();
+        USDC = deployAndMintToken(liquidityProvider, 100_000_000 ether);
 
         // set approvals
         vm.startPrank(liquidityProvider);
-        setApprovals(currency0, currency1); // currency1 is wYBS
-        setApprovals(ybs);
+        setTokenApprovalForRouters(USDC);
+        setTokenApprovalForRouters(Currency.wrap(address(USDL)));
+        setTokenApprovalForRouters(Currency.wrap(address(wUSDL)));
         vm.stopPrank();
 
         // create hook here
-        uint160 flags = uint160(Hooks.BEFORE_SWAP_FLAG);
+        uint160 predicateHookFlags = uint160(Hooks.BEFORE_SWAP_FLAG);
         bytes memory constructorArgs = abi.encode(manager, swapRouter, address(serviceManager), "testPolicy");
         (address hookAddress, bytes32 salt) =
-            HookMiner.find(address(this), flags, type(PredicateHook).creationCode, constructorArgs);
+            HookMiner.find(address(this), predicateHookFlags, type(PredicateHook).creationCode, constructorArgs);
 
         predicateHook = new PredicateHook{salt: salt}(manager, swapRouter, address(serviceManager), "testPolicy");
         require(address(predicateHook) == hookAddress, "Hook deployment failed");
 
         // initialize the pool
-        predicatePoolKey = PoolKey(currency0, currency1, 3000, tickSpacing, IHooks(predicateHook));
+        predicatePoolKey = PoolKey(USDC, Currency.wrap(address(wUSDL)), 3000, tickSpacing, IHooks(predicateHook));
         manager.initialize(predicatePoolKey, Constants.SQRT_PRICE_1_1);
 
         // initialize the auto wrapper
-        constructorArgs = abi.encode(manager, Currency.unwrap(ybs), predicatePoolKey);
-        (hookAddress, salt) = HookMiner.find(address(this), flags, type(AutoWrapper).creationCode, constructorArgs);
-        autoWrapper = new AutoWrapper{salt: salt}(manager, Currency.unwrap(ybs), predicatePoolKey);
-        require(address(autoWrapper) == hookAddress, "Hook deployment failed");
+        autoWrapper = AutoWrapper(
+            payable(
+                address(
+                    uint160(
+                        Hooks.BEFORE_SWAP_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG | Hooks.BEFORE_SWAP_RETURNS_DELTA_FLAG
+                            | Hooks.BEFORE_INITIALIZE_FLAG
+                    )
+                )
+            )
+        );
+        deployCodeTo(
+            "AutoWrapper", abi.encode(manager, ERC4626(address(wUSDL)), predicatePoolKey), address(autoWrapper)
+        );
 
         // initialize the ghost pool
-        ghostPoolKey = PoolKey(currency0, ybs, 0, tickSpacing, IHooks(autoWrapper));
+        ghostPoolKey = PoolKey(USDC, Currency.wrap(address(USDL)), 0, tickSpacing, IHooks(autoWrapper));
         manager.initialize(ghostPoolKey, Constants.SQRT_PRICE_1_1);
 
-        // mint wYBS shares to liquidity provider
+        // Create initial supply of USDL
+        vm.startPrank(supplyController);
+        USDL.increaseSupply(initialSupply * 4);
+        USDL.transfer(alice, initialSupply);
+        USDL.transfer(liquidityProvider, initialSupply * 2);
+        vm.stopPrank();
+
+        // Approve USDL for wUSDL
         vm.startPrank(liquidityProvider);
-        IERC20Upgradeable(Currency.unwrap(ybs)).approve(address(wYBS), 1_000_000 ether);
-        IERC20Upgradeable(address(wYBS)).approve(address(autoWrapper), 1_000_000 ether);
-        wYBS.deposit(1_000_000 ether, liquidityProvider);
+        IERC20Upgradeable(address(USDL)).approve(address(wUSDL), type(uint256).max);
+        IERC20Upgradeable(address(wUSDL)).approve(address(autoWrapper), type(uint256).max);
+        wUSDL.deposit(initialSupply, liquidityProvider);
         vm.stopPrank();
 
         // provision liquidity
-        vm.startPrank(liquidityProvider);
-        provisionLiquidity(tickSpacing, predicatePoolKey, 100 ether, liquidityProvider, 100_000 ether, 100_000 ether);
-        vm.stopPrank();
+        // vm.startPrank(liquidityProvider);
+        // provisionLiquidity(tickSpacing, predicatePoolKey, 100 ether, liquidityProvider, 100_000 ether, 100_000 ether);
+        // vm.stopPrank();
     }
 
-    function deployWYBS(
-        address liquidityProvider
-    ) internal {
-        wYBSV1 impl = new wYBSV1();
+    function setupUSDLandVault() internal {
+        YBSV1_1 ybsImpl = new YBSV1_1();
+        wYBSV1 wYbsImpl = new wYBSV1();
 
-        /// @notice Encode initializer data
-        bytes memory initData = abi.encodeCall(
-            wYBSV1.initialize,
-            (
-                "Wrapped Yield Bearing Stablecoin",
-                "wYBS",
-                IERC20Upgradeable(Currency.unwrap(ybs)),
-                liquidityProvider,
-                liquidityProvider,
-                liquidityProvider
-            )
+        bytes memory ybsData = abi.encodeWithSelector(
+            YBSV1_1.initialize.selector,
+            "Yield Bearing Stablecoin",
+            "YBS",
+            18,
+            admin,
+            supplyController,
+            pauser,
+            assetProtector,
+            rebaserAdmin,
+            rebaser
         );
-        TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(
-            address(impl), // wYBS
-            liquidityProvider,
-            initData // initialization call data
+
+        ERC1967Proxy ybsProxy = new ERC1967Proxy(address(ybsImpl), ybsData);
+        USDL = YBSV1_1(address(ybsProxy));
+
+        bytes memory wYbsData = abi.encodeWithSelector(
+            wYBSV1.initialize.selector,
+            "Wrapped YBS",
+            "wYBS",
+            IERC20Upgradeable(address(USDL)),
+            admin,
+            pauser,
+            assetProtector
         );
-        wYBS = wYBSV1(address(proxy));
+
+        ERC1967Proxy wYbsProxy = new ERC1967Proxy(address(wYbsImpl), wYbsData);
+        wUSDL = wYBSV1(address(wYbsProxy));
+
+        vm.startPrank(rebaserAdmin);
+        USDL.setMaxRebaseRate(0.05 * 10 ** 18); // 5% max rate
+        USDL.setRebasePeriod(1 days);
+        vm.stopPrank();
+
+        vm.startPrank(admin);
+        USDL.grantRole(USDL.WRAPPED_YBS_ROLE(), address(wUSDL));
+        vm.stopPrank();
     }
 
     function getPredicatePoolKey() public view returns (PoolKey memory) {
@@ -118,14 +173,6 @@ contract AutoWrapperSetup is MetaCoinTestSetup, PoolSetup {
 
     function getPoolKey() public view returns (PoolKey memory) {
         return ghostPoolKey;
-    }
-
-    function getCurrency0() public view returns (Currency) {
-        return currency0;
-    }
-
-    function getCurrency1() public view returns (Currency) {
-        return currency1;
     }
 
     function getTickSpacing() public view returns (int24) {

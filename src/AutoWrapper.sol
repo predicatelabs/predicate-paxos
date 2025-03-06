@@ -4,6 +4,7 @@ pragma solidity ^0.8.24;
 import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
 import {BaseTokenWrapperHook} from "@uniswap/v4-periphery/src/base/hooks/BaseTokenWrapperHook.sol";
 import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
+import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
 
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {ERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
@@ -19,13 +20,17 @@ contract AutoWrapper is BaseTokenWrapperHook {
     /// @notice The ERC4626 vault contract
     ERC4626 public immutable vault;
 
+    /// @notice The predicate pool key
+    PoolKey public predicatePoolKey;
+
     /// @notice Creates a new ERC4626 wrapper hook
     /// @param _manager The Uniswap V4 pool manager
     /// @param _vault The ERC4626 vault contract address
     /// @dev Initializes with the ERC4626 vault as wrapper token and the ERC4626 underlying asset as underlying token
     constructor(
         IPoolManager _manager,
-        ERC4626 _vault
+        ERC4626 _vault,
+        PoolKey memory _predicatePoolKey
     )
         BaseTokenWrapperHook(
             _manager,
@@ -35,6 +40,7 @@ contract AutoWrapper is BaseTokenWrapperHook {
     {
         vault = _vault;
         ERC20(Currency.unwrap(underlyingCurrency)).approve(address(vault), type(uint256).max);
+        predicatePoolKey = _predicatePoolKey;
     }
 
     /// @inheritdoc BaseTokenWrapperHook

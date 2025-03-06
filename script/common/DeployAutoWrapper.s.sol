@@ -35,7 +35,8 @@ contract DeployAutoWrapper is Script {
             HookMiner.find(config.create2Deployer, flags, type(AutoWrapper).creationCode, constructorArgs);
         console.log("Deploying AutoWrapper at address: ", hookAddress);
         vm.startBroadcast();
-        AutoWrapper autoWrapper = new AutoWrapper{salt: salt}(config.poolManager, ERC4626(config.ybsAddress));
+        AutoWrapper autoWrapper =
+            new AutoWrapper{salt: salt}(config.poolManager, ERC4626(config.ybsAddress), config.poolKey);
         require(address(autoWrapper) == hookAddress, "AutoWrapper address does not match expected address");
         console.log("AutoWrapper deployed at: ", address(autoWrapper));
         vm.stopBroadcast();

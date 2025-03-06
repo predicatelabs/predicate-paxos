@@ -24,8 +24,6 @@ contract AutoWrapperTest is Test, Deployers {
     using CurrencyLibrary for Currency;
 
     AutoWrapper public hook;
-    YBSV1_1 public ybsImpl;
-    wYBSV1 public wYbsImpl;
     YBSV1_1 public USDL;
     wYBSV1 public wUSDL;
     PoolKey poolKey;
@@ -51,7 +49,6 @@ contract AutoWrapperTest is Test, Deployers {
         rebaserAdmin = makeAddr("rebaserAdmin");
         rebaser = makeAddr("rebaser");
         alice = makeAddr("alice");
-
         deployFreshManagerAndRouters();
         setupUSDLandVault();
 
@@ -92,8 +89,8 @@ contract AutoWrapperTest is Test, Deployers {
     }
 
     function setupUSDLandVault() internal {
-        ybsImpl = new YBSV1_1();
-        wYbsImpl = new wYBSV1();
+        YBSV1_1 ybsImpl = new YBSV1_1();
+        wYBSV1 wYbsImpl = new wYBSV1();
 
         bytes memory ybsData = abi.encodeWithSelector(
             YBSV1_1.initialize.selector,

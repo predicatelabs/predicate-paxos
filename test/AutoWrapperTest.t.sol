@@ -19,7 +19,6 @@ import {AutoWrapper} from "../src/AutoWrapper.sol";
 import {YBSV1_1} from "../src/paxos/YBSV1_1.sol";
 import {wYBSV1} from "../src/paxos/wYBSV1.sol";
 
-
 contract AutoWrapperTest is Test, Deployers {
     using PoolIdLibrary for PoolKey;
     using CurrencyLibrary for Currency;
@@ -61,8 +60,8 @@ contract AutoWrapperTest is Test, Deployers {
                 address(
                     uint160(
                         (type(uint160).max & clearAllHookPermissionsMask) | Hooks.BEFORE_SWAP_FLAG
-                        | Hooks.BEFORE_ADD_LIQUIDITY_FLAG | Hooks.BEFORE_SWAP_RETURNS_DELTA_FLAG
-                        | Hooks.BEFORE_INITIALIZE_FLAG
+                            | Hooks.BEFORE_ADD_LIQUIDITY_FLAG | Hooks.BEFORE_SWAP_RETURNS_DELTA_FLAG
+                            | Hooks.BEFORE_INITIALIZE_FLAG
                     )
                 )
             )
@@ -109,10 +108,7 @@ contract AutoWrapperTest is Test, Deployers {
             rebaser
         );
 
-        ERC1967Proxy ybsProxy = new ERC1967Proxy(
-            address(ybsImpl),
-            ybsData
-        );
+        ERC1967Proxy ybsProxy = new ERC1967Proxy(address(ybsImpl), ybsData);
         USDL = YBSV1_1(address(ybsProxy));
 
         bytes memory wYbsData = abi.encodeWithSelector(
@@ -125,10 +121,7 @@ contract AutoWrapperTest is Test, Deployers {
             assetProtector
         );
 
-        ERC1967Proxy wYbsProxy = new ERC1967Proxy(
-            address(wYbsImpl),
-            wYbsData
-        );
+        ERC1967Proxy wYbsProxy = new ERC1967Proxy(address(wYbsImpl), wYbsData);
         wUSDL = wYBSV1(address(wYbsProxy));
 
         vm.startPrank(rebaserAdmin);
@@ -160,12 +153,12 @@ contract AutoWrapperTest is Test, Deployers {
         uint256 managerWYbsBefore = wUSDL.balanceOf(address(manager));
 
         PoolSwapTest.TestSettings memory testSettings =
-                            PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false});
+            PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false});
         swapRouter.swap(
             poolKey,
             IPoolManager.SwapParams({
                 zeroForOne: true, // ybs (0) to wYbs (1)
-                amountSpecified: - int256(wrapAmount),
+                amountSpecified: -int256(wrapAmount),
                 sqrtPriceLimitX96: TickMath.MIN_SQRT_PRICE + 1
             }),
             testSettings,
@@ -196,12 +189,12 @@ contract AutoWrapperTest is Test, Deployers {
         uint256 managerWYbsBefore = wUSDL.balanceOf(address(manager));
 
         PoolSwapTest.TestSettings memory testSettings =
-                            PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false});
+            PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false});
         swapRouter.swap(
             poolKey,
             IPoolManager.SwapParams({
                 zeroForOne: false, // wYbs (1) to ybs (0)
-                amountSpecified: - int256(unwrapAmount),
+                amountSpecified: -int256(unwrapAmount),
                 sqrtPriceLimitX96: TickMath.MAX_SQRT_PRICE - 1
             }),
             testSettings,
@@ -233,7 +226,7 @@ contract AutoWrapperTest is Test, Deployers {
         modifyLiquidityRouter.modifyLiquidity(
             unrelatedPoolKey,
             IPoolManager.ModifyLiquidityParams({
-                tickLower: - 120,
+                tickLower: -120,
                 tickUpper: 120,
                 liquidityDelta: 1000e18,
                 salt: bytes32(0)

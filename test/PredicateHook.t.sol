@@ -14,8 +14,9 @@ import {HookMiner} from "./utils/HookMiner.sol";
 import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
 import {PredicateHookSetup} from "./utils/PredicateHookSetup.sol";
 import {BalanceDelta} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
+import {TickMath} from "@uniswap/v4-core/src/libraries/TickMath.sol";
 import {IERC20} from "forge-std/interfaces/IERC20.sol";
-import {Constants} from "@uniswap/v4-core/src/../test/utils/Constants.sol"; // what in world is this
+import {Constants} from "@uniswap/v4-core/src/../test/utils/Constants.sol";
 
 contract PredicateHookTest is PredicateHookSetup, OperatorTestPrep {
     address liquidityProvider;
@@ -45,7 +46,7 @@ contract PredicateHookTest is PredicateHookSetup, OperatorTestPrep {
         IPoolManager.SwapParams memory params = IPoolManager.SwapParams({
             zeroForOne: true,
             amountSpecified: 1e18,
-            sqrtPriceLimitX96: uint160(4_295_128_740)
+            sqrtPriceLimitX96: TickMath.MIN_SQRT_PRICE + 1
         });
 
         PredicateMessage memory message = getPredicateMessage(taskId, params);
@@ -59,6 +60,31 @@ contract PredicateHookTest is PredicateHookSetup, OperatorTestPrep {
         BalanceDelta delta = swapRouter.swap(key, params, abi.encode(message, liquidityProvider, 0));
         require(token0.balanceOf(liquidityProvider) < balance0, "Token0 balance should decrease");
         require(token1.balanceOf(liquidityProvider) > balance1, "Token1 balance should increase");
+    }
+
+    function testSwapOneForZero() public permissionedOperators prepOperatorRegistration(false) {
+        vm.prank(operatorOne);
+        serviceManager.registerOperatorToAVS(operatorOneAlias, operatorSignature);
+
+        PoolKey memory key = getPoolKey();
+        string memory taskId = "unique-identifier";
+        IPoolManager.SwapParams memory params = IPoolManager.SwapParams({
+            zeroForOne: false,
+            amountSpecified: 1e18,
+            sqrtPriceLimitX96: TickMath.MAX_SQRT_PRICE - 1
+        });
+
+        PredicateMessage memory message = getPredicateMessage(taskId, params);
+
+        IERC20 token0 = IERC20(Currency.unwrap(key.currency0));
+        IERC20 token1 = IERC20(Currency.unwrap(key.currency1));
+        uint256 balance0 = token0.balanceOf(liquidityProvider);
+        uint256 balance1 = token1.balanceOf(liquidityProvider);
+
+        vm.prank(address(liquidityProvider));
+        BalanceDelta delta = swapRouter.swap(key, params, abi.encode(message, liquidityProvider, 0));
+        require(token0.balanceOf(liquidityProvider) > balance0, "Token0 balance should increase");
+        require(token1.balanceOf(liquidityProvider) < balance1, "Token1 balance should decrease");
     }
 
     function testSwapWithInvalidMessage() public permissionedOperators prepOperatorRegistration(false) {

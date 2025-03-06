@@ -33,7 +33,7 @@ contract AutoWrapper is BaseTokenWrapperHook {
         BaseTokenWrapperHook(
             _manager,
             Currency.wrap(address(_vault)), // wrapper token is the ERC4626 vault itself
-            Currency.wrap(address(_vault.asset())) // underlying token is the underlying asset of ERC4626 vault
+            Currency.wrap(address(_vault.asset())) // underlying token is the underlying asset of ERC4626 vault i.e. USDL
         )
     {
         vault = _vault;

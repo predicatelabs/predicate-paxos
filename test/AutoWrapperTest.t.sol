@@ -45,11 +45,9 @@ contract AutoWrapperTest is Test, Deployers {
     function setUp() public {
         deployFreshManagerAndRouters();
 
-        // Deploy mock asset and vault
         asset = new MockERC20("Asset Token", "ASSET", 18);
         vault = new MockERC4626(asset, "Vault Token", "VAULT");
 
-        // Deploy ERC4626 hook
         hook = AutoWrapper(
             payable(
                 address(

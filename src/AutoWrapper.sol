@@ -22,7 +22,6 @@ contract AutoWrapper is BaseTokenWrapperHook {
     /// @notice The ERC4626 vault contract
     ERC4626 public immutable vault;
 
-
     /// @notice Creates a new ERC4626 wrapper hook
     /// @param _manager The Uniswap V4 pool manager
     /// @param _vault The ERC4626 vault contract address

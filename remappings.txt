@@ -5,7 +5,7 @@
 @uniswap/v4-periphery=lib/v4-periphery/
 
 @openzeppelin/contracts-upgradeable=lib/openzeppelin-contracts-upgradeable/contracts
-@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts
+@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/
 
 forge-std/=lib/forge-std/src/
-solmate/=lib/predicate-contracts/lib/solmate/
+solmate/=lib/solmate/

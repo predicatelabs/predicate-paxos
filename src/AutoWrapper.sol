@@ -8,6 +8,9 @@ import {BaseTokenWrapperHook} from "@uniswap/v4-periphery/src/base/hooks/BaseTok
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
 
+import {ERC20} from "solmate/src/tokens/ERC20.sol";
+import {ERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
+
 /**
  * @title USDL Auto Wrapper Hook
  * @author Predicate Labs
@@ -16,77 +19,56 @@ import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
  *      Lift Dollar (USDL) and its wrapped version (wUSDL) through a V4 Ghost pool.
  */
 contract AutoWrapper is BaseTokenWrapperHook {
-    /// @notice Reference to the wrapped USDL (wUSDL) contract, a non-rebasing wrapper for USDL
-    IwYBSV1 public immutable wUSDL;
+    /// @notice The ERC4626 vault contract
+    ERC4626 public immutable vault;
 
-    /// @notice Reference to the underlying yield-bearing USDL contract
-    IYBSV1_1 public immutable USDL;
 
-    /**
-     * @notice Constructs a new AutoWrapper hook
-     * @param _manager The Uniswap V4 pool manager
-     * @param _wUSDL The wUSDL contract address
-     * @dev Sets up token approvals and inherits from BaseTokenWrapperHook with appropriate currency configurations.
-     *      The order of currencies (wrapper/underlying) follows the same pattern as wstETH/stETH.
-     */
-    constructor(
-        IPoolManager _manager,
-        IwYBSV1 _wUSDL
+    /// @notice Creates a new ERC4626 wrapper hook
+    /// @param _manager The Uniswap V4 pool manager
+    /// @param _vault The ERC4626 vault contract address
+    /// @dev Initializes with the ERC4626 vault as wrapper token and the ERC4626 underlying asset as underlying token
+    constructor(IPoolManager _manager, ERC4626 _vault)
+    BaseTokenWrapperHook(
+    _manager,
+    Currency.wrap(address(_vault)), // wrapper token is the ERC4626 vault itself
+    Currency.wrap(address(_vault.asset())) // underlying token is the underlying asset of ERC4626 vault
     )
-        BaseTokenWrapperHook(
-            _manager,
-            Currency.wrap(address(_wUSDL)), // wrapper token is wUSDL
-            Currency.wrap(address(_wUSDL.asset())) // underlying token is USDL
-        )
     {
-        wUSDL = _wUSDL;
-        USDL = IYBSV1_1(address(_wUSDL.asset()));
-        ERC20(Currency.unwrap(underlyingCurrency)).approve(address(wUSDL), type(uint256).max);
-    }
-
-    /**
-     * @inheritdoc BaseTokenWrapperHook
-     * @dev Wraps yield-bearing USDL to non-rebasing wUSDL using the deposit function from ERC-4626.
-     * @param underlyingAmount Amount of USDL to wrap
-     * @return shares Amount of wUSDL tokens received, representing a share of the deposited USDL
-     */
-    function _deposit(
-        uint256 underlyingAmount
-    ) internal override returns (uint256) {
-        return wUSDL.deposit(underlyingAmount, address(this));
-    }
-
-    /**
-     * @inheritdoc BaseTokenWrapperHook
-     * @dev Unwraps wUSDL back to USDL using the redeem function from ERC-4626.
-     * @param wrapperAmount Amount of wUSDL to unwrap
-     * @return assets Amount of USDL tokens received
-     */
-    function _withdraw(
-        uint256 wrapperAmount
-    ) internal override returns (uint256) {
-        return wUSDL.redeem(wrapperAmount, address(this), address(this));
+        vault = _vault;
+        ERC20(Currency.unwrap(underlyingCurrency)).approve(address(vault), type(uint256).max);
     }
 
     /// @inheritdoc BaseTokenWrapperHook
-    /// @notice Calculates how much USDL is needed to receive a specific amount of wUSDL
-    /// @param wrappedAmount Desired amount of wUSDL
-    /// @return Amount of USDL required
-    /// @dev Uses current USDL/wUSDL exchange rate for calculation
-    function _getWrapInputRequired(
-        uint256 wrappedAmount
-    ) internal view override returns (uint256) {
-        return wUSDL.previewMint(wrappedAmount);
+    /// @notice Wraps assets to shares in the ERC4626 vault
+    /// @param underlyingAmount Amount of assets to wrap
+    /// @return Amount of shares received
+    function _deposit(uint256 underlyingAmount) internal override returns (uint256) {
+        return vault.deposit({assets: underlyingAmount, receiver: address(this)});
     }
 
     /// @inheritdoc BaseTokenWrapperHook
-    /// @notice Calculates how much wUSDL is needed to receive a specific amount of USDL
-    /// @param underlyingAmount Desired amount of USDL
-    /// @return Amount of wUSDL required
-    /// @dev Uses current USDL/wUSDL exchange rate for calculation
-    function _getUnwrapInputRequired(
-        uint256 underlyingAmount
-    ) internal view override returns (uint256) {
-        return wUSDL.previewWithdraw(underlyingAmount);
+    /// @notice Unwraps shares to assets in the ERC4626 vault
+    /// @param wrappedAmount Amount of shares to unwrap
+    /// @return Amount of assets received
+    function _withdraw(uint256 wrappedAmount) internal override returns (uint256) {
+        return vault.redeem({shares: wrappedAmount, receiver: address(this), owner: address(this)});
+    }
+
+    /// @inheritdoc BaseTokenWrapperHook
+    /// @notice Calculates how much assets are needed to receive a specific amount of shares
+    /// @param wrappedAmount Desired amount of shares
+    /// @return Amount of assets required
+    /// @dev Uses current ERC4626 shares-to-assets exchange rate for calculation
+    function _getWrapInputRequired(uint256 wrappedAmount) internal view override returns (uint256) {
+        return vault.convertToAssets({shares: wrappedAmount});
+    }
+
+    /// @inheritdoc BaseTokenWrapperHook
+    /// @notice Calculates how much shares are needed to receive a specific amount of assets
+    /// @param underlyingAmount Desired amount of assets
+    /// @return Amount of shares required
+    /// @dev Uses current ERC4626 assets-to-shares exchange rate for calculation
+    function _getUnwrapInputRequired(uint256 underlyingAmount) internal view override returns (uint256) {
+        return vault.convertToShares({assets: underlyingAmount});
     }
 }

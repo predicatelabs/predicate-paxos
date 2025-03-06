@@ -17,6 +17,9 @@ import {BalanceDelta} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
 import {TickMath} from "@uniswap/v4-core/src/libraries/TickMath.sol";
 import {IERC20} from "forge-std/interfaces/IERC20.sol";
 import {Constants} from "@uniswap/v4-core/src/../test/utils/Constants.sol";
+import {PredicateClient} from "@predicate/mixins/PredicateClient.sol";
+import {console} from "forge-std/console.sol";
+import {PredicateClient__Unauthorized} from "@predicate/interfaces/IPredicateClient.sol";
 
 contract PredicateHookTest is PredicateHookSetup, OperatorTestPrep {
     address liquidityProvider;
@@ -200,5 +203,24 @@ contract PredicateHookTest is PredicateHookSetup, OperatorTestPrep {
         });
     }
 
-    // todo: add swap tests
+    function testSetPredicateManager() public {
+        address newManager = address(0x123);
+        vm.prank(address(serviceManager));
+        hook.setPredicateManager(newManager);
+        assertEq(address(hook.getPredicateManager()), newManager);
+    }
+
+    function testSetPredicateManagerUnauthorized() public {
+        assertEq(
+            address(hook.getPredicateManager()), address(serviceManager), "Initial manager should be service manager"
+        );
+
+        vm.prank(makeAddr("unauthorized"));
+        vm.expectRevert(abi.encodeWithSelector(PredicateClient__Unauthorized.selector));
+        hook.setPredicateManager(address(0x123));
+
+        vm.prank(address(serviceManager));
+        hook.setPredicateManager(address(0x456));
+        assertEq(address(hook.getPredicateManager()), address(0x456));
+    }
 }

@@ -3,7 +3,6 @@ pragma solidity ^0.8.24;
 
 import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
 import {BaseTokenWrapperHook} from "@uniswap/v4-periphery/src/base/hooks/BaseTokenWrapperHook.sol";
-import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
 
 import {ERC20} from "solmate/src/tokens/ERC20.sol";

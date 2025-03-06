@@ -76,6 +76,8 @@ contract AutoWrapperSetup is MetaCoinTestSetup, PoolSetup {
 
         // mint wYBS shares to liquidity provider
         vm.startPrank(liquidityProvider);
+        IERC20Upgradeable(Currency.unwrap(ybs)).approve(address(wYBS), 1_000_000 ether);
+        IERC20Upgradeable(address(wYBS)).approve(address(autoWrapper), 1_000_000 ether);
         wYBS.deposit(1_000_000 ether, liquidityProvider);
         vm.stopPrank();
 

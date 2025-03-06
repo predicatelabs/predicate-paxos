@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import {IYBSV1_1} from "./interfaces/IYBSV1_1.sol";
-import {IwYBSV1} from "./interfaces/IwYBSV1.sol";
 import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
 import {BaseTokenWrapperHook} from "@uniswap/v4-periphery/src/base/hooks/BaseTokenWrapperHook.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";

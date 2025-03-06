@@ -6,8 +6,6 @@ import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
 import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
 import {INetwork} from "./INetwork.sol";
 import {NetworkSelector} from "./NetworkSelector.sol";
-import {wYBSV1} from "../../src/paxos/wYBSV1.sol";
-import {IwYBSV1} from "../../src/interfaces/IwYBSV1.sol";
 import {ERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 
 import {AutoWrapper} from "../../src/AutoWrapper.sol";

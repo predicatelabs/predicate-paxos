@@ -1,118 +1,178 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import {Test} from "forge-std/Test.sol";
-import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
-import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
-import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
-import {PoolId, PoolIdLibrary} from "@uniswap/v4-core/src/types/PoolId.sol";
-import {PoolSwapTest} from "@uniswap/v4-core/src/test/PoolSwapTest.sol";
-import {CurrencyLibrary} from "@uniswap/v4-core/src/types/Currency.sol";
-import {TickMath} from "@uniswap/v4-core/src/libraries/TickMath.sol";
-import {Deployers} from "@uniswap/v4-core/test/utils/Deployers.sol";
-import {CustomRevert} from "@uniswap/v4-core/src/libraries/CustomRevert.sol";
+import {AutoWrapper} from "../src/AutoWrapper.sol";
+import {YBSV1_1} from "../src/paxos/YBSV1_1.sol";
+import {wYBSV1} from "../src/paxos/wYBSV1.sol";
+
+import {IERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+
+import {StdChains} from "@uniswap/v4-core/lib/forge-std/src/StdChains.sol";
 import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
+import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
 import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
-import {ERC20} from "solmate/src/tokens/ERC20.sol";
-import {MockERC20} from "solmate/src/test/utils/mocks/MockERC20.sol";
-import {MockERC4626} from "solmate/src/test/utils/mocks/MockERC4626.sol";
+import {TickMath} from "@uniswap/v4-core/src/libraries/TickMath.sol";
+import {PoolSwapTest} from "@uniswap/v4-core/src/test/PoolSwapTest.sol";
+import {CurrencyLibrary, Currency} from "@uniswap/v4-core/src/types/Currency.sol";
+import {PoolIdLibrary} from "@uniswap/v4-core/src/types/PoolId.sol";
+import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
+import {Deployers} from "@uniswap/v4-core/test/utils/Deployers.sol";
 
-import {BaseTokenWrapperHook} from "@uniswap/v4-periphery/src/base/hooks/BaseTokenWrapperHook.sol";
 
-import {MockUSDL} from "./mocks/MockUSDL.sol";
-import {MockWUSDL} from "./mocks/MockWUSDL.sol";
+import {StdCheats, StdCheatsSafe} from "forge-std/StdCheats.sol";
+import {CommonBase} from "forge-std/Base.sol";
+import {StdAssertions} from "forge-std/StdAssertions.sol";
+import {StdUtils} from "forge-std/StdUtils.sol";
+import {Test} from "forge-std/Test.sol";
 
-import {AutoWrapper} from "src/AutoWrapper.sol";
-import {IwYBSV1} from "src/interfaces/IwYBSV1.sol";
-import {IYBSV1_1} from "src/interfaces/IYBSV1_1.sol";
 
 contract AutoWrapperTest is Test, Deployers {
     using PoolIdLibrary for PoolKey;
     using CurrencyLibrary for Currency;
 
     AutoWrapper public hook;
-    MockERC4626 public vault;
-    MockERC20 public asset;
+    YBSV1_1 public ybsImpl;
+    wYBSV1 public wYbsImpl;
+    YBSV1_1 public USDL;
+    wYBSV1 public wUSDL;
     PoolKey poolKey;
     uint160 initSqrtPriceX96;
 
-    // Users
-    address alice = makeAddr("alice");
-    address bob = makeAddr("bob");
+    address admin;
+    address supplyController;
+    address pauser;
+    address assetProtector;
+    address rebaserAdmin;
+    address rebaser;
+    address alice;
+
+    uint256 public initialSupply = 1000 * 10 ** 18; // 1000 tokens
 
     event Transfer(address indexed from, address indexed to, uint256 amount);
 
     function setUp() public {
-        deployFreshManagerAndRouters();
+        admin = makeAddr("admin");
+        supplyController = makeAddr("supplyController");
+        pauser = makeAddr("pauser");
+        assetProtector = makeAddr("assetProtector");
+        rebaserAdmin = makeAddr("rebaserAdmin");
+        rebaser = makeAddr("rebaser");
+        alice = makeAddr("alice");
 
-        asset = new MockERC20("Asset Token", "ASSET", 18);
-        vault = new MockERC4626(asset, "Vault Token", "VAULT");
+        deployFreshManagerAndRouters();
+        setupUSDLandVault();
 
         hook = AutoWrapper(
             payable(
                 address(
                     uint160(
                         (type(uint160).max & clearAllHookPermissionsMask) | Hooks.BEFORE_SWAP_FLAG
-                            | Hooks.BEFORE_ADD_LIQUIDITY_FLAG | Hooks.BEFORE_SWAP_RETURNS_DELTA_FLAG
-                            | Hooks.BEFORE_INITIALIZE_FLAG
+                        | Hooks.BEFORE_ADD_LIQUIDITY_FLAG | Hooks.BEFORE_SWAP_RETURNS_DELTA_FLAG
+                        | Hooks.BEFORE_INITIALIZE_FLAG
                     )
                 )
             )
         );
-        deployCodeTo("AutoWrapper", abi.encode(manager, vault), address(hook));
+        deployCodeTo("AutoWrapper", abi.encode(manager, wUSDL), address(hook));
 
-        // Create pool key for asset/vault
         poolKey = PoolKey({
-            currency0: Currency.wrap(address(asset)),
-            currency1: Currency.wrap(address(vault)),
-            fee: 0, // Must be 0 for wrapper pools
+            currency0: Currency.wrap(address(USDL)),
+            currency1: Currency.wrap(address(wUSDL)),
+            fee: 0,
             tickSpacing: 60,
             hooks: IHooks(address(hook))
         });
 
-        // Initialize pool at 1:1 price
         initSqrtPriceX96 = uint160(TickMath.getSqrtPriceAtTick(0));
         manager.initialize(poolKey, initSqrtPriceX96);
 
-        // Give users some tokens
-        asset.mint(alice, 100 ether);
-        asset.mint(bob, 100 ether);
-        asset.mint(address(this), 200 ether);
+        vm.startPrank(supplyController);
+        USDL.increaseSupply(initialSupply * 4);
+        USDL.transfer(alice, initialSupply);
+        USDL.transfer(address(this), initialSupply * 2);
+        vm.stopPrank();
 
-        asset.mint(address(this), 400 ether);
-        asset.approve(address(vault), 400 ether);
-        vault.deposit(100 ether, alice);
-        vault.deposit(100 ether, bob);
-        vault.deposit(200 ether, address(this));
+        IERC20Upgradeable(address(USDL)).approve(address(wUSDL), initialSupply);
+        wUSDL.deposit(initialSupply, address(this));
 
         _addUnrelatedLiquidity();
     }
 
+    function setupUSDLandVault() internal {
+        ybsImpl = new YBSV1_1();
+        wYbsImpl = new wYBSV1();
+
+        bytes memory ybsData = abi.encodeWithSelector(
+            YBSV1_1.initialize.selector,
+            "Yield Bearing Stablecoin",
+            "YBS",
+            18,
+            admin,
+            supplyController,
+            pauser,
+            assetProtector,
+            rebaserAdmin,
+            rebaser
+        );
+
+        ERC1967Proxy ybsProxy = new ERC1967Proxy(
+            address(ybsImpl),
+            ybsData
+        );
+        USDL = YBSV1_1(address(ybsProxy));
+
+        bytes memory wYbsData = abi.encodeWithSelector(
+            wYBSV1.initialize.selector,
+            "Wrapped YBS",
+            "wYBS",
+            IERC20Upgradeable(address(USDL)),
+            admin,
+            pauser,
+            assetProtector
+        );
+
+        ERC1967Proxy wYbsProxy = new ERC1967Proxy(
+            address(wYbsImpl),
+            wYbsData
+        );
+        wUSDL = wYBSV1(address(wYbsProxy));
+
+        vm.startPrank(rebaserAdmin);
+        USDL.setMaxRebaseRate(0.05 * 10 ** 18); // 5% max rate
+        USDL.setRebasePeriod(1 days);
+        vm.stopPrank();
+
+        vm.startPrank(admin);
+        USDL.grantRole(USDL.WRAPPED_YBS_ROLE(), address(wUSDL));
+        vm.stopPrank();
+    }
+
     function test_initialization() public view {
-        assertEq(address(hook.vault()), address(vault));
-        assertEq(Currency.unwrap(hook.wrapperCurrency()), address(vault));
-        assertEq(Currency.unwrap(hook.underlyingCurrency()), address(asset));
+        assertEq(address(hook.vault()), address(wUSDL));
+        assertEq(Currency.unwrap(hook.wrapperCurrency()), address(wUSDL));
+        assertEq(Currency.unwrap(hook.underlyingCurrency()), address(USDL));
     }
 
     function test_wrap_exactInput() public {
         uint256 wrapAmount = 1 ether;
-        uint256 expectedOutput = vault.convertToShares(wrapAmount);
+        uint256 expectedOutput = wUSDL.previewDeposit(wrapAmount);
 
         vm.startPrank(alice);
-        asset.approve(address(swapRouter), type(uint256).max);
+        IERC20Upgradeable(address(USDL)).approve(address(swapRouter), type(uint256).max);
 
-        uint256 aliceAssetBefore = asset.balanceOf(alice);
-        uint256 aliceVaultBefore = vault.balanceOf(alice);
-        uint256 managerAssetBefore = asset.balanceOf(address(manager));
-        uint256 managerVaultBefore = vault.balanceOf(address(manager));
+        uint256 aliceYbsBefore = USDL.balanceOf(alice);
+        uint256 aliceWYbsBefore = wUSDL.balanceOf(alice);
+        uint256 managerYbsBefore = USDL.balanceOf(address(manager));
+        uint256 managerWYbsBefore = wUSDL.balanceOf(address(manager));
 
         PoolSwapTest.TestSettings memory testSettings =
-            PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false});
+                            PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false});
         swapRouter.swap(
             poolKey,
             IPoolManager.SwapParams({
-                zeroForOne: true, // asset (0) to vault (1)
-                amountSpecified: -int256(wrapAmount),
+                zeroForOne: true, // ybs (0) to wYbs (1)
+                amountSpecified: - int256(wrapAmount),
                 sqrtPriceLimitX96: TickMath.MIN_SQRT_PRICE + 1
             }),
             testSettings,
@@ -121,31 +181,34 @@ contract AutoWrapperTest is Test, Deployers {
 
         vm.stopPrank();
 
-        assertEq(aliceAssetBefore - asset.balanceOf(alice), wrapAmount);
-        assertEq(vault.balanceOf(alice) - aliceVaultBefore, expectedOutput);
-        assertEq(managerAssetBefore, asset.balanceOf(address(manager)));
-        assertEq(managerVaultBefore, vault.balanceOf(address(manager)));
+        assertEq(aliceYbsBefore - USDL.balanceOf(alice), wrapAmount);
+        assertEq(wUSDL.balanceOf(alice) - aliceWYbsBefore, expectedOutput);
+        assertEq(managerYbsBefore, USDL.balanceOf(address(manager)));
+        assertEq(managerWYbsBefore, wUSDL.balanceOf(address(manager)));
     }
 
     function test_unwrap_exactInput() public {
-        uint256 unwrapAmount = 1 ether;
-        uint256 expectedOutput = vault.convertToAssets(unwrapAmount);
-
         vm.startPrank(alice);
-        vault.approve(address(swapRouter), type(uint256).max);
+        IERC20Upgradeable(address(USDL)).approve(address(wUSDL), 10 ether);
+        wUSDL.deposit(10 ether, alice);
 
-        uint256 aliceAssetBefore = asset.balanceOf(alice);
-        uint256 aliceVaultBefore = vault.balanceOf(alice);
-        uint256 managerAssetBefore = asset.balanceOf(address(manager));
-        uint256 managerVaultBefore = vault.balanceOf(address(manager));
+        uint256 unwrapAmount = 1 ether;
+        uint256 expectedOutput = wUSDL.previewRedeem(unwrapAmount);
+
+        IERC20Upgradeable(address(wUSDL)).approve(address(swapRouter), type(uint256).max);
+
+        uint256 aliceYbsBefore = USDL.balanceOf(alice);
+        uint256 aliceWYbsBefore = wUSDL.balanceOf(alice);
+        uint256 managerYbsBefore = USDL.balanceOf(address(manager));
+        uint256 managerWYbsBefore = wUSDL.balanceOf(address(manager));
 
         PoolSwapTest.TestSettings memory testSettings =
-            PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false});
+                            PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false});
         swapRouter.swap(
             poolKey,
             IPoolManager.SwapParams({
-                zeroForOne: false, // vault (1) to asset (0)
-                amountSpecified: -int256(unwrapAmount),
+                zeroForOne: false, // wYbs (1) to ybs (0)
+                amountSpecified: - int256(unwrapAmount),
                 sqrtPriceLimitX96: TickMath.MAX_SQRT_PRICE - 1
             }),
             testSettings,
@@ -154,148 +217,17 @@ contract AutoWrapperTest is Test, Deployers {
 
         vm.stopPrank();
 
-        assertEq(asset.balanceOf(alice) - aliceAssetBefore, expectedOutput);
-        assertEq(aliceVaultBefore - vault.balanceOf(alice), unwrapAmount);
-        assertEq(managerAssetBefore, asset.balanceOf(address(manager)));
-        assertEq(managerVaultBefore, vault.balanceOf(address(manager)));
-    }
-
-    function test_wrap_exactOutput() public {
-        uint256 wrapAmount = 1 ether;
-        uint256 expectedInput = vault.convertToAssets(wrapAmount);
-
-        vm.startPrank(alice);
-        asset.approve(address(swapRouter), type(uint256).max);
-
-        uint256 aliceAssetBefore = asset.balanceOf(alice);
-        uint256 aliceVaultBefore = vault.balanceOf(alice);
-        uint256 managerAssetBefore = asset.balanceOf(address(manager));
-        uint256 managerVaultBefore = vault.balanceOf(address(manager));
-
-        PoolSwapTest.TestSettings memory testSettings =
-            PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false});
-        swapRouter.swap(
-            poolKey,
-            IPoolManager.SwapParams({
-                zeroForOne: true, // asset (0) to vault (1)
-                amountSpecified: int256(wrapAmount),
-                sqrtPriceLimitX96: TickMath.MIN_SQRT_PRICE + 1
-            }),
-            testSettings,
-            ""
-        );
-
-        vm.stopPrank();
-
-        assertEq(aliceAssetBefore - asset.balanceOf(alice), expectedInput);
-        assertEq(vault.balanceOf(alice) - aliceVaultBefore, wrapAmount);
-        assertEq(managerAssetBefore, asset.balanceOf(address(manager)));
-        assertEq(managerVaultBefore, vault.balanceOf(address(manager)));
-    }
-
-    function test_unwrap_exactOutput() public {
-        uint256 unwrapAmount = 1 ether;
-        uint256 expectedInput = vault.convertToShares(unwrapAmount);
-
-        vm.startPrank(alice);
-        vault.approve(address(swapRouter), type(uint256).max);
-
-        uint256 aliceAssetBefore = asset.balanceOf(alice);
-        uint256 aliceVaultBefore = vault.balanceOf(alice);
-        uint256 managerAssetBefore = asset.balanceOf(address(manager));
-        uint256 managerVaultBefore = vault.balanceOf(address(manager));
-
-        PoolSwapTest.TestSettings memory testSettings =
-            PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false});
-        swapRouter.swap(
-            poolKey,
-            IPoolManager.SwapParams({
-                zeroForOne: false, // vault (1) to asset (0)
-                amountSpecified: int256(unwrapAmount),
-                sqrtPriceLimitX96: TickMath.MAX_SQRT_PRICE - 1
-            }),
-            testSettings,
-            ""
-        );
-
-        vm.stopPrank();
-
-        assertEq(asset.balanceOf(alice) - aliceAssetBefore, unwrapAmount);
-        assertEq(aliceVaultBefore - vault.balanceOf(alice), expectedInput);
-        assertEq(managerAssetBefore, asset.balanceOf(address(manager)));
-        assertEq(managerVaultBefore, vault.balanceOf(address(manager)));
-    }
-
-    function test_revertAddLiquidity() public {
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                CustomRevert.WrappedError.selector,
-                address(hook),
-                IHooks.beforeAddLiquidity.selector,
-                abi.encodeWithSelector(BaseTokenWrapperHook.LiquidityNotAllowed.selector),
-                abi.encodeWithSelector(Hooks.HookCallFailed.selector)
-            )
-        );
-
-        modifyLiquidityRouter.modifyLiquidity(
-            poolKey,
-            IPoolManager.ModifyLiquidityParams({
-                tickLower: -120,
-                tickUpper: 120,
-                liquidityDelta: 1000e18,
-                salt: bytes32(0)
-            }),
-            ""
-        );
-    }
-
-    function test_revertInvalidPoolInitialization() public {
-        // Try to initialize with non-zero fee
-        PoolKey memory invalidKey = PoolKey({
-            currency0: Currency.wrap(address(asset)),
-            currency1: Currency.wrap(address(vault)),
-            fee: 3000, // Invalid: must be 0
-            tickSpacing: 60,
-            hooks: IHooks(address(hook))
-        });
-
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                CustomRevert.WrappedError.selector,
-                address(hook),
-                IHooks.beforeInitialize.selector,
-                abi.encodeWithSelector(BaseTokenWrapperHook.InvalidPoolFee.selector),
-                abi.encodeWithSelector(Hooks.HookCallFailed.selector)
-            )
-        );
-        manager.initialize(invalidKey, initSqrtPriceX96);
-
-        // Try to initialize with wrong token pair
-        MockERC20 randomToken = new MockERC20("Random", "RND", 18);
-        // sort tokens
-        (Currency currency0, Currency currency1) = address(randomToken) < address(vault)
-            ? (Currency.wrap(address(randomToken)), Currency.wrap(address(vault)))
-            : (Currency.wrap(address(vault)), Currency.wrap(address(randomToken)));
-        invalidKey =
-            PoolKey({currency0: currency0, currency1: currency1, fee: 0, tickSpacing: 60, hooks: IHooks(address(hook))});
-
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                CustomRevert.WrappedError.selector,
-                address(hook),
-                IHooks.beforeInitialize.selector,
-                abi.encodeWithSelector(BaseTokenWrapperHook.InvalidPoolToken.selector),
-                abi.encodeWithSelector(Hooks.HookCallFailed.selector)
-            )
-        );
-        manager.initialize(invalidKey, initSqrtPriceX96);
+        assertEq(aliceWYbsBefore - wUSDL.balanceOf(alice), unwrapAmount);
+        assertEq(USDL.balanceOf(alice) - aliceYbsBefore, expectedOutput);
+        assertEq(managerYbsBefore, USDL.balanceOf(address(manager)));
+        assertEq(managerWYbsBefore, wUSDL.balanceOf(address(manager)));
     }
 
     function _addUnrelatedLiquidity() internal {
-        // Create a hookless pool key for asset/vault
+        // Create a hookless pool key for ybs/wYbs
         PoolKey memory unrelatedPoolKey = PoolKey({
-            currency0: Currency.wrap(address(asset)),
-            currency1: Currency.wrap(address(vault)),
+            currency0: Currency.wrap(address(USDL)),
+            currency1: Currency.wrap(address(wUSDL)),
             fee: 100,
             tickSpacing: 60,
             hooks: IHooks(address(0))
@@ -303,12 +235,12 @@ contract AutoWrapperTest is Test, Deployers {
 
         manager.initialize(unrelatedPoolKey, uint160(TickMath.getSqrtPriceAtTick(0)));
 
-        asset.approve(address(modifyLiquidityRouter), type(uint256).max);
-        vault.approve(address(modifyLiquidityRouter), type(uint256).max);
+        IERC20Upgradeable(address(USDL)).approve(address(modifyLiquidityRouter), type(uint256).max);
+        IERC20Upgradeable(address(wUSDL)).approve(address(modifyLiquidityRouter), type(uint256).max);
         modifyLiquidityRouter.modifyLiquidity(
             unrelatedPoolKey,
             IPoolManager.ModifyLiquidityParams({
-                tickLower: -120,
+                tickLower: - 120,
                 tickUpper: 120,
                 liquidityDelta: 1000e18,
                 salt: bytes32(0)

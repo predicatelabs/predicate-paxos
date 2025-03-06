@@ -11,13 +11,15 @@ A Uniswap V4 Hook that enables Paxos to offer compliant, decentralized exchange 
 
 ## Usage
 
+#### Install dependencies:
 ```bash
-forge build
+make install
 ```
 
-```bash
-npm install && npm start
-```
+#### Run tests:
+````bash
+forge test --via-ir
+````
 
 ### Call the Predicate API
 

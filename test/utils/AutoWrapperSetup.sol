@@ -103,7 +103,6 @@ contract AutoWrapperSetup is MetaCoinTestSetup, PoolSetup {
         // Create initial supply of USDL
         vm.startPrank(supplyController);
         USDL.increaseSupply(initialSupply * 4);
-        USDL.transfer(alice, initialSupply);
         USDL.transfer(liquidityProvider, initialSupply * 2);
         vm.stopPrank();
 

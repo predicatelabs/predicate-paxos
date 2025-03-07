@@ -30,10 +30,6 @@ abstract contract BaseTokenWrapperHook is BaseHook, DeltaResolver {
     /// @dev Liquidity operations are blocked since all liquidity is managed by the token wrapper
     error LiquidityNotAllowed();
 
-    /// @notice Thrown when initializing a pool with invalid tokens
-    /// @dev Pool must contain exactly one wrapper token and its underlying token
-    error InvalidPoolToken();
-
     /// @notice Thrown when initializing a pool with non-zero fee
     /// @dev Fee must be 0 as wrapper pools don't charge fees
     error InvalidPoolFee();
@@ -113,34 +109,7 @@ abstract contract BaseTokenWrapperHook is BaseHook, DeltaResolver {
         PoolKey calldata,
         IPoolManager.SwapParams calldata params,
         bytes calldata
-    ) internal override returns (bytes4 selector, BeforeSwapDelta swapDelta, uint24 lpFeeOverride) {
-        bool isExactInput = params.amountSpecified < 0;
-
-        if (wrapZeroForOne == params.zeroForOne) {
-            // we are wrapping
-            uint256 inputAmount =
-                isExactInput ? uint256(-params.amountSpecified) : _getWrapInputRequired(uint256(params.amountSpecified));
-            _take(underlyingCurrency, address(this), inputAmount);
-            uint256 wrappedAmount = _deposit(inputAmount);
-            _settle(wrapperCurrency, address(this), wrappedAmount);
-            int128 amountUnspecified =
-                isExactInput ? -wrappedAmount.toInt256().toInt128() : inputAmount.toInt256().toInt128();
-            swapDelta = toBeforeSwapDelta(-params.amountSpecified.toInt128(), amountUnspecified);
-        } else {
-            // we are unwrapping
-            uint256 inputAmount = isExactInput
-                ? uint256(-params.amountSpecified)
-                : _getUnwrapInputRequired(uint256(params.amountSpecified));
-            _take(wrapperCurrency, address(this), inputAmount);
-            uint256 unwrappedAmount = _withdraw(inputAmount);
-            _settle(underlyingCurrency, address(this), unwrappedAmount);
-            int128 amountUnspecified =
-                isExactInput ? -unwrappedAmount.toInt256().toInt128() : inputAmount.toInt256().toInt128();
-            swapDelta = toBeforeSwapDelta(-params.amountSpecified.toInt128(), amountUnspecified);
-        }
-
-        return (IHooks.beforeSwap.selector, swapDelta, 0);
-    }
+    ) internal virtual returns (bytes4 selector, BeforeSwapDelta swapDelta, uint24 lpFeeOverride);
 
     /// @notice Transfers tokens to the pool manager
     /// @param token The token to transfer

@@ -44,6 +44,49 @@ contract AutoWrapper is BaseTokenWrapperHook {
     }
 
     /// @inheritdoc BaseTokenWrapperHook
+    /// @notice Handles swapping through
+    /// @param params The swap parameters including direction and amount
+    /// @return selector The function selector
+    /// @return swapDelta The input/output token amounts for pool accounting
+    /// @return lpFeeOverride The fee override (always 0 for wrapper pools)
+    function _beforeSwap(
+        address,
+        PoolKey calldata,
+        IPoolManager.SwapParams calldata params,
+        bytes calldata
+    ) internal override returns (bytes4 selector, BeforeSwapDelta swapDelta, uint24 lpFeeOverride) {
+        bool isExactInput = params.amountSpecified < 0;
+
+        if (wrapZeroForOne == params.zeroForOne) {
+            //USDC -> USDL
+            uint256 inputAmount =
+                isExactInput ? uint256(-params.amountSpecified) : _getWrapInputRequired(uint256(params.amountSpecified));
+            // _take(underlyingCurrency, address(this), inputAmount);
+            // todo: swap USDC through wUSDL pool
+            // todo: redeem USDL from vault
+            // todo: settle USDL
+            uint256 wrappedAmount = _deposit(inputAmount);
+            _settle(wrapperCurrency, address(this), wrappedAmount);
+            int128 amountUnspecified =
+                isExactInput ? -wrappedAmount.toInt256().toInt128() : inputAmount.toInt256().toInt128();
+            swapDelta = toBeforeSwapDelta(-params.amountSpecified.toInt128(), amountUnspecified);
+        } else {
+            // we are unwrapping
+            uint256 inputAmount = isExactInput
+                ? uint256(-params.amountSpecified)
+                : _getUnwrapInputRequired(uint256(params.amountSpecified));
+            _take(wrapperCurrency, address(this), inputAmount);
+            uint256 unwrappedAmount = _withdraw(inputAmount);
+            _settle(underlyingCurrency, address(this), unwrappedAmount);
+            int128 amountUnspecified =
+                isExactInput ? -unwrappedAmount.toInt256().toInt128() : inputAmount.toInt256().toInt128();
+            swapDelta = toBeforeSwapDelta(-params.amountSpecified.toInt128(), amountUnspecified);
+        }
+
+        return (IHooks.beforeSwap.selector, swapDelta, 0);
+    }
+
+    /// @inheritdoc BaseTokenWrapperHook
     /// @notice Wraps assets to shares in the ERC4626 vault
     /// @param underlyingAmount Amount of assets to wrap
     /// @return Amount of shares received

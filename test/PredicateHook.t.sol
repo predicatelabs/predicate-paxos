@@ -18,7 +18,6 @@ import {TickMath} from "@uniswap/v4-core/src/libraries/TickMath.sol";
 import {IERC20} from "forge-std/interfaces/IERC20.sol";
 import {Constants} from "@uniswap/v4-core/src/../test/utils/Constants.sol";
 import {PredicateClient} from "@predicate/mixins/PredicateClient.sol";
-import {console} from "forge-std/console.sol";
 import {PredicateClient__Unauthorized} from "@predicate/interfaces/IPredicateClient.sol";
 
 contract PredicateHookTest is PredicateHookSetup, OperatorTestPrep {
@@ -151,11 +150,7 @@ contract PredicateHookTest is PredicateHookSetup, OperatorTestPrep {
         swapRouter.swap(key, params, abi.encode(message, liquidityProvider, 0));
     }
 
-    // TODO: This test is failing because the error is not being caught correctly.
-    function testSwapWithExpiredSignature() public permissionedOperators prepOperatorRegistration(false) {
-        vm.prank(operatorOne);
-        serviceManager.registerOperatorToAVS(operatorOneAlias, operatorSignature);
-
+    function testSwapWithExpiredSignature() public permissionedOperators prepOperatorRegistration(true) {
         PoolKey memory key = getPoolKey();
         string memory taskId = "unique-identifier";
         IPoolManager.SwapParams memory params = IPoolManager.SwapParams({
@@ -172,11 +167,7 @@ contract PredicateHookTest is PredicateHookSetup, OperatorTestPrep {
         Task memory task = getTask(taskId, params);
         task.expireByBlockNumber = block.number - 1;
 
-        console.log("Current block:", block.number);
-        console.log("Expire block:", task.expireByBlockNumber);
-
         bytes32 taskHash = serviceManager.hashTaskWithExpiry(task);
-        console.log("Task hash:", uint256(taskHash));
 
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(operatorOneAliasPk, taskHash);
         bytes memory signature = abi.encodePacked(r, s, v);
@@ -193,24 +184,9 @@ contract PredicateHookTest is PredicateHookSetup, OperatorTestPrep {
             signatures: operatorSignatures
         });
 
-        bytes memory expectedError = abi.encodeWithSelector(
-            bytes4(0x575e24b4),
-            abi.encodeWithSelector(
-                bytes4(0x08c379a0), abi.encode("ServiceManager.PredicateVerified: transaction expired")
-            ),
-            bytes4(0xa9e35b2f)
-        );
-
-        console.logBytes(expectedError);
-        console.log("Expected error length:", expectedError.length);
-
         vm.prank(address(liquidityProvider));
-        try swapRouter.swap(key, params, abi.encode(message, liquidityProvider, 0)) {
-            revert("Swap should have failed");
-        } catch (bytes memory err) {
-            console.logBytes(err);
-            console.log("Actual error length:", err.length);
-        }
+        vm.expectRevert();
+        swapRouter.swap(key, params, abi.encode(message, liquidityProvider, 0));
 
         assertEq(token0.balanceOf(liquidityProvider), initialBalance0, "Token0 balance should not change");
         assertEq(token1.balanceOf(liquidityProvider), initialBalance1, "Token1 balance should not change");
@@ -311,14 +287,8 @@ contract PredicateHookTest is PredicateHookSetup, OperatorTestPrep {
         );
 
         vm.prank(address(liquidityProvider));
-        try swapRouter.swap(key, params, abi.encode(message, liquidityProvider, 0)) {
-            revert("Swap should have failed");
-        } catch (bytes memory err) {
-            console.logBytes(err);
-            console.log("Actual error length:", err.length);
-            console.logBytes(expectedError);
-            console.log("Expected error length:", expectedError.length);
-        }
+        vm.expectRevert();
+        swapRouter.swap(key, params, abi.encode(message, liquidityProvider, 0));
 
         assertEq(token0.balanceOf(liquidityProvider), initialBalance0, "Token0 balance should not change");
         assertEq(token1.balanceOf(liquidityProvider), initialBalance1, "Token1 balance should not change");

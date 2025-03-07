@@ -20,18 +20,6 @@ import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
 contract PredicateHook is BaseHook, PredicateClient {
     ISimpleV4Router public immutable router;
 
-    struct SwapParams {
-        address sender;
-        address currency0;
-        address currency1;
-        uint24 fee;
-        int24 tickSpacing;
-        address hooks;
-        bool zeroForOne;
-        int256 amountSpecified;
-        uint160 sqrtPriceLimitX96;
-    }
-
     constructor(
         IPoolManager _poolManager,
         ISimpleV4Router _router,
@@ -69,29 +57,25 @@ contract PredicateHook is BaseHook, PredicateClient {
     ) internal override returns (bytes4, BeforeSwapDelta, uint24) {
         (PredicateMessage memory predicateMessage, address msgSender, uint256 msgValue) = this.decodeHookData(hookData);
 
-        SwapParams memory sp = SwapParams({
-            sender: router.msgSender(),
-            currency0: Currency.unwrap(key.currency0),
-            currency1: Currency.unwrap(key.currency1),
-            fee: key.fee,
-            tickSpacing: key.tickSpacing,
-            hooks: address(key.hooks),
-            zeroForOne: params.zeroForOne,
-            amountSpecified: params.amountSpecified,
-            sqrtPriceLimitX96: params.sqrtPriceLimitX96
-        });
+        IPoolManager.SwapParams memory localParams = params;
+
+        address hooks = address(key.hooks);
+        int24 tickSpacing = key.tickSpacing;
+        uint24 fee = key.fee;
+        address currency0 = Currency.unwrap(key.currency0);
+        address currency1 = Currency.unwrap(key.currency1);
 
         bytes memory encodeSigAndArgs = abi.encodeWithSignature(
             "_beforeSwap(address,address,address,uint24,int24,address,bool,int256,uint160)",
-            sp.sender,
-            sp.currency0,
-            sp.currency1,
-            sp.fee,
-            sp.tickSpacing,
-            sp.hooks,
-            sp.zeroForOne,
-            sp.amountSpecified,
-            sp.sqrtPriceLimitX96
+            router.msgSender(),
+            currency0,
+            currency1,
+            fee,
+            tickSpacing,
+            hooks,
+            localParams.zeroForOne,
+            localParams.amountSpecified,
+            localParams.sqrtPriceLimitX96
         );
 
         require(

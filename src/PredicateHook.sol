@@ -57,25 +57,17 @@ contract PredicateHook is BaseHook, PredicateClient {
     ) internal override returns (bytes4, BeforeSwapDelta, uint24) {
         (PredicateMessage memory predicateMessage, address msgSender, uint256 msgValue) = this.decodeHookData(hookData);
 
-        IPoolManager.SwapParams memory localParams = params;
-
-        address hooks = address(key.hooks);
-        int24 tickSpacing = key.tickSpacing;
-        uint24 fee = key.fee;
-        address currency0 = Currency.unwrap(key.currency0);
-        address currency1 = Currency.unwrap(key.currency1);
-
         bytes memory encodeSigAndArgs = abi.encodeWithSignature(
             "_beforeSwap(address,address,address,uint24,int24,address,bool,int256,uint160)",
             router.msgSender(),
-            currency0,
-            currency1,
-            fee,
-            tickSpacing,
-            hooks,
-            localParams.zeroForOne,
-            localParams.amountSpecified,
-            localParams.sqrtPriceLimitX96
+            key.currency0,
+            key.currency1,
+            key.fee,
+            key.tickSpacing,
+            address(key.hooks),
+            params.zeroForOne,
+            params.amountSpecified,
+            params.sqrtPriceLimitX96
         );
 
         require(

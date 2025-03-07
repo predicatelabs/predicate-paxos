@@ -86,19 +86,15 @@ contract AutoWrapperSetup is MetaCoinTestSetup, PoolSetup {
         manager.initialize(predicatePoolKey, Constants.SQRT_PRICE_1_1);
 
         // initialize the auto wrapper
-        autoWrapper = AutoWrapper(
-            payable(
-                address(
-                    uint160(
-                        Hooks.BEFORE_SWAP_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG | Hooks.BEFORE_SWAP_RETURNS_DELTA_FLAG
-                            | Hooks.BEFORE_INITIALIZE_FLAG
-                    )
-                )
-            )
+        uint160 autoWrapperFlags = uint160(
+            Hooks.BEFORE_SWAP_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG | Hooks.BEFORE_SWAP_RETURNS_DELTA_FLAG
+                | Hooks.BEFORE_INITIALIZE_FLAG
         );
-        deployCodeTo(
-            "AutoWrapper", abi.encode(manager, ERC4626(address(wUSDL)), predicatePoolKey), address(autoWrapper)
-        );
+        bytes memory autoWrapperConstructorArgs = abi.encode(manager, ERC4626(address(wUSDL)), predicatePoolKey);
+        (address autoWrapperAddress, bytes32 autoWrapperSalt) =
+            HookMiner.find(address(this), autoWrapperFlags, type(AutoWrapper).creationCode, autoWrapperConstructorArgs);
+        autoWrapper = new AutoWrapper{salt: autoWrapperSalt}(manager, ERC4626(address(wUSDL)), predicatePoolKey);
+        require(address(autoWrapper) == autoWrapperAddress, "Hook deployment failed");
 
         // initialize the ghost pool
         ghostPoolKey = PoolKey(USDC, Currency.wrap(address(USDL)), 0, tickSpacing, IHooks(autoWrapper));

@@ -132,14 +132,16 @@ contract DeployTokensAndPool is Script, DeployPermit2 {
             ZERO_BYTES
         );
 
-        int24 minTick = TickMath.minUsableTick(tickSpacing);
-        int24 maxTick = TickMath.maxUsableTick(tickSpacing);
-
-        uint256 amount = 100e18;
-        uint256 amount0Max = 10_000e18;
-        uint256 amount1Max = 10_000e18;
-        uint256 deadline = block.timestamp + 300;
-
-        posm.mint(poolKey, minTick, maxTick, amount, amount0Max, amount1Max, msg.sender, deadline, ZERO_BYTES);
+        posm.mint(
+            poolKey,
+            TickMath.minUsableTick(tickSpacing),
+            TickMath.maxUsableTick(tickSpacing),
+            100e18,
+            10_000e18,
+            10_000e18,
+            msg.sender,
+            block.timestamp + 300,
+            ZERO_BYTES
+        );
     }
 }

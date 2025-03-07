@@ -40,119 +40,6 @@ contract PredicateHookTest is PredicateHookSetup, OperatorTestPrep {
         _;
     }
 
-    function testSwapZeroForOne() public permissionedOperators prepOperatorRegistration(false) {
-        vm.prank(operatorOne);
-        serviceManager.registerOperatorToAVS(operatorOneAlias, operatorSignature);
-
-        PoolKey memory key = getPoolKey();
-        string memory taskId = "unique-identifier";
-        IPoolManager.SwapParams memory params = IPoolManager.SwapParams({
-            zeroForOne: true,
-            amountSpecified: 1e18,
-            sqrtPriceLimitX96: TickMath.MIN_SQRT_PRICE + 1
-        });
-
-        PredicateMessage memory message = getPredicateMessage(taskId, params);
-
-        IERC20 token0 = IERC20(Currency.unwrap(key.currency0));
-        IERC20 token1 = IERC20(Currency.unwrap(key.currency1));
-        uint256 balance0 = token0.balanceOf(liquidityProvider);
-        uint256 balance1 = token1.balanceOf(liquidityProvider);
-
-        vm.prank(address(liquidityProvider));
-        BalanceDelta delta = swapRouter.swap(key, params, abi.encode(message, liquidityProvider, 0));
-        require(token0.balanceOf(liquidityProvider) < balance0, "Token0 balance should decrease");
-        require(token1.balanceOf(liquidityProvider) > balance1, "Token1 balance should increase");
-    }
-
-    function testSwapOneForZero() public permissionedOperators prepOperatorRegistration(false) {
-        vm.prank(operatorOne);
-        serviceManager.registerOperatorToAVS(operatorOneAlias, operatorSignature);
-
-        PoolKey memory key = getPoolKey();
-        string memory taskId = "unique-identifier";
-        IPoolManager.SwapParams memory params = IPoolManager.SwapParams({
-            zeroForOne: false,
-            amountSpecified: 1e18,
-            sqrtPriceLimitX96: TickMath.MAX_SQRT_PRICE - 1
-        });
-
-        PredicateMessage memory message = getPredicateMessage(taskId, params);
-
-        IERC20 token0 = IERC20(Currency.unwrap(key.currency0));
-        IERC20 token1 = IERC20(Currency.unwrap(key.currency1));
-        uint256 balance0 = token0.balanceOf(liquidityProvider);
-        uint256 balance1 = token1.balanceOf(liquidityProvider);
-
-        vm.prank(address(liquidityProvider));
-        BalanceDelta delta = swapRouter.swap(key, params, abi.encode(message, liquidityProvider, 0));
-        require(token0.balanceOf(liquidityProvider) > balance0, "Token0 balance should increase");
-        require(token1.balanceOf(liquidityProvider) < balance1, "Token1 balance should decrease");
-    }
-
-    function testSwapWithInvalidMessage() public permissionedOperators prepOperatorRegistration(false) {
-        vm.prank(operatorOne);
-        serviceManager.registerOperatorToAVS(operatorOneAlias, operatorSignature);
-
-        PoolKey memory key = getPoolKey();
-        string memory taskId = "unique-identifier";
-        IPoolManager.SwapParams memory params = IPoolManager.SwapParams({
-            zeroForOne: true,
-            amountSpecified: 1e18,
-            sqrtPriceLimitX96: uint160(4_295_128_740)
-        });
-
-        PredicateMessage memory message = getPredicateMessage(taskId, params);
-        message.taskId = "invalid-task-id";
-
-        vm.prank(address(liquidityProvider));
-        vm.expectRevert();
-        swapRouter.swap(key, params, abi.encode(message, liquidityProvider, 0));
-    }
-
-    function testDecodeHookDataEncoding() public view {
-        string memory taskId = "task123";
-        uint256 expireByBlockNumber = 100;
-
-        address[] memory signerAddresses = new address[](2);
-        signerAddresses[0] = 0x0000000000000000000000000000000000000123;
-        signerAddresses[1] = 0x0000000000000000000000000000000000000456;
-
-        bytes[] memory signatures = new bytes[](2);
-        signatures[0] = hex"abcdef";
-        signatures[1] = hex"123456";
-
-        address msgSender = 0x0000000000000000000000000000000000000789; // replace
-        uint256 msgValue = 42;
-
-        PredicateMessage memory predicateMessage = PredicateMessage({
-            taskId: taskId,
-            expireByBlockNumber: expireByBlockNumber,
-            signerAddresses: signerAddresses,
-            signatures: signatures
-        });
-
-        bytes memory hookData = abi.encode(predicateMessage, msgSender, msgValue);
-
-        (PredicateMessage memory decodedMsg, address decodedMsgSender, uint256 decodedMsgValue) =
-            hook.decodeHookData(hookData);
-
-        require(keccak256(bytes(decodedMsg.taskId)) == keccak256(bytes(taskId)), "TaskId mismatch");
-        require(decodedMsg.expireByBlockNumber == expireByBlockNumber, "Expire block number mismatch");
-        require(decodedMsg.signerAddresses.length == signerAddresses.length, "Signer addresses length mismatch");
-        require(decodedMsg.signatures.length == signatures.length, "Signatures length mismatch");
-        require(decodedMsgSender == msgSender, "Message sender mismatch");
-        require(decodedMsgValue == msgValue, "Message value mismatch");
-
-        for (uint256 i = 0; i < signerAddresses.length; i++) {
-            require(decodedMsg.signerAddresses[i] == signerAddresses[i], "Signer address mismatch");
-        }
-
-        for (uint256 i = 0; i < signatures.length; i++) {
-            require(keccak256(decodedMsg.signatures[i]) == keccak256(signatures[i]), "Signature mismatch");
-        }
-    }
-
     function getPredicateMessage(
         string memory taskId,
         IPoolManager.SwapParams memory params
@@ -203,6 +90,175 @@ contract PredicateHookTest is PredicateHookSetup, OperatorTestPrep {
         });
     }
 
+    function testSwapZeroForOne() public permissionedOperators prepOperatorRegistration(true) {
+        PoolKey memory key = getPoolKey();
+        string memory taskId = "unique-identifier";
+        IPoolManager.SwapParams memory params = IPoolManager.SwapParams({
+            zeroForOne: true,
+            amountSpecified: 1e18,
+            sqrtPriceLimitX96: TickMath.MIN_SQRT_PRICE + 1
+        });
+
+        PredicateMessage memory message = getPredicateMessage(taskId, params);
+
+        IERC20 token0 = IERC20(Currency.unwrap(key.currency0));
+        IERC20 token1 = IERC20(Currency.unwrap(key.currency1));
+        uint256 balance0 = token0.balanceOf(liquidityProvider);
+        uint256 balance1 = token1.balanceOf(liquidityProvider);
+
+        vm.prank(address(liquidityProvider));
+        BalanceDelta delta = swapRouter.swap(key, params, abi.encode(message, liquidityProvider, 0));
+        require(token0.balanceOf(liquidityProvider) < balance0, "Token0 balance should decrease");
+        require(token1.balanceOf(liquidityProvider) > balance1, "Token1 balance should increase");
+    }
+
+    function testSwapOneForZero() public permissionedOperators prepOperatorRegistration(true) {
+        PoolKey memory key = getPoolKey();
+        string memory taskId = "unique-identifier";
+        IPoolManager.SwapParams memory params = IPoolManager.SwapParams({
+            zeroForOne: false,
+            amountSpecified: 1e18,
+            sqrtPriceLimitX96: TickMath.MAX_SQRT_PRICE - 1
+        });
+
+        PredicateMessage memory message = getPredicateMessage(taskId, params);
+
+        IERC20 token0 = IERC20(Currency.unwrap(key.currency0));
+        IERC20 token1 = IERC20(Currency.unwrap(key.currency1));
+        uint256 balance0 = token0.balanceOf(liquidityProvider);
+        uint256 balance1 = token1.balanceOf(liquidityProvider);
+
+        vm.prank(address(liquidityProvider));
+        BalanceDelta delta = swapRouter.swap(key, params, abi.encode(message, liquidityProvider, 0));
+        require(token0.balanceOf(liquidityProvider) > balance0, "Token0 balance should increase");
+        require(token1.balanceOf(liquidityProvider) < balance1, "Token1 balance should decrease");
+    }
+
+    function testSwapWithInvalidMessage() public permissionedOperators prepOperatorRegistration(true) {
+        PoolKey memory key = getPoolKey();
+        string memory taskId = "unique-identifier";
+        IPoolManager.SwapParams memory params = IPoolManager.SwapParams({
+            zeroForOne: true,
+            amountSpecified: 1e18,
+            sqrtPriceLimitX96: uint160(4_295_128_740)
+        });
+
+        PredicateMessage memory message = getPredicateMessage(taskId, params);
+        message.taskId = "invalid-task-id";
+
+        vm.prank(address(liquidityProvider));
+        vm.expectRevert();
+        swapRouter.swap(key, params, abi.encode(message, liquidityProvider, 0));
+    }
+
+    // TODO: This test is failing because the error is not being caught correctly.
+    function testSwapWithExpiredSignature() public permissionedOperators prepOperatorRegistration(false) {
+        vm.prank(operatorOne);
+        serviceManager.registerOperatorToAVS(operatorOneAlias, operatorSignature);
+
+        PoolKey memory key = getPoolKey();
+        string memory taskId = "unique-identifier";
+        IPoolManager.SwapParams memory params = IPoolManager.SwapParams({
+            zeroForOne: true,
+            amountSpecified: 1e18,
+            sqrtPriceLimitX96: TickMath.MIN_SQRT_PRICE + 1
+        });
+
+        IERC20 token0 = IERC20(Currency.unwrap(key.currency0));
+        IERC20 token1 = IERC20(Currency.unwrap(key.currency1));
+        uint256 initialBalance0 = token0.balanceOf(liquidityProvider);
+        uint256 initialBalance1 = token1.balanceOf(liquidityProvider);
+
+        Task memory task = getTask(taskId, params);
+        task.expireByBlockNumber = block.number - 1;
+
+        console.log("Current block:", block.number);
+        console.log("Expire block:", task.expireByBlockNumber);
+
+        bytes32 taskHash = serviceManager.hashTaskWithExpiry(task);
+        console.log("Task hash:", uint256(taskHash));
+
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(operatorOneAliasPk, taskHash);
+        bytes memory signature = abi.encodePacked(r, s, v);
+
+        address[] memory signerAddresses = new address[](1);
+        bytes[] memory operatorSignatures = new bytes[](1);
+        signerAddresses[0] = operatorOneAlias;
+        operatorSignatures[0] = signature;
+
+        PredicateMessage memory message = PredicateMessage({
+            taskId: taskId,
+            expireByBlockNumber: task.expireByBlockNumber,
+            signerAddresses: signerAddresses,
+            signatures: operatorSignatures
+        });
+
+        bytes memory expectedError = abi.encodeWithSelector(
+            bytes4(0x575e24b4),
+            abi.encodeWithSelector(
+                bytes4(0x08c379a0), abi.encode("ServiceManager.PredicateVerified: transaction expired")
+            ),
+            bytes4(0xa9e35b2f)
+        );
+
+        console.logBytes(expectedError);
+        console.log("Expected error length:", expectedError.length);
+
+        vm.prank(address(liquidityProvider));
+        try swapRouter.swap(key, params, abi.encode(message, liquidityProvider, 0)) {
+            revert("Swap should have failed");
+        } catch (bytes memory err) {
+            console.logBytes(err);
+            console.log("Actual error length:", err.length);
+        }
+
+        assertEq(token0.balanceOf(liquidityProvider), initialBalance0, "Token0 balance should not change");
+        assertEq(token1.balanceOf(liquidityProvider), initialBalance1, "Token1 balance should not change");
+    }
+
+    function testDecodeHookDataEncoding() public view {
+        string memory taskId = "task123";
+        uint256 expireByBlockNumber = 100;
+
+        address[] memory signerAddresses = new address[](2);
+        signerAddresses[0] = 0x0000000000000000000000000000000000000123;
+        signerAddresses[1] = 0x0000000000000000000000000000000000000456;
+
+        bytes[] memory signatures = new bytes[](2);
+        signatures[0] = hex"abcdef";
+        signatures[1] = hex"123456";
+
+        address msgSender = 0x0000000000000000000000000000000000000789; // replace
+        uint256 msgValue = 42;
+
+        PredicateMessage memory predicateMessage = PredicateMessage({
+            taskId: taskId,
+            expireByBlockNumber: expireByBlockNumber,
+            signerAddresses: signerAddresses,
+            signatures: signatures
+        });
+
+        bytes memory hookData = abi.encode(predicateMessage, msgSender, msgValue);
+
+        (PredicateMessage memory decodedMsg, address decodedMsgSender, uint256 decodedMsgValue) =
+            hook.decodeHookData(hookData);
+
+        require(keccak256(bytes(decodedMsg.taskId)) == keccak256(bytes(taskId)), "TaskId mismatch");
+        require(decodedMsg.expireByBlockNumber == expireByBlockNumber, "Expire block number mismatch");
+        require(decodedMsg.signerAddresses.length == signerAddresses.length, "Signer addresses length mismatch");
+        require(decodedMsg.signatures.length == signatures.length, "Signatures length mismatch");
+        require(decodedMsgSender == msgSender, "Message sender mismatch");
+        require(decodedMsgValue == msgValue, "Message value mismatch");
+
+        for (uint256 i = 0; i < signerAddresses.length; i++) {
+            require(decodedMsg.signerAddresses[i] == signerAddresses[i], "Signer address mismatch");
+        }
+
+        for (uint256 i = 0; i < signatures.length; i++) {
+            require(keccak256(decodedMsg.signatures[i]) == keccak256(signatures[i]), "Signature mismatch");
+        }
+    }
+
     function testSetPredicateManager() public {
         address newManager = address(0x123);
         vm.prank(address(serviceManager));
@@ -222,5 +278,49 @@ contract PredicateHookTest is PredicateHookSetup, OperatorTestPrep {
         vm.prank(address(serviceManager));
         hook.setPredicateManager(address(0x456));
         assertEq(address(hook.getPredicateManager()), address(0x456));
+    }
+
+    function testSwapWithEmptySignatures() public permissionedOperators prepOperatorRegistration(true) {
+        PoolKey memory key = getPoolKey();
+        string memory taskId = "unique-identifier";
+        IPoolManager.SwapParams memory params = IPoolManager.SwapParams({
+            zeroForOne: true,
+            amountSpecified: 1e18,
+            sqrtPriceLimitX96: TickMath.MIN_SQRT_PRICE + 1
+        });
+
+        IERC20 token0 = IERC20(Currency.unwrap(key.currency0));
+        IERC20 token1 = IERC20(Currency.unwrap(key.currency1));
+        uint256 initialBalance0 = token0.balanceOf(liquidityProvider);
+        uint256 initialBalance1 = token1.balanceOf(liquidityProvider);
+
+        PredicateMessage memory message = PredicateMessage({
+            taskId: taskId,
+            expireByBlockNumber: block.number + 100,
+            signerAddresses: new address[](0),
+            signatures: new bytes[](0)
+        });
+
+        bytes memory expectedError = abi.encodeWithSelector(
+            bytes4(0x575e24b4),
+            abi.encodeWithSelector(
+                bytes4(0x08c379a0),
+                abi.encode("ServiceManager.PredicateVerified: quorum threshold count cannot be zero")
+            ),
+            bytes4(0xa9e35b2f)
+        );
+
+        vm.prank(address(liquidityProvider));
+        try swapRouter.swap(key, params, abi.encode(message, liquidityProvider, 0)) {
+            revert("Swap should have failed");
+        } catch (bytes memory err) {
+            console.logBytes(err);
+            console.log("Actual error length:", err.length);
+            console.logBytes(expectedError);
+            console.log("Expected error length:", expectedError.length);
+        }
+
+        assertEq(token0.balanceOf(liquidityProvider), initialBalance0, "Token0 balance should not change");
+        assertEq(token1.balanceOf(liquidityProvider), initialBalance1, "Token1 balance should not change");
     }
 }

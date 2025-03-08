@@ -104,16 +104,17 @@ contract AutoWrapperSetup is MetaCoinTestSetup, PoolSetup {
 
         // Create initial supply of USDL
         vm.startPrank(supplyController);
-        USDL.increaseSupply(initialSupply * 4);
-        USDL.transfer(liquidityProvider, initialSupply * 3);
+        USDL.increaseSupply(initialSupply * 7);
+        USDL.transfer(liquidityProvider, initialSupply * 6);
         vm.stopPrank();
 
         // Approve and deposit USDL for wUSDL
         vm.startPrank(liquidityProvider);
         IERC20Upgradeable(address(USDL)).approve(address(wUSDL), type(uint256).max);
         IERC20(address(USDL)).approve(address(autoWrapper), type(uint256).max);
+        IERC20(Currency.unwrap(USDC)).approve(address(autoWrapper), type(uint256).max);
         IERC20Upgradeable(address(wUSDL)).approve(address(autoWrapper), type(uint256).max);
-        wUSDL.deposit(initialSupply, liquidityProvider);
+        wUSDL.deposit(2 * initialSupply, liquidityProvider);
         wUSDL.deposit(initialSupply, address(autoWrapper));
         vm.stopPrank();
 

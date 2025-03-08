@@ -97,16 +97,16 @@ contract AutoWrapper is BaseTokenWrapperHook {
             (,, int256 deltaAfter1) = _fetchBalances(predicatePoolKey.currency1, router.msgSender(), address(this));
 
             if (deltaAfter0 < 0) {
-                underlyingCurrency.settle(poolManager, router.msgSender(), uint256(-deltaAfter0), false);
+                predicatePoolKey.currency0.settle(poolManager, router.msgSender(), uint256(-deltaAfter0), false);
             }
             if (deltaAfter1 < 0) {
-                underlyingCurrency.settle(poolManager, router.msgSender(), uint256(-deltaAfter1), false);
+                predicatePoolKey.currency1.settle(poolManager, router.msgSender(), uint256(-deltaAfter1), false);
             }
             if (deltaAfter0 > 0) {
-                underlyingCurrency.take(poolManager, router.msgSender(), uint256(deltaAfter0), false);
+                predicatePoolKey.currency0.take(poolManager, router.msgSender(), uint256(deltaAfter0), false);
             }
             if (deltaAfter1 > 0) {
-                underlyingCurrency.take(poolManager, router.msgSender(), uint256(deltaAfter1), false);
+                predicatePoolKey.currency1.take(poolManager, router.msgSender(), uint256(deltaAfter1), false);
             }
 
             uint256 redeemAmount = _withdraw(inputAmount);

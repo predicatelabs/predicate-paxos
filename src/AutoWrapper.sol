@@ -12,7 +12,7 @@ import {BalanceDelta} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
 import {ISimpleV4Router} from "./interfaces/ISimpleV4Router.sol";
 import {Currency, CurrencyLibrary} from "@uniswap/v4-core/src/types/Currency.sol";
 import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
-
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {ERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 
@@ -78,7 +78,7 @@ contract AutoWrapper is BaseTokenWrapperHook {
             // USDC -> USDL
             uint256 inputAmount =
                 isExactInput ? uint256(-params.amountSpecified) : _getWrapInputRequired(uint256(params.amountSpecified));
-            underlyingCurrency.transfer(address(this), inputAmount);
+            IERC20(Currency.unwrap(underlyingCurrency)).transferFrom(router.msgSender(), address(this), inputAmount);
             // todo: settle balance delta from poolManager.swap
             BalanceDelta delta = poolManager.swap(predicatePoolKey, params, hookData);
             uint256 redeemAmount = _withdraw(inputAmount);

@@ -78,7 +78,9 @@ contract AutoWrapper is BaseTokenWrapperHook {
             // USDC -> USDL
             uint256 inputAmount =
                 isExactInput ? uint256(-params.amountSpecified) : _getWrapInputRequired(uint256(params.amountSpecified));
-            BalanceDelta delta = router.swap(predicatePoolKey, params, hookData);
+            underlyingCurrency.transfer(address(this), inputAmount);
+            // todo: settle balance delta from poolManager.swap
+            BalanceDelta delta = poolManager.swap(predicatePoolKey, params, hookData);
             uint256 redeemAmount = _withdraw(inputAmount);
             _settle(underlyingCurrency, address(this), redeemAmount);
             int128 amountUnspecified =
@@ -90,9 +92,10 @@ contract AutoWrapper is BaseTokenWrapperHook {
             uint256 inputAmount = isExactInput
                 ? uint256(-params.amountSpecified)
                 : _getUnwrapInputRequired(uint256(params.amountSpecified));
-
+            wrapperCurrency.transfer(address(this), inputAmount);
             uint256 wrappedAmount = _deposit(inputAmount);
-            BalanceDelta delta = router.swap(predicatePoolKey, params, hookData); // this delta is not used
+            // todo: settle balance delta from poolManager.swap
+            BalanceDelta delta = poolManager.swap(predicatePoolKey, params, hookData);
             _settle(wrapperCurrency, address(this), wrappedAmount);
             int128 amountUnspecified =
                 isExactInput ? -wrappedAmount.toInt256().toInt128() : inputAmount.toInt256().toInt128();

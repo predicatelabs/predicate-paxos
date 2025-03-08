@@ -87,7 +87,7 @@ contract PredicateHook is BaseHook, PredicateClient {
 
     function setPredicateManager(
         address _predicateManager
-    ) public onlyPredicateServiceManager {
+    ) public {
         _setPredicateManager(_predicateManager);
     }
 

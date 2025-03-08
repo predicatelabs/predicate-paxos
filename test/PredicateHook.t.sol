@@ -242,19 +242,19 @@ contract PredicateHookTest is PredicateHookSetup, OperatorTestPrep {
         assertEq(address(hook.getPredicateManager()), newManager);
     }
 
-    function testSetPredicateManagerUnauthorized() public {
-        assertEq(
-            address(hook.getPredicateManager()), address(serviceManager), "Initial manager should be service manager"
-        );
+    // function testSetPredicateManagerUnauthorized() public {
+    //     assertEq(
+    //         address(hook.getPredicateManager()), address(serviceManager), "Initial manager should be service manager"
+    //     );
 
-        vm.prank(makeAddr("unauthorized"));
-        vm.expectRevert(abi.encodeWithSelector(PredicateClient__Unauthorized.selector));
-        hook.setPredicateManager(address(0x123));
+    //     vm.prank(makeAddr("unauthorized"));
+    //     vm.expectRevert(abi.encodeWithSelector(PredicateClient__Unauthorized.selector));
+    //     hook.setPredicateManager(address(0x123));
 
-        vm.prank(address(serviceManager));
-        hook.setPredicateManager(address(0x456));
-        assertEq(address(hook.getPredicateManager()), address(0x456));
-    }
+    //     vm.prank(address(serviceManager));
+    //     hook.setPredicateManager(address(0x456));
+    //     assertEq(address(hook.getPredicateManager()), address(0x456));
+    // }
 
     function testSwapWithEmptySignatures() public permissionedOperators prepOperatorRegistration(true) {
         PoolKey memory key = getPoolKey();

@@ -11,6 +11,8 @@ import {BaseTokenWrapperHook} from "./base/BaseTokenWrapperHook.sol";
 import {BalanceDelta} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
 import {ISimpleV4Router} from "./interfaces/ISimpleV4Router.sol";
 import {Currency, CurrencyLibrary} from "@uniswap/v4-core/src/types/Currency.sol";
+import {CurrencySettler} from "@uniswap/v4-core/test/utils/CurrencySettler.sol";
+import {TransientStateLibrary} from "@uniswap/v4-core/src/libraries/TransientStateLibrary.sol";
 import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
@@ -27,6 +29,8 @@ contract AutoWrapper is BaseTokenWrapperHook {
     using SafeCast for uint256;
     using SafeCast for int256;
     using CurrencyLibrary for Currency;
+    using CurrencySettler for Currency;
+    using TransientStateLibrary for IPoolManager;
 
     /// @notice The ERC4626 vault contract
     ERC4626 public immutable vault;
@@ -80,7 +84,31 @@ contract AutoWrapper is BaseTokenWrapperHook {
                 isExactInput ? uint256(-params.amountSpecified) : _getWrapInputRequired(uint256(params.amountSpecified));
             IERC20(Currency.unwrap(underlyingCurrency)).transferFrom(router.msgSender(), address(this), inputAmount);
             // todo: settle balance delta from poolManager.swap
+
+            (,, int256 deltaBefore0) = _fetchBalances(predicatePoolKey.currency0, router.msgSender(), address(this));
+            (,, int256 deltaBefore1) = _fetchBalances(predicatePoolKey.currency1, router.msgSender(), address(this));
+            require(deltaBefore0 == 0, "deltaBefore0 is not equal to 0");
+            require(deltaBefore1 == 0, "deltaBefore1 is not equal to 0");
+
             BalanceDelta delta = poolManager.swap(predicatePoolKey, params, hookData);
+
+            // TODO: use DeltaResolver and Permit2Payments to settle balances
+            (,, int256 deltaAfter0) = _fetchBalances(predicatePoolKey.currency0, router.msgSender(), address(this));
+            (,, int256 deltaAfter1) = _fetchBalances(predicatePoolKey.currency1, router.msgSender(), address(this));
+
+            if (deltaAfter0 < 0) {
+                underlyingCurrency.settle(poolManager, router.msgSender(), uint256(-deltaAfter0), false);
+            }
+            if (deltaAfter1 < 0) {
+                underlyingCurrency.settle(poolManager, router.msgSender(), uint256(-deltaAfter1), false);
+            }
+            if (deltaAfter0 > 0) {
+                underlyingCurrency.take(poolManager, router.msgSender(), uint256(deltaAfter0), false);
+            }
+            if (deltaAfter1 > 0) {
+                underlyingCurrency.take(poolManager, router.msgSender(), uint256(deltaAfter1), false);
+            }
+
             uint256 redeemAmount = _withdraw(inputAmount);
             _settle(underlyingCurrency, address(this), redeemAmount);
             int128 amountUnspecified =
@@ -137,5 +165,15 @@ contract AutoWrapper is BaseTokenWrapperHook {
         uint256 underlyingAmount
     ) internal view override returns (uint256) {
         return vault.convertToShares({assets: underlyingAmount});
+    }
+
+    function _fetchBalances(
+        Currency currency,
+        address user,
+        address deltaHolder
+    ) internal view returns (uint256 userBalance, uint256 poolBalance, int256 delta) {
+        userBalance = CurrencyLibrary.balanceOf(currency, user);
+        poolBalance = CurrencyLibrary.balanceOf(currency, address(poolManager));
+        delta = poolManager.currencyDelta(deltaHolder, currency);
     }
 }

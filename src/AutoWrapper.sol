@@ -8,6 +8,7 @@ import {
 import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
 import {SafeCast} from "@uniswap/v4-core/src/libraries/SafeCast.sol";
 import {BaseTokenWrapperHook} from "./base/BaseTokenWrapperHook.sol";
+import {BalanceDelta} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
 import {ISimpleV4Router} from "./interfaces/ISimpleV4Router.sol";
 import {Currency, CurrencyLibrary} from "@uniswap/v4-core/src/types/Currency.sol";
 import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
@@ -78,7 +79,6 @@ contract AutoWrapper is BaseTokenWrapperHook {
             uint256 inputAmount =
                 isExactInput ? uint256(-params.amountSpecified) : _getWrapInputRequired(uint256(params.amountSpecified));
             BalanceDelta delta = router.swap(predicatePoolKey, params, hookData);
-            require(delta == 0, "underlying pool delta is not equal to 0");
             uint256 redeemAmount = _withdraw(inputAmount);
             _settle(underlyingCurrency, address(this), redeemAmount);
             int128 amountUnspecified =
@@ -93,7 +93,6 @@ contract AutoWrapper is BaseTokenWrapperHook {
 
             uint256 wrappedAmount = _deposit(inputAmount);
             BalanceDelta delta = router.swap(predicatePoolKey, params, hookData); // this delta is not used
-            require(delta == 0, "underlying pool delta is not equal to 0");
             _settle(wrapperCurrency, address(this), wrappedAmount);
             int128 amountUnspecified =
                 isExactInput ? -wrappedAmount.toInt256().toInt128() : inputAmount.toInt256().toInt128();

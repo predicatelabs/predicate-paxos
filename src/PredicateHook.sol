@@ -81,7 +81,7 @@ contract PredicateHook is BaseHook, PredicateClient {
 
     function setPolicy(
         string memory _policyID
-    ) external onlyPredicateServiceManager {
+    ) external {
         _setPolicy(_policyID);
     }
 

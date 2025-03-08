@@ -1,18 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {
-    toBeforeSwapDelta, BeforeSwapDelta, BeforeSwapDeltaLibrary
-} from "@uniswap/v4-core/src/types/BeforeSwapDelta.sol";
-import {Currency, CurrencyLibrary} from "@uniswap/v4-core/src/types/Currency.sol";
 import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
-import {SafeCast} from "@uniswap/v4-core/src/libraries/SafeCast.sol";
 import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
 import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
 import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
 
 import {DeltaResolver} from "@uniswap/v4-periphery/src/base/DeltaResolver.sol";
 import {BaseHook} from "@uniswap/v4-periphery/src/utils/BaseHook.sol";
+import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
 
 /// @title Base Token Wrapper Hook
 /// @notice Abstract base contract for implementing token wrapper hooks in Uniswap V4
@@ -22,10 +18,6 @@ import {BaseHook} from "@uniswap/v4-periphery/src/utils/BaseHook.sol";
 /// @dev All liquidity operations are blocked as liquidity is managed through the underlying token wrapper
 /// @dev Implementing contracts must provide deposit() and withdraw() functions
 abstract contract BaseTokenWrapperHook is BaseHook, DeltaResolver {
-    using CurrencyLibrary for Currency;
-    using SafeCast for int256;
-    using SafeCast for uint256;
-
     /// @notice Thrown when attempting to add or remove liquidity
     /// @dev Liquidity operations are blocked since all liquidity is managed by the token wrapper
     error LiquidityNotAllowed();
@@ -98,19 +90,6 @@ abstract contract BaseTokenWrapperHook is BaseHook, DeltaResolver {
         revert LiquidityNotAllowed();
     }
 
-    /// @notice Handles token wrapping and unwrapping during swaps
-    /// @dev Processes both exact input (amountSpecified < 0) and exact output (amountSpecified > 0) swaps
-    /// @param params The swap parameters including direction and amount
-    /// @return selector The function selector
-    /// @return swapDelta The input/output token amounts for pool accounting
-    /// @return lpFeeOverride The fee override (always 0 for wrapper pools)
-    function _beforeSwap(
-        address,
-        PoolKey calldata,
-        IPoolManager.SwapParams calldata params,
-        bytes calldata
-    ) internal virtual returns (bytes4 selector, BeforeSwapDelta swapDelta, uint24 lpFeeOverride);
-
     /// @notice Transfers tokens to the pool manager
     /// @param token The token to transfer
     /// @param amount The amount to transfer
@@ -144,9 +123,7 @@ abstract contract BaseTokenWrapperHook is BaseHook, DeltaResolver {
     /// @dev Override for wrappers with different exchange rates
     function _getWrapInputRequired(
         uint256 wrappedAmount
-    ) internal view virtual returns (uint256) {
-        return wrappedAmount;
-    }
+    ) internal view virtual returns (uint256);
 
     /// @notice Calculates wrapper tokens needed to receive desired underlying tokens
     /// @param underlyingAmount The desired amount of underlying tokens
@@ -155,7 +132,5 @@ abstract contract BaseTokenWrapperHook is BaseHook, DeltaResolver {
     /// @dev Override for wrappers with different exchange rates
     function _getUnwrapInputRequired(
         uint256 underlyingAmount
-    ) internal view virtual returns (uint256) {
-        return underlyingAmount;
-    }
+    ) internal view virtual returns (uint256);
 }

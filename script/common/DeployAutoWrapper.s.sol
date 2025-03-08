@@ -30,13 +30,13 @@ contract DeployAutoWrapper is Script {
         INetwork.Config memory config = _env.config();
         uint160 flags = uint160(Hooks.BEFORE_SWAP_FLAG);
 
-        bytes memory constructorArgs = abi.encode(config.poolManager, config.ybsAddress, config.poolKey);
+        bytes memory constructorArgs = abi.encode(config.poolManager, config.ybsAddress, config.poolKey, config.router);
         (address hookAddress, bytes32 salt) =
             HookMiner.find(config.create2Deployer, flags, type(AutoWrapper).creationCode, constructorArgs);
         console.log("Deploying AutoWrapper at address: ", hookAddress);
         vm.startBroadcast();
         AutoWrapper autoWrapper =
-            new AutoWrapper{salt: salt}(config.poolManager, ERC4626(config.ybsAddress), config.poolKey);
+            new AutoWrapper{salt: salt}(config.poolManager, ERC4626(config.ybsAddress), config.poolKey, config.router);
         require(address(autoWrapper) == hookAddress, "AutoWrapper address does not match expected address");
         console.log("AutoWrapper deployed at: ", address(autoWrapper));
         vm.stopBroadcast();

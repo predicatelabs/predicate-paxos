@@ -2,8 +2,14 @@
 pragma solidity ^0.8.24;
 
 import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
+import {
+    toBeforeSwapDelta, BeforeSwapDelta, BeforeSwapDeltaLibrary
+} from "@uniswap/v4-core/src/types/BeforeSwapDelta.sol";
+import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
+import {SafeCast} from "@uniswap/v4-core/src/libraries/SafeCast.sol";
 import {BaseTokenWrapperHook} from "./base/BaseTokenWrapperHook.sol";
-import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
+import {ISimpleV4Router} from "./interfaces/ISimpleV4Router.sol";
+import {Currency, CurrencyLibrary} from "@uniswap/v4-core/src/types/Currency.sol";
 import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
 
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
@@ -17,11 +23,18 @@ import {ERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.so
  *      Lift Dollar (USDL) and its wrapped version (wUSDL) through a V4 Ghost pool.
  */
 contract AutoWrapper is BaseTokenWrapperHook {
+    using SafeCast for uint256;
+    using SafeCast for int256;
+    using CurrencyLibrary for Currency;
+
     /// @notice The ERC4626 vault contract
     ERC4626 public immutable vault;
 
     /// @notice The predicate pool key
     PoolKey public predicatePoolKey;
+
+    /// @notice The V4 router
+    ISimpleV4Router public router;
 
     /// @notice Creates a new ERC4626 wrapper hook
     /// @param _manager The Uniswap V4 pool manager
@@ -30,7 +43,8 @@ contract AutoWrapper is BaseTokenWrapperHook {
     constructor(
         IPoolManager _manager,
         ERC4626 _vault,
-        PoolKey memory _predicatePoolKey
+        PoolKey memory _predicatePoolKey,
+        ISimpleV4Router _router
     )
         BaseTokenWrapperHook(
             _manager,
@@ -41,10 +55,11 @@ contract AutoWrapper is BaseTokenWrapperHook {
         vault = _vault;
         ERC20(Currency.unwrap(underlyingCurrency)).approve(address(vault), type(uint256).max);
         predicatePoolKey = _predicatePoolKey;
+        router = _router;
     }
 
-    /// @inheritdoc BaseTokenWrapperHook
-    /// @notice Handles swapping through
+    /// @notice Handles token wrapping and unwrapping during swaps
+    /// @dev Processes both exact input (amountSpecified < 0) and exact output (amountSpecified > 0) swaps
     /// @param params The swap parameters including direction and amount
     /// @return selector The function selector
     /// @return swapDelta The input/output token amounts for pool accounting
@@ -58,13 +73,15 @@ contract AutoWrapper is BaseTokenWrapperHook {
         bool isExactInput = params.amountSpecified < 0;
 
         if (wrapZeroForOne == params.zeroForOne) {
-            //USDC -> USDL
+            // we are wrapping
+            // USDC -> USDL
             uint256 inputAmount =
                 isExactInput ? uint256(-params.amountSpecified) : _getWrapInputRequired(uint256(params.amountSpecified));
-            // _take(underlyingCurrency, address(this), inputAmount);
+
             // todo: swap USDC through wUSDL pool
             // todo: redeem USDL from vault
             // todo: settle USDL
+            _take(underlyingCurrency, address(this), inputAmount);
             uint256 wrappedAmount = _deposit(inputAmount);
             _settle(wrapperCurrency, address(this), wrappedAmount);
             int128 amountUnspecified =
@@ -72,9 +89,11 @@ contract AutoWrapper is BaseTokenWrapperHook {
             swapDelta = toBeforeSwapDelta(-params.amountSpecified.toInt128(), amountUnspecified);
         } else {
             // we are unwrapping
+            // USDL -> USDC
             uint256 inputAmount = isExactInput
                 ? uint256(-params.amountSpecified)
                 : _getUnwrapInputRequired(uint256(params.amountSpecified));
+
             _take(wrapperCurrency, address(this), inputAmount);
             uint256 unwrappedAmount = _withdraw(inputAmount);
             _settle(underlyingCurrency, address(this), unwrappedAmount);

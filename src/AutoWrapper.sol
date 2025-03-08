@@ -68,7 +68,7 @@ contract AutoWrapper is BaseTokenWrapperHook {
         address,
         PoolKey calldata,
         IPoolManager.SwapParams calldata params,
-        bytes calldata
+        bytes calldata hookData
     ) internal override returns (bytes4 selector, BeforeSwapDelta swapDelta, uint24 lpFeeOverride) {
         bool isExactInput = params.amountSpecified < 0;
 
@@ -77,15 +77,12 @@ contract AutoWrapper is BaseTokenWrapperHook {
             // USDC -> USDL
             uint256 inputAmount =
                 isExactInput ? uint256(-params.amountSpecified) : _getWrapInputRequired(uint256(params.amountSpecified));
-
-            // todo: swap USDC through wUSDL pool
-            // todo: redeem USDL from vault
-            // todo: settle USDL
-            _take(underlyingCurrency, address(this), inputAmount);
-            uint256 wrappedAmount = _deposit(inputAmount);
-            _settle(wrapperCurrency, address(this), wrappedAmount);
+            BalanceDelta delta = router.swap(predicatePoolKey, params, hookData);
+            require(delta == 0, "underlying pool delta is not equal to 0");
+            uint256 redeemAmount = _withdraw(inputAmount);
+            _settle(underlyingCurrency, address(this), redeemAmount);
             int128 amountUnspecified =
-                isExactInput ? -wrappedAmount.toInt256().toInt128() : inputAmount.toInt256().toInt128();
+                isExactInput ? -redeemAmount.toInt256().toInt128() : inputAmount.toInt256().toInt128();
             swapDelta = toBeforeSwapDelta(-params.amountSpecified.toInt128(), amountUnspecified);
         } else {
             // we are unwrapping
@@ -94,11 +91,12 @@ contract AutoWrapper is BaseTokenWrapperHook {
                 ? uint256(-params.amountSpecified)
                 : _getUnwrapInputRequired(uint256(params.amountSpecified));
 
-            _take(wrapperCurrency, address(this), inputAmount);
-            uint256 unwrappedAmount = _withdraw(inputAmount);
-            _settle(underlyingCurrency, address(this), unwrappedAmount);
+            uint256 wrappedAmount = _deposit(inputAmount);
+            BalanceDelta delta = router.swap(predicatePoolKey, params, hookData); // this delta is not used
+            require(delta == 0, "underlying pool delta is not equal to 0");
+            _settle(wrapperCurrency, address(this), wrappedAmount);
             int128 amountUnspecified =
-                isExactInput ? -unwrappedAmount.toInt256().toInt128() : inputAmount.toInt256().toInt128();
+                isExactInput ? -wrappedAmount.toInt256().toInt128() : inputAmount.toInt256().toInt128();
             swapDelta = toBeforeSwapDelta(-params.amountSpecified.toInt128(), amountUnspecified);
         }
 

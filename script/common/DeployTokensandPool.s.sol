@@ -55,7 +55,6 @@ contract DeployTokensAndPool is Script, DeployPermit2 {
         console.log("Deployed LP Router: %s", address(lpRouter));
         vm.stopBroadcast();
 
-        // test the lifecycle (create pool, add liquidity, swap)
         vm.startBroadcast();
         setApprovalsAndMintLiquidity(manager, hookAddress, posm, lpRouter, swapRouter);
         vm.stopBroadcast();
@@ -81,10 +80,7 @@ contract DeployTokensAndPool is Script, DeployPermit2 {
     }
 
     function approvePosmCurrency(IPositionManager posm, Currency currency) internal {
-        // Because POSM uses permit2, we must execute 2 permits/approvals.
-        // 1. First, the caller must approve permit2 on the token.
         IERC20(Currency.unwrap(currency)).approve(address(permit2), type(uint256).max);
-        // 2. Then, the caller must approve POSM as a spender of permit2
         permit2.approve(Currency.unwrap(currency), address(posm), type(uint160).max, type(uint48).max);
     }
 
@@ -115,13 +111,11 @@ contract DeployTokensAndPool is Script, DeployPermit2 {
 
         bytes memory ZERO_BYTES = new bytes(0);
 
-        // initialize the pool
         int24 tickSpacing = 60;
         PoolKey memory poolKey =
             PoolKey(Currency.wrap(address(token0)), Currency.wrap(address(token1)), 3000, tickSpacing, IHooks(hook));
         manager.initialize(poolKey, Constants.SQRT_PRICE_1_1);
 
-        // approve the tokens to the routers
         token0.approve(address(lpRouter), type(uint256).max);
         token1.approve(address(lpRouter), type(uint256).max);
         token0.approve(address(swapRouter), type(uint256).max);
@@ -130,7 +124,6 @@ contract DeployTokensAndPool is Script, DeployPermit2 {
         approvePosmCurrency(posm, Currency.wrap(address(token0)));
         approvePosmCurrency(posm, Currency.wrap(address(token1)));
 
-        // add full range liquidity to the pool
         lpRouter.modifyLiquidity(
             poolKey,
             IPoolManager.ModifyLiquidityParams(

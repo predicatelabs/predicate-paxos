@@ -12,6 +12,7 @@ import {BalanceDelta} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
 import {BeforeSwapDelta, toBeforeSwapDelta} from "@uniswap/v4-core/src/types/BeforeSwapDelta.sol";
 import {PredicateClient} from "@predicate/mixins/PredicateClient.sol";
 import {PredicateMessage} from "@predicate/interfaces/IPredicateClient.sol";
+import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
 
 /// @title Predicated Hook
 /// @author Predicate Labs

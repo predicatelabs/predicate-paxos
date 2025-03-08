@@ -99,37 +99,40 @@ abstract contract BaseTokenWrapperHook is BaseHook, DeltaResolver {
     }
 
     /// @notice Deposits underlying tokens to receive wrapper tokens
-    /// @param underlyingAmount The amount of underlying tokens to deposit
-    /// @return wrappedAmount The amount of wrapper tokens received
     /// @dev Implementing contracts should handle the wrapping operation
     ///      The base contract will handle settling tokens with the pool manager
+    /// @param underlyingAmount The amount of underlying tokens to deposit
+    /// @return wrappedAmount The amount of wrapper tokens received
+
     function _deposit(
         uint256 underlyingAmount
     ) internal virtual returns (uint256 wrappedAmount);
 
     /// @notice Withdraws wrapper tokens to receive underlying tokens
-    /// @param wrappedAmount The amount of wrapper tokens to withdraw
-    /// @return underlyingAmount The amount of underlying tokens received
     /// @dev Implementing contracts should handle the unwrapping operation
     ///      The base contract will handle settling tokens with the pool manager
+    /// @param wrappedAmount The amount of wrapper tokens to withdraw
+
+    /// @return underlyingAmount The amount of underlying tokens received
+
     function _withdraw(
         uint256 wrappedAmount
     ) internal virtual returns (uint256 underlyingAmount);
 
     /// @notice Calculates underlying tokens needed to receive desired wrapper tokens
-    /// @param wrappedAmount The desired amount of wrapper tokens
-    /// @return The required amount of underlying tokens
     /// @dev Default implementation assumes 1:1 ratio
     /// @dev Override for wrappers with different exchange rates
+    /// @param wrappedAmount The desired amount of wrapper tokens
+    /// @return The required amount of underlying tokens
     function _getWrapInputRequired(
         uint256 wrappedAmount
     ) internal view virtual returns (uint256);
 
     /// @notice Calculates wrapper tokens needed to receive desired underlying tokens
-    /// @param underlyingAmount The desired amount of underlying tokens
-    /// @return The required amount of wrapper tokens
     /// @dev Default implementation assumes 1:1 ratio
     /// @dev Override for wrappers with different exchange rates
+    /// @param underlyingAmount The desired amount of underlying tokens
+    /// @return The required amount of wrapper tokens
     function _getUnwrapInputRequired(
         uint256 underlyingAmount
     ) internal view virtual returns (uint256);

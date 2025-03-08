@@ -126,10 +126,6 @@ contract AutoWrapper is BaseTokenWrapperHook {
     }
 
     /// @inheritdoc BaseTokenWrapperHook
-    /// @notice Calculates how much assets are needed to receive a specific amount of shares
-    /// @param wrappedAmount Desired amount of shares
-    /// @return Amount of assets required
-    /// @dev Uses current ERC4626 shares-to-assets exchange rate for calculation
     function _getWrapInputRequired(
         uint256 wrappedAmount
     ) internal view override returns (uint256) {
@@ -137,10 +133,6 @@ contract AutoWrapper is BaseTokenWrapperHook {
     }
 
     /// @inheritdoc BaseTokenWrapperHook
-    /// @notice Calculates how much shares are needed to receive a specific amount of assets
-    /// @param underlyingAmount Desired amount of assets
-    /// @return Amount of shares required
-    /// @dev Uses current ERC4626 assets-to-shares exchange rate for calculation
     function _getUnwrapInputRequired(
         uint256 underlyingAmount
     ) internal view override returns (uint256) {

@@ -59,7 +59,7 @@ contract AutoWrapper is BaseTokenWrapperHook, DeltaResolver {
     )
         BaseTokenWrapperHook(
             _manager,
-            Currency.wrap(address(_vault)), // wrapper token is the ERC4626 vault itself
+            Currency.wrap(address(_vault)), // wrapper token is the ERC4626 vault itself // WUSDL
             Currency.wrap(address(_vault.asset())) // underlying token is the underlying asset of ERC4626 vault i.e. USDL
         )
     {
@@ -89,19 +89,25 @@ contract AutoWrapper is BaseTokenWrapperHook, DeltaResolver {
             uint256 inputAmount =
                 isExactInput ? uint256(-params.amountSpecified) : _getWrapInputRequired(uint256(params.amountSpecified));
             usdc.transferFrom(router.msgSender(), address(this), inputAmount);
-            //todo: update amount param here
-            _swap(params, hookData);
+            IPoolManager.SwapParams memory swapParams = params;
+            swapParams.amountSpecified = isExactInput ? int256(-inputAmount) : int256(inputAmount);
+            _swap(swapParams, hookData);
             uint256 redeemAmount = _withdraw(IERC20(Currency.unwrap(wrapperCurrency)).balanceOf(address(this)));
+            //todo: use balance Delta for settle and return delta
             IERC20(Currency.unwrap(underlyingCurrency)).transfer(router.msgSender(), redeemAmount);
         } else {
             // USDL -> USDC
-            uint256 inputAmount = isExactInput
-                ? uint256(-params.amountSpecified)
-                : _getUnwrapInputRequired(uint256(params.amountSpecified));
-            IERC20(Currency.unwrap(underlyingCurrency)).transferFrom(router.msgSender(), address(this), inputAmount);
-            uint256 wrappedAmount = _deposit(inputAmount);
-            //todo: update amount param here
-            _swap(params, hookData);
+            IPoolManager.SwapParams memory swapParams = params;
+            int256 inputAmount = params.amountSpecified;
+            if (isExactInput) {
+                IERC20(Currency.unwrap(underlyingCurrency)).transferFrom(
+                    router.msgSender(), address(this), uint256(-params.amountSpecified)
+                );
+                uint256 wrappedAmount = _deposit(uint256(-params.amountSpecified));
+                swapParams.amountSpecified = int256(-wrappedAmount);
+            }
+            _swap(swapParams, hookData);
+            //todo: use balance Delta for settle and return delta
             uint256 usdcBalance = usdc.balanceOf(address(this));
             usdc.transfer(router.msgSender(), usdcBalance);
         }

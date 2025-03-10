@@ -91,11 +91,12 @@ contract AutoWrapperSetup is MetaCoinTestSetup, PoolSetup {
                 | Hooks.BEFORE_INITIALIZE_FLAG
         );
         bytes memory autoWrapperConstructorArgs =
-            abi.encode(manager, ERC4626(address(wUSDL)), predicatePoolKey, swapRouter);
+            abi.encode(manager, ERC4626(address(wUSDL)), predicatePoolKey, swapRouter, IERC20(Currency.unwrap(USDC)));
         (address autoWrapperAddress, bytes32 autoWrapperSalt) =
             HookMiner.find(address(this), autoWrapperFlags, type(AutoWrapper).creationCode, autoWrapperConstructorArgs);
-        autoWrapper =
-            new AutoWrapper{salt: autoWrapperSalt}(manager, ERC4626(address(wUSDL)), predicatePoolKey, swapRouter);
+        autoWrapper = new AutoWrapper{salt: autoWrapperSalt}(
+            manager, ERC4626(address(wUSDL)), predicatePoolKey, swapRouter, IERC20(Currency.unwrap(USDC))
+        );
         require(address(autoWrapper) == autoWrapperAddress, "Hook deployment failed");
 
         // initialize the ghost pool

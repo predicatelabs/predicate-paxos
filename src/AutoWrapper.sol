@@ -8,7 +8,7 @@ import {
 import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
 import {SafeCast} from "@uniswap/v4-core/src/libraries/SafeCast.sol";
 import {BaseTokenWrapperHook} from "./base/BaseTokenWrapperHook.sol";
-import {BalanceDelta} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
+import {BalanceDelta, BalanceDeltaLibrary} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
 import {ISimpleV4Router} from "./interfaces/ISimpleV4Router.sol";
 import {Currency, CurrencyLibrary} from "@uniswap/v4-core/src/types/Currency.sol";
 import {CurrencySettler} from "@uniswap/v4-core/test/utils/CurrencySettler.sol";
@@ -41,6 +41,9 @@ contract AutoWrapper is BaseTokenWrapperHook {
     /// @notice The V4 router
     ISimpleV4Router public router;
 
+    /// @notice USDC
+    IERC20 public usdc;
+
     /// @notice Creates a new ERC4626 wrapper hook
     /// @param _manager The Uniswap V4 pool manager
     /// @param _vault The ERC4626 vault contract address
@@ -49,7 +52,8 @@ contract AutoWrapper is BaseTokenWrapperHook {
         IPoolManager _manager,
         ERC4626 _vault,
         PoolKey memory _predicatePoolKey,
-        ISimpleV4Router _router
+        ISimpleV4Router _router,
+        IERC20 _usdc
     )
         BaseTokenWrapperHook(
             _manager,
@@ -59,8 +63,10 @@ contract AutoWrapper is BaseTokenWrapperHook {
     {
         vault = _vault;
         ERC20(Currency.unwrap(underlyingCurrency)).approve(address(vault), type(uint256).max);
+        ERC20(Currency.unwrap(underlyingCurrency)).approve(address(this), type(uint256).max);
         predicatePoolKey = _predicatePoolKey;
         router = _router;
+        usdc = _usdc;
     }
 
     /// @notice Handles token wrapping and unwrapping during swaps
@@ -82,17 +88,13 @@ contract AutoWrapper is BaseTokenWrapperHook {
             // USDC -> USDL
             uint256 inputAmount =
                 isExactInput ? uint256(-params.amountSpecified) : _getWrapInputRequired(uint256(params.amountSpecified));
-            IERC20(Currency.unwrap(underlyingCurrency)).transferFrom(router.msgSender(), address(this), inputAmount);
-            // todo: settle balance delta from poolManager.swap
+            usdc.transferFrom(router.msgSender(), address(this), inputAmount); // USDC -> this
 
             (,, int256 deltaBefore0) = _fetchBalances(predicatePoolKey.currency0, router.msgSender(), address(this));
             (,, int256 deltaBefore1) = _fetchBalances(predicatePoolKey.currency1, router.msgSender(), address(this));
-            require(deltaBefore0 == 0, "deltaBefore0 is not equal to 0");
-            require(deltaBefore1 == 0, "deltaBefore1 is not equal to 0");
 
-            BalanceDelta delta = poolManager.swap(predicatePoolKey, params, hookData);
+            BalanceDelta delta = poolManager.swap(predicatePoolKey, params, hookData); //e
 
-            // TODO: use DeltaResolver and Permit2Payments to settle balances
             (,, int256 deltaAfter0) = _fetchBalances(predicatePoolKey.currency0, router.msgSender(), address(this));
             (,, int256 deltaAfter1) = _fetchBalances(predicatePoolKey.currency1, router.msgSender(), address(this));
 
@@ -108,12 +110,8 @@ contract AutoWrapper is BaseTokenWrapperHook {
             if (deltaAfter1 > 0) {
                 predicatePoolKey.currency1.take(poolManager, router.msgSender(), uint256(deltaAfter1), false);
             }
-
             uint256 redeemAmount = _withdraw(inputAmount);
-            _settle(underlyingCurrency, address(this), redeemAmount);
-            int128 amountUnspecified =
-                isExactInput ? -redeemAmount.toInt256().toInt128() : inputAmount.toInt256().toInt128();
-            swapDelta = toBeforeSwapDelta(-params.amountSpecified.toInt128(), amountUnspecified);
+            IERC20(Currency.unwrap(underlyingCurrency)).transfer(router.msgSender(), redeemAmount);
         } else {
             // we are unwrapping
             // USDL -> USDC

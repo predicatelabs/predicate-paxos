@@ -82,64 +82,60 @@ contract AutoWrapper is BaseTokenWrapperHook {
         bytes calldata hookData
     ) internal override returns (bytes4 selector, BeforeSwapDelta swapDelta, uint24 lpFeeOverride) {
         bool isExactInput = params.amountSpecified < 0;
-
         if (wrapZeroForOne == params.zeroForOne) {
-            // we are wrapping
             // USDC -> USDL
-            // case 1. I wanna swap 10 USDC to x USDL
-            // case 2. I wanna swap x USDC to 10 USDL
             uint256 inputAmount =
                 isExactInput ? uint256(-params.amountSpecified) : _getWrapInputRequired(uint256(params.amountSpecified));
-            usdc.transferFrom(router.msgSender(), address(this), inputAmount); // USDC -> this
-
-            (,, int256 deltaBefore0) = _fetchBalances(predicatePoolKey.currency0, router.msgSender(), address(this));
-            (,, int256 deltaBefore1) = _fetchBalances(predicatePoolKey.currency1, router.msgSender(), address(this));
-            require(deltaBefore0 == 0, "deltaBefore0 is not 0");
-            require(deltaBefore1 == 0, "deltaBefore1 is not 0");
-
-            BalanceDelta delta = poolManager.swap(predicatePoolKey, params, hookData); // USDC/WUSDL pool
-
-            (,, int256 deltaAfter0) = _fetchBalances(predicatePoolKey.currency0, router.msgSender(), address(this));
-            (,, int256 deltaAfter1) = _fetchBalances(predicatePoolKey.currency1, router.msgSender(), address(this));
-
-            if (deltaAfter0 < 0) {
-                _settle(predicatePoolKey.currency0, poolManager, address(this), uint256(-deltaAfter0));
-            }
-            if (deltaAfter1 < 0) {
-                _settle(predicatePoolKey.currency1, poolManager, address(this), uint256(-deltaAfter1));
-            }
-            if (deltaAfter0 > 0) {
-                _take(predicatePoolKey.currency0, poolManager, address(this), uint256(deltaAfter0));
-            }
-            if (deltaAfter1 > 0) {
-                _take(predicatePoolKey.currency1, poolManager, address(this), uint256(deltaAfter1));
-            }
-            // todo: calculation here
+            usdc.transferFrom(router.msgSender(), address(this), inputAmount);
+            //todo: update amount param here
+            _swap(params, hookData);
             uint256 redeemAmount = _withdraw(IERC20(Currency.unwrap(wrapperCurrency)).balanceOf(address(this)));
             IERC20(Currency.unwrap(underlyingCurrency)).transfer(router.msgSender(), redeemAmount);
         } else {
-            // we are unwrapping
             // USDL -> USDC
             uint256 inputAmount = isExactInput
                 ? uint256(-params.amountSpecified)
                 : _getUnwrapInputRequired(uint256(params.amountSpecified));
-            wrapperCurrency.transfer(address(this), inputAmount);
+            IERC20(Currency.unwrap(underlyingCurrency)).transferFrom(router.msgSender(), address(this), inputAmount);
             uint256 wrappedAmount = _deposit(inputAmount);
-            // todo: settle balance delta from poolManager.swap
-            BalanceDelta delta = poolManager.swap(predicatePoolKey, params, hookData);
-            _settle(wrapperCurrency, address(this), wrappedAmount);
-            int128 amountUnspecified =
-                isExactInput ? -wrappedAmount.toInt256().toInt128() : inputAmount.toInt256().toInt128();
-            swapDelta = toBeforeSwapDelta(-params.amountSpecified.toInt128(), amountUnspecified);
+            //todo: update amount param here
+            _swap(params, hookData);
+            uint256 usdcBalance = usdc.balanceOf(address(this));
+            usdc.transfer(router.msgSender(), usdcBalance);
         }
-
         return (IHooks.beforeSwap.selector, swapDelta, 0);
     }
 
+    /// @notice Swaps through the underlying liquidity pool
+    /// @dev This function is used to swap through the underlying liquidity pool and settle the token delta as well
+    /// @param params The swap parameters
+    /// @param hookData The hook data
+    function _swap(IPoolManager.SwapParams calldata params, bytes calldata hookData) internal {
+        (,, int256 deltaBefore0) = _fetchBalances(predicatePoolKey.currency0, router.msgSender(), address(this));
+        (,, int256 deltaBefore1) = _fetchBalances(predicatePoolKey.currency1, router.msgSender(), address(this));
+        require(deltaBefore0 == 0, "deltaBefore0 is not 0");
+        require(deltaBefore1 == 0, "deltaBefore1 is not 0");
+
+        BalanceDelta delta = poolManager.swap(predicatePoolKey, params, hookData); // USDC/WUSDL pool
+
+        (,, int256 deltaAfter0) = _fetchBalances(predicatePoolKey.currency0, router.msgSender(), address(this));
+        (,, int256 deltaAfter1) = _fetchBalances(predicatePoolKey.currency1, router.msgSender(), address(this));
+
+        if (deltaAfter0 < 0) {
+            _settle(predicatePoolKey.currency0, poolManager, address(this), uint256(-deltaAfter0));
+        }
+        if (deltaAfter1 < 0) {
+            _settle(predicatePoolKey.currency1, poolManager, address(this), uint256(-deltaAfter1));
+        }
+        if (deltaAfter0 > 0) {
+            _take(predicatePoolKey.currency0, poolManager, address(this), uint256(deltaAfter0));
+        }
+        if (deltaAfter1 > 0) {
+            _take(predicatePoolKey.currency1, poolManager, address(this), uint256(deltaAfter1));
+        }
+    }
+
     /// @inheritdoc BaseTokenWrapperHook
-    /// @notice Wraps assets to shares in the ERC4626 vault
-    /// @param underlyingAmount Amount of assets to wrap
-    /// @return Amount of shares received
     function _deposit(
         uint256 underlyingAmount
     ) internal override returns (uint256) {
@@ -147,9 +143,6 @@ contract AutoWrapper is BaseTokenWrapperHook {
     }
 
     /// @inheritdoc BaseTokenWrapperHook
-    /// @notice Unwraps shares to assets in the ERC4626 vault
-    /// @param wrappedAmount Amount of shares to unwrap
-    /// @return Amount of assets received
     function _withdraw(
         uint256 wrappedAmount
     ) internal override returns (uint256) {

@@ -86,6 +86,8 @@ contract AutoWrapper is BaseTokenWrapperHook {
         if (wrapZeroForOne == params.zeroForOne) {
             // we are wrapping
             // USDC -> USDL
+            // case 1. I wanna swap 10 USDC to x USDL
+            // case 2. I wanna swap x USDC to 10 USDL
             uint256 inputAmount =
                 isExactInput ? uint256(-params.amountSpecified) : _getWrapInputRequired(uint256(params.amountSpecified));
             usdc.transferFrom(router.msgSender(), address(this), inputAmount); // USDC -> this
@@ -93,24 +95,25 @@ contract AutoWrapper is BaseTokenWrapperHook {
             (,, int256 deltaBefore0) = _fetchBalances(predicatePoolKey.currency0, router.msgSender(), address(this));
             (,, int256 deltaBefore1) = _fetchBalances(predicatePoolKey.currency1, router.msgSender(), address(this));
 
-            BalanceDelta delta = poolManager.swap(predicatePoolKey, params, hookData); //e
+            BalanceDelta delta = poolManager.swap(predicatePoolKey, params, hookData); // USDC/WUSDL pool
 
             (,, int256 deltaAfter0) = _fetchBalances(predicatePoolKey.currency0, router.msgSender(), address(this));
             (,, int256 deltaAfter1) = _fetchBalances(predicatePoolKey.currency1, router.msgSender(), address(this));
 
             if (deltaAfter0 < 0) {
-                predicatePoolKey.currency0.settle(poolManager, router.msgSender(), uint256(-deltaAfter0), false);
+                _settle(predicatePoolKey.currency0, poolManager, router.msgSender(), uint256(-deltaAfter0));
             }
             if (deltaAfter1 < 0) {
-                predicatePoolKey.currency1.settle(poolManager, router.msgSender(), uint256(-deltaAfter1), false);
+                _settle(predicatePoolKey.currency1, poolManager, router.msgSender(), uint256(-deltaAfter1));
             }
             if (deltaAfter0 > 0) {
-                predicatePoolKey.currency0.take(poolManager, router.msgSender(), uint256(deltaAfter0), false);
+                _take(predicatePoolKey.currency0, poolManager, router.msgSender(), uint256(deltaAfter0));
             }
             if (deltaAfter1 > 0) {
-                predicatePoolKey.currency1.take(poolManager, router.msgSender(), uint256(deltaAfter1), false);
+                _take(predicatePoolKey.currency1, poolManager, router.msgSender(), uint256(deltaAfter1));
             }
-            uint256 redeemAmount = _withdraw(inputAmount);
+            // todo: calculation here
+            uint256 redeemAmount = _withdraw(IERC20(Currency.unwrap(wrapperCurrency)).balanceOf(address(this)));
             IERC20(Currency.unwrap(underlyingCurrency)).transfer(router.msgSender(), redeemAmount);
         } else {
             // we are unwrapping
@@ -165,6 +168,13 @@ contract AutoWrapper is BaseTokenWrapperHook {
         return vault.convertToShares({assets: underlyingAmount});
     }
 
+    /// @notice Fetches the user balance, pool balance, and delta for a given currency
+    /// @param currency The currency to fetch the balances and delta for
+    /// @param user The address of the user to fetch the balances for
+    /// @param deltaHolder The address of the delta holder to fetch the delta for
+    /// @return userBalance The user balance of the currency
+    /// @return poolBalance The pool balance of the currency
+    /// @return delta The delta of the currency
     function _fetchBalances(
         Currency currency,
         address user,
@@ -173,5 +183,29 @@ contract AutoWrapper is BaseTokenWrapperHook {
         userBalance = CurrencyLibrary.balanceOf(currency, user);
         poolBalance = CurrencyLibrary.balanceOf(currency, address(poolManager));
         delta = poolManager.currencyDelta(deltaHolder, currency);
+    }
+
+    /// @notice Settle (pay) a currency to the PoolManager
+    /// @param currency Currency to settle
+    /// @param manager IPoolManager to settle to
+    /// @param payer Address of the payer, the token sender
+    /// @param amount Amount to send
+    function _settle(Currency currency, IPoolManager manager, address payer, uint256 amount) internal {
+        manager.sync(currency);
+        if (payer != address(this)) {
+            IERC20(Currency.unwrap(currency)).transferFrom(payer, address(manager), amount);
+        } else {
+            IERC20(Currency.unwrap(currency)).transfer(address(manager), amount);
+        }
+        manager.settle();
+    }
+
+    /// @notice Take (receive) a currency from the PoolManager
+    /// @param currency Currency to take
+    /// @param manager IPoolManager to take from
+    /// @param recipient Address of the recipient, the token receiver
+    /// @param amount Amount to receive
+    function _take(Currency currency, IPoolManager manager, address recipient, uint256 amount) internal {
+        manager.take(currency, recipient, amount);
     }
 }

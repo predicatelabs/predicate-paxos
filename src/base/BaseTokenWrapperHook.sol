@@ -17,7 +17,7 @@ import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
 /// @dev This contract provides the base functionality for wrapping/unwrapping tokens through V4 pools
 /// @dev All liquidity operations are blocked as liquidity is managed through the underlying token wrapper
 /// @dev Implementing contracts must provide deposit() and withdraw() functions
-abstract contract BaseTokenWrapperHook is BaseHook, DeltaResolver {
+abstract contract BaseTokenWrapperHook is BaseHook {
     /// @notice Thrown when attempting to add or remove liquidity
     /// @dev Liquidity operations are blocked since all liquidity is managed by the token wrapper
     error LiquidityNotAllowed();
@@ -90,31 +90,20 @@ abstract contract BaseTokenWrapperHook is BaseHook, DeltaResolver {
         revert LiquidityNotAllowed();
     }
 
-    /// @notice Transfers tokens to the pool manager
-    /// @param token The token to transfer
-    /// @param amount The amount to transfer
-    /// @inheritdoc DeltaResolver
-    function _pay(Currency token, address, uint256 amount) internal override {
-        token.transfer(address(poolManager), amount);
-    }
-
     /// @notice Deposits underlying tokens to receive wrapper tokens
     /// @dev Implementing contracts should handle the wrapping operation
-    ///      The base contract will handle settling tokens with the pool manager
+    /// @dev The base contract will handle settling tokens with the pool manager
     /// @param underlyingAmount The amount of underlying tokens to deposit
     /// @return wrappedAmount The amount of wrapper tokens received
-
     function _deposit(
         uint256 underlyingAmount
     ) internal virtual returns (uint256 wrappedAmount);
 
     /// @notice Withdraws wrapper tokens to receive underlying tokens
     /// @dev Implementing contracts should handle the unwrapping operation
-    ///      The base contract will handle settling tokens with the pool manager
+    /// @dev The base contract will handle settling tokens with the pool manager
     /// @param wrappedAmount The amount of wrapper tokens to withdraw
-
     /// @return underlyingAmount The amount of underlying tokens received
-
     function _withdraw(
         uint256 wrappedAmount
     ) internal virtual returns (uint256 underlyingAmount);

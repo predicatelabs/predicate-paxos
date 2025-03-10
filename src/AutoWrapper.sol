@@ -17,6 +17,7 @@ import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {ERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
+import {DeltaResolver} from "@uniswap/v4-periphery/src/base/DeltaResolver.sol";
 
 /**
  * @title USDL Auto Wrapper Hook
@@ -24,8 +25,9 @@ import {ERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.so
  * @notice Uniswap V4 hook implementing an automatic wrapper/unwrapper for USDL and wUSDL
  * @dev This contract extends BaseTokenWrapperHook to provide a conversion between the yield bearing
  *      Lift Dollar (USDL) and its wrapped version (wUSDL) through a V4 Ghost pool.
+ * @dev This contract also implements DeltaResolver to handle the token delta settlement
  */
-contract AutoWrapper is BaseTokenWrapperHook {
+contract AutoWrapper is BaseTokenWrapperHook, DeltaResolver {
     using SafeCast for uint256;
     using SafeCast for int256;
     using CurrencyLibrary for Currency;
@@ -122,17 +124,22 @@ contract AutoWrapper is BaseTokenWrapperHook {
         (,, int256 deltaAfter1) = _fetchBalances(predicatePoolKey.currency1, router.msgSender(), address(this));
 
         if (deltaAfter0 < 0) {
-            _settle(predicatePoolKey.currency0, poolManager, address(this), uint256(-deltaAfter0));
+            _settle(predicatePoolKey.currency0, address(this), uint256(-deltaAfter0));
         }
         if (deltaAfter1 < 0) {
-            _settle(predicatePoolKey.currency1, poolManager, address(this), uint256(-deltaAfter1));
+            _settle(predicatePoolKey.currency1, address(this), uint256(-deltaAfter1));
         }
         if (deltaAfter0 > 0) {
-            _take(predicatePoolKey.currency0, poolManager, address(this), uint256(deltaAfter0));
+            _take(predicatePoolKey.currency0, address(this), uint256(deltaAfter0));
         }
         if (deltaAfter1 > 0) {
-            _take(predicatePoolKey.currency1, poolManager, address(this), uint256(deltaAfter1));
+            _take(predicatePoolKey.currency1, address(this), uint256(deltaAfter1));
         }
+    }
+
+    /// @inheritdoc DeltaResolver
+    function _pay(Currency token, address, uint256 amount) internal override {
+        token.transfer(address(poolManager), amount);
     }
 
     /// @inheritdoc BaseTokenWrapperHook
@@ -178,29 +185,5 @@ contract AutoWrapper is BaseTokenWrapperHook {
         userBalance = CurrencyLibrary.balanceOf(currency, user);
         poolBalance = CurrencyLibrary.balanceOf(currency, address(poolManager));
         delta = poolManager.currencyDelta(deltaHolder, currency);
-    }
-
-    /// @notice Settle (pay) a currency to the PoolManager
-    /// @param currency Currency to settle
-    /// @param manager IPoolManager to settle to
-    /// @param payer Address of the payer, the token sender
-    /// @param amount Amount to send
-    function _settle(Currency currency, IPoolManager manager, address payer, uint256 amount) internal {
-        manager.sync(currency);
-        if (payer != address(this)) {
-            IERC20(Currency.unwrap(currency)).transferFrom(payer, address(manager), amount);
-        } else {
-            IERC20(Currency.unwrap(currency)).transfer(address(manager), amount);
-        }
-        manager.settle();
-    }
-
-    /// @notice Take (receive) a currency from the PoolManager
-    /// @param currency Currency to take
-    /// @param manager IPoolManager to take from
-    /// @param recipient Address of the recipient, the token receiver
-    /// @param amount Amount to receive
-    function _take(Currency currency, IPoolManager manager, address recipient, uint256 amount) internal {
-        manager.take(currency, recipient, amount);
     }
 }

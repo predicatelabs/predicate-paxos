@@ -94,6 +94,8 @@ contract AutoWrapper is BaseTokenWrapperHook {
 
             (,, int256 deltaBefore0) = _fetchBalances(predicatePoolKey.currency0, router.msgSender(), address(this));
             (,, int256 deltaBefore1) = _fetchBalances(predicatePoolKey.currency1, router.msgSender(), address(this));
+            require(deltaBefore0 == 0, "deltaBefore0 is not 0");
+            require(deltaBefore1 == 0, "deltaBefore1 is not 0");
 
             BalanceDelta delta = poolManager.swap(predicatePoolKey, params, hookData); // USDC/WUSDL pool
 
@@ -101,16 +103,16 @@ contract AutoWrapper is BaseTokenWrapperHook {
             (,, int256 deltaAfter1) = _fetchBalances(predicatePoolKey.currency1, router.msgSender(), address(this));
 
             if (deltaAfter0 < 0) {
-                _settle(predicatePoolKey.currency0, poolManager, router.msgSender(), uint256(-deltaAfter0));
+                _settle(predicatePoolKey.currency0, poolManager, address(this), uint256(-deltaAfter0));
             }
             if (deltaAfter1 < 0) {
-                _settle(predicatePoolKey.currency1, poolManager, router.msgSender(), uint256(-deltaAfter1));
+                _settle(predicatePoolKey.currency1, poolManager, address(this), uint256(-deltaAfter1));
             }
             if (deltaAfter0 > 0) {
-                _take(predicatePoolKey.currency0, poolManager, router.msgSender(), uint256(deltaAfter0));
+                _take(predicatePoolKey.currency0, poolManager, address(this), uint256(deltaAfter0));
             }
             if (deltaAfter1 > 0) {
-                _take(predicatePoolKey.currency1, poolManager, router.msgSender(), uint256(deltaAfter1));
+                _take(predicatePoolKey.currency1, poolManager, address(this), uint256(deltaAfter1));
             }
             // todo: calculation here
             uint256 redeemAmount = _withdraw(IERC20(Currency.unwrap(wrapperCurrency)).balanceOf(address(this)));

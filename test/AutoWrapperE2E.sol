@@ -44,7 +44,7 @@ contract AutoWrapperTest is AutoWrapperSetup, OperatorTestPrep {
         string memory taskId = "unique-identifier";
         IPoolManager.SwapParams memory params = IPoolManager.SwapParams({
             zeroForOne: true,
-            amountSpecified: 1e18,
+            amountSpecified: -1e18, // for exact input
             sqrtPriceLimitX96: uint160(4_295_128_740)
         });
 

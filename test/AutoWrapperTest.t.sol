@@ -51,7 +51,6 @@ contract AutoWrapperTest is Test, AutoWrapperSetup, OperatorTestPrep {
         });
 
         IPoolManager.SwapParams memory paramsToSign = params;
-
         PredicateMessage memory message = getPredicateMessage(taskId, paramsToSign);
 
         IERC20 token0 = IERC20(Currency.unwrap(key.currency0));

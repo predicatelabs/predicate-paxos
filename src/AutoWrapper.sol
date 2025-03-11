@@ -122,7 +122,7 @@ contract AutoWrapper is BaseTokenWrapperHook, DeltaResolver {
 
             // calculate the amount of USDL to deposit and transfer to the auto wrapper
             if (isExactInput) {
-                underlyingAmount = uint256(swapParams.amountSpecified);
+                underlyingAmount = uint256(-params.amountSpecified);
                 // transfer the USDL to the auto wrapper
                 IERC20(Currency.unwrap(underlyingCurrency)).transferFrom(
                     router.msgSender(), address(this), underlyingAmount

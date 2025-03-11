@@ -100,6 +100,10 @@ contract AutoWrapper is BaseTokenWrapperHook, DeltaResolver {
             usdc.transferFrom(router.msgSender(), address(this), inputAmount);
             swapParams.amountSpecified = isExactInput ? -int256(inputAmount) : int256(inputAmount);
             delta = _swap(swapParams, hookData);
+            int256 delta0 = BalanceDeltaLibrary.amount0(delta); // delta0 is the amount of USDC required to settle the delta
+            if (delta0 < 0) {
+                usdc.transferFrom(router.msgSender(), address(this), uint256(-delta0));
+            }
             _settleDelta(delta);
             uint256 redeemAmount = _withdraw(IERC20(Currency.unwrap(wrapperCurrency)).balanceOf(address(this)));
             IERC20(Currency.unwrap(underlyingCurrency)).transfer(router.msgSender(), redeemAmount);
@@ -118,7 +122,7 @@ contract AutoWrapper is BaseTokenWrapperHook, DeltaResolver {
                 delta = _swap(swapParams, hookData);
                 int256 delta1 = BalanceDeltaLibrary.amount1(delta);
                 if (delta1 < 0) {
-                    uint256 underlyingAmount = _getUnwrapInputRequired(uint256(-delta1));
+                    uint256 underlyingAmount = _getWrapInputRequired(uint256(-delta1));
                     IERC20(Currency.unwrap(underlyingCurrency)).transferFrom(
                         router.msgSender(), address(this), underlyingAmount
                     );

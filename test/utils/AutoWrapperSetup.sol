@@ -115,7 +115,7 @@ contract AutoWrapperSetup is MetaCoinTestSetup, PoolSetup {
         IERC20(address(USDL)).approve(address(autoWrapper), type(uint256).max);
         IERC20(Currency.unwrap(USDC)).approve(address(autoWrapper), type(uint256).max);
         IERC20Upgradeable(address(wUSDL)).approve(address(autoWrapper), type(uint256).max);
-        wUSDL.deposit(2 * initialSupply, liquidityProvider);
+        wUSDL.deposit(3 * initialSupply, liquidityProvider);
         vm.stopPrank();
 
         // provision liquidity

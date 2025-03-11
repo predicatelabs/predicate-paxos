@@ -117,7 +117,7 @@ contract AutoWrapperTest is Test, AutoWrapperSetup, OperatorTestPrep {
         });
 
         IPoolManager.SwapParams memory paramsToSign = params;
-        paramsToSign.amountSpecified = int256(autoWrapper.getUnwrapInputRequired(uint256(-params.amountSpecified)));
+        paramsToSign.amountSpecified = -int256(autoWrapper.getUnwrapInputRequired(uint256(-params.amountSpecified)));
 
         PredicateMessage memory message = getPredicateMessage(taskId, paramsToSign);
 
@@ -151,7 +151,7 @@ contract AutoWrapperTest is Test, AutoWrapperSetup, OperatorTestPrep {
         });
 
         IPoolManager.SwapParams memory paramsToSign = params;
-        paramsToSign.amountSpecified = -params.amountSpecified;
+        paramsToSign.amountSpecified = params.amountSpecified;
 
         PredicateMessage memory message = getPredicateMessage(taskId, paramsToSign);
 
@@ -164,8 +164,8 @@ contract AutoWrapperTest is Test, AutoWrapperSetup, OperatorTestPrep {
         BalanceDelta delta = swapRouter.swap(key, params, abi.encode(message, liquidityProvider, 0));
         require(BalanceDeltaLibrary.amount0(delta) == 0, "BalanceDelta amount0 should be 0 for token0");
         require(BalanceDeltaLibrary.amount1(delta) == 0, "BalanceDelta amount1 should be 0 for token1");
-        require(token0.balanceOf(liquidityProvider) < balance0, "Token0 balance should decrease");
-        require(token1.balanceOf(liquidityProvider) > balance1, "Token1 balance should increase");
+        require(token0.balanceOf(liquidityProvider) > balance0, "Token0 balance should increase");
+        require(token1.balanceOf(liquidityProvider) < balance1, "Token1 balance should decrease");
         require(
             token0.balanceOf(liquidityProvider) == balance0 + uint256(params.amountSpecified),
             "Token0 balance should increase by the amount specified"

@@ -117,8 +117,8 @@ contract AutoWrapper is BaseTokenWrapperHook, DeltaResolver {
             // USDL -> USDC
             // calculate the amount of WUSDL to swap through underlying liquidity pool
             swapParams.amountSpecified = isExactInput
-                ? int256(getUnwrapInputRequired(uint256(-params.amountSpecified)))
-                : -params.amountSpecified;
+                ? -int256(getUnwrapInputRequired(uint256(-params.amountSpecified)))
+                : params.amountSpecified;
             delta = _swap(swapParams, hookData);
             uint256 underlyingAmount;
 

@@ -99,7 +99,7 @@ abstract contract BaseTokenWrapperHook is BaseHook {
         uint256 underlyingAmount
     ) internal virtual returns (uint256 wrappedAmount);
 
-    /// @notice Withdraws wrapper tokens to receive underlying tokens
+    /// @notice Withdraws underlying tokens by giving wrapper tokens
     /// @dev Implementing contracts should handle the unwrapping operation
     /// @dev The base contract will handle settling tokens with the pool manager
     /// @param wrappedAmount The amount of wrapper tokens to withdraw
@@ -109,8 +109,6 @@ abstract contract BaseTokenWrapperHook is BaseHook {
     ) internal virtual returns (uint256 underlyingAmount);
 
     /// @notice Calculates underlying tokens needed to receive desired wrapper tokens
-    /// @dev Default implementation assumes 1:1 ratio
-    /// @dev Override for wrappers with different exchange rates
     /// @param wrappedAmount The desired amount of wrapper tokens
     /// @return The required amount of underlying tokens
     function _getWrapInputRequired(
@@ -118,8 +116,6 @@ abstract contract BaseTokenWrapperHook is BaseHook {
     ) internal view virtual returns (uint256);
 
     /// @notice Calculates wrapper tokens needed to receive desired underlying tokens
-    /// @dev Default implementation assumes 1:1 ratio
-    /// @dev Override for wrappers with different exchange rates
     /// @param underlyingAmount The desired amount of underlying tokens
     /// @return The required amount of wrapper tokens
     function _getUnwrapInputRequired(

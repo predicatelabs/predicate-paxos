@@ -13,9 +13,10 @@ import {OperatorTestPrep} from "@predicate-test/helpers/utility/OperatorTestPrep
 import {HookMiner} from "./utils/HookMiner.sol";
 import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
 import {AutoWrapperSetup} from "./utils/AutoWrapperSetup.sol";
-import {BalanceDelta} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
+import {BalanceDelta, BalanceDeltaLibrary} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
 import {IERC20} from "forge-std/interfaces/IERC20.sol";
-import {Constants} from "@uniswap/v4-core/src/../test/utils/Constants.sol"; // what in world is this
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {TickMath} from "@uniswap/v4-core/src/libraries/TickMath.sol";
 
 contract AutoWrapperTest is AutoWrapperSetup, OperatorTestPrep {
     address liquidityProvider;
@@ -36,7 +37,7 @@ contract AutoWrapperTest is AutoWrapperSetup, OperatorTestPrep {
         _;
     }
 
-    function testSwapZeroForOne() public permissionedOperators prepOperatorRegistration(false) {
+    function testSwapZeroForOneExactInput() public permissionedOperators prepOperatorRegistration(false) {
         vm.prank(operatorOne);
         serviceManager.registerOperatorToAVS(operatorOneAlias, operatorSignature);
 
@@ -57,8 +58,107 @@ contract AutoWrapperTest is AutoWrapperSetup, OperatorTestPrep {
 
         vm.prank(address(liquidityProvider));
         BalanceDelta delta = swapRouter.swap(key, params, abi.encode(message, liquidityProvider, 0));
+        require(BalanceDeltaLibrary.amount0(delta) == 0, "BalanceDelta amount0 should be 0 for token0");
+        require(BalanceDeltaLibrary.amount1(delta) == 0, "BalanceDelta amount1 should be 0 for token1");
         require(token0.balanceOf(liquidityProvider) < balance0, "Token0 balance should decrease");
         require(token1.balanceOf(liquidityProvider) > balance1, "Token1 balance should increase");
+        require(
+            token0.balanceOf(liquidityProvider) == balance0 - uint256(-params.amountSpecified),
+            "Token0 balance should decrease by the amount specified"
+        );
+    }
+
+    function testSwapZeroForOneExactOutput() public permissionedOperators prepOperatorRegistration(false) {
+        vm.prank(operatorOne);
+        serviceManager.registerOperatorToAVS(operatorOneAlias, operatorSignature);
+
+        PoolKey memory key = getPoolKey();
+        string memory taskId = "unique-identifier";
+        IPoolManager.SwapParams memory params = IPoolManager.SwapParams({
+            zeroForOne: true,
+            amountSpecified: 1e18, // for exact output
+            sqrtPriceLimitX96: uint160(4_295_128_740)
+        });
+
+        PredicateMessage memory message = getPredicateMessage(taskId, params);
+
+        IERC20 token0 = IERC20(Currency.unwrap(key.currency0));
+        IERC20 token1 = IERC20(Currency.unwrap(key.currency1));
+        uint256 balance0 = token0.balanceOf(liquidityProvider);
+        uint256 balance1 = token1.balanceOf(liquidityProvider);
+
+        vm.prank(address(liquidityProvider));
+        BalanceDelta delta = swapRouter.swap(key, params, abi.encode(message, liquidityProvider, 0));
+        require(BalanceDeltaLibrary.amount0(delta) == 0, "BalanceDelta amount0 should be 0 for token0");
+        require(BalanceDeltaLibrary.amount1(delta) == 0, "BalanceDelta amount1 should be 0 for token1");
+        require(token0.balanceOf(liquidityProvider) < balance0, "Token0 balance should decrease");
+        require(token1.balanceOf(liquidityProvider) > balance1, "Token1 balance should increase");
+        require(
+            token1.balanceOf(liquidityProvider) == balance1 + uint256(params.amountSpecified),
+            "Token1 balance should increase by the amount specified"
+        );
+    }
+
+    function testSwapOneForZeroExactInput() public permissionedOperators prepOperatorRegistration(false) {
+        vm.prank(operatorOne);
+        serviceManager.registerOperatorToAVS(operatorOneAlias, operatorSignature);
+
+        PoolKey memory key = getPoolKey();
+        string memory taskId = "unique-identifier";
+        IPoolManager.SwapParams memory params = IPoolManager.SwapParams({
+            zeroForOne: false,
+            amountSpecified: -1e18, // for exact input
+            sqrtPriceLimitX96: TickMath.MAX_SQRT_PRICE - 1
+        });
+
+        PredicateMessage memory message = getPredicateMessage(taskId, params);
+
+        IERC20 token0 = IERC20(Currency.unwrap(key.currency0));
+        IERC20 token1 = IERC20(Currency.unwrap(key.currency1));
+        uint256 balance0 = token0.balanceOf(liquidityProvider);
+        uint256 balance1 = token1.balanceOf(liquidityProvider);
+
+        vm.prank(address(liquidityProvider));
+        BalanceDelta delta = swapRouter.swap(key, params, abi.encode(message, liquidityProvider, 0));
+        require(BalanceDeltaLibrary.amount0(delta) == 0, "BalanceDelta amount0 should be 0 for token0");
+        require(BalanceDeltaLibrary.amount1(delta) == 0, "BalanceDelta amount1 should be 0 for token1");
+        require(token0.balanceOf(liquidityProvider) > balance0, "Token0 balance should increase");
+        require(token1.balanceOf(liquidityProvider) < balance1, "Token1 balance should decrease");
+        require(
+            token1.balanceOf(liquidityProvider) == balance1 - uint256(-params.amountSpecified),
+            "Token1 balance should decrease by the amount specified"
+        );
+    }
+
+    function testSwapOneForZeroExactOutput() public permissionedOperators prepOperatorRegistration(false) {
+        vm.prank(operatorOne);
+        serviceManager.registerOperatorToAVS(operatorOneAlias, operatorSignature);
+
+        PoolKey memory key = getPoolKey();
+        string memory taskId = "unique-identifier";
+        IPoolManager.SwapParams memory params = IPoolManager.SwapParams({
+            zeroForOne: false,
+            amountSpecified: 1e18, // for exact output
+            sqrtPriceLimitX96: TickMath.MAX_SQRT_PRICE - 1
+        });
+
+        PredicateMessage memory message = getPredicateMessage(taskId, params);
+
+        IERC20 token0 = IERC20(Currency.unwrap(key.currency0));
+        IERC20 token1 = IERC20(Currency.unwrap(key.currency1));
+        uint256 balance0 = token0.balanceOf(liquidityProvider);
+        uint256 balance1 = token1.balanceOf(liquidityProvider);
+
+        vm.prank(address(liquidityProvider));
+        BalanceDelta delta = swapRouter.swap(key, params, abi.encode(message, liquidityProvider, 0));
+        require(BalanceDeltaLibrary.amount0(delta) == 0, "BalanceDelta amount0 should be 0 for token0");
+        require(BalanceDeltaLibrary.amount1(delta) == 0, "BalanceDelta amount1 should be 0 for token1");
+        require(token0.balanceOf(liquidityProvider) < balance0, "Token0 balance should decrease");
+        require(token1.balanceOf(liquidityProvider) > balance1, "Token1 balance should increase");
+        require(
+            token0.balanceOf(liquidityProvider) == balance0 + uint256(params.amountSpecified),
+            "Token0 balance should increase by the amount specified"
+        );
     }
 
     function testSwapWithInvalidMessage() public permissionedOperators prepOperatorRegistration(false) {

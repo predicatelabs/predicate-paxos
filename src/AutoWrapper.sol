@@ -101,12 +101,14 @@ contract AutoWrapper is BaseTokenWrapperHook, DeltaResolver {
             delta = _swap(swapParams, hookData);
 
             // calculate the amount of USDC to settle the delta
-            int256 delta0 = BalanceDeltaLibrary.amount0(delta); // delta0 is the amount of USDC required to settle the delta
+            // delta0 is the amount of USDC required to settle the delta
+            int256 delta0 = BalanceDeltaLibrary.amount0(delta);
             require(delta0 < 0, "USDC delta is not negative for USDC -> USDL swap");
             usdc.transferFrom(router.msgSender(), address(this), uint256(-delta0));
 
             // settle the delta
-            _settleDelta(delta); // takes USDC from the auto wrapper and settles the delta with the pool manager
+            // takes USDC from the auto wrapper and settles the delta with the pool manager
+            _settleDelta(delta);
 
             // withdraw the USDL from the vault and transfers to the user
             uint256 redeemAmount = _withdraw(IERC20(Currency.unwrap(wrapperCurrency)).balanceOf(address(this)));
@@ -123,14 +125,19 @@ contract AutoWrapper is BaseTokenWrapperHook, DeltaResolver {
             // calculate the amount of USDL to deposit and transfer to the auto wrapper
             if (isExactInput) {
                 underlyingAmount = uint256(-params.amountSpecified);
+
                 // transfer the USDL to the auto wrapper
                 IERC20(Currency.unwrap(underlyingCurrency)).transferFrom(
                     router.msgSender(), address(this), underlyingAmount
                 );
             } else {
-                int256 delta1 = BalanceDeltaLibrary.amount1(delta); // delta1 is the amount of WUSDL required to settle the delta // ex -6 WUSDL is required
+                // delta1 is the amount of WUSDL required to settle the delta
+                // ex -6 WUSDL is required to settle the delta
+                int256 delta1 = BalanceDeltaLibrary.amount1(delta);
                 require(delta1 < 0, "wUSDL delta is not negative for USDL -> USDC swap");
-                underlyingAmount = getWrapInputRequired(uint256(-delta1)); // underlyingAmount is the amount of USDL required to wrap delta1 amount of WUSDL
+
+                // underlyingAmount is the amount of USDL required to wrap delta1 amount of WUSDL
+                underlyingAmount = getWrapInputRequired(uint256(-delta1));
                 IERC20(Currency.unwrap(underlyingCurrency)).transferFrom(
                     router.msgSender(), address(this), underlyingAmount
                 );

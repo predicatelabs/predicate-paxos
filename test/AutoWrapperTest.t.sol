@@ -50,7 +50,9 @@ contract AutoWrapperTest is Test, AutoWrapperSetup, OperatorTestPrep {
             sqrtPriceLimitX96: uint160(4_295_128_740)
         });
 
-        PredicateMessage memory message = getPredicateMessage(taskId, params);
+        IPoolManager.SwapParams memory paramsToSign = params;
+
+        PredicateMessage memory message = getPredicateMessage(taskId, paramsToSign);
 
         IERC20 token0 = IERC20(Currency.unwrap(key.currency0));
         IERC20 token1 = IERC20(Currency.unwrap(key.currency1));
@@ -81,7 +83,10 @@ contract AutoWrapperTest is Test, AutoWrapperSetup, OperatorTestPrep {
             sqrtPriceLimitX96: uint160(4_295_128_740)
         });
 
-        PredicateMessage memory message = getPredicateMessage(taskId, params);
+        IPoolManager.SwapParams memory paramsToSign = params;
+        paramsToSign.amountSpecified = int256(autoWrapper.getUnwrapInputRequired(uint256(params.amountSpecified)));
+
+        PredicateMessage memory message = getPredicateMessage(taskId, paramsToSign);
 
         IERC20 token0 = IERC20(Currency.unwrap(key.currency0));
         IERC20 token1 = IERC20(Currency.unwrap(key.currency1));
@@ -109,10 +114,13 @@ contract AutoWrapperTest is Test, AutoWrapperSetup, OperatorTestPrep {
         IPoolManager.SwapParams memory params = IPoolManager.SwapParams({
             zeroForOne: false,
             amountSpecified: -1e18, // for exact input
-            sqrtPriceLimitX96: TickMath.MAX_SQRT_PRICE - 1
+            sqrtPriceLimitX96: uint160(TickMath.MAX_SQRT_PRICE - 1)
         });
 
-        PredicateMessage memory message = getPredicateMessage(taskId, params);
+        IPoolManager.SwapParams memory paramsToSign = params;
+        paramsToSign.amountSpecified = int256(autoWrapper.getUnwrapInputRequired(uint256(-params.amountSpecified)));
+
+        PredicateMessage memory message = getPredicateMessage(taskId, paramsToSign);
 
         IERC20 token0 = IERC20(Currency.unwrap(key.currency0));
         IERC20 token1 = IERC20(Currency.unwrap(key.currency1));
@@ -140,10 +148,13 @@ contract AutoWrapperTest is Test, AutoWrapperSetup, OperatorTestPrep {
         IPoolManager.SwapParams memory params = IPoolManager.SwapParams({
             zeroForOne: false,
             amountSpecified: 1e18, // for exact output
-            sqrtPriceLimitX96: TickMath.MAX_SQRT_PRICE - 1
+            sqrtPriceLimitX96: uint160(TickMath.MAX_SQRT_PRICE - 1)
         });
 
-        PredicateMessage memory message = getPredicateMessage(taskId, params);
+        IPoolManager.SwapParams memory paramsToSign = params;
+        paramsToSign.amountSpecified = -params.amountSpecified;
+
+        PredicateMessage memory message = getPredicateMessage(taskId, paramsToSign);
 
         IERC20 token0 = IERC20(Currency.unwrap(key.currency0));
         IERC20 token1 = IERC20(Currency.unwrap(key.currency1));

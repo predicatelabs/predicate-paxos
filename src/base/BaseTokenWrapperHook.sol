@@ -111,14 +111,14 @@ abstract contract BaseTokenWrapperHook is BaseHook {
     /// @notice Calculates underlying tokens needed to receive desired wrapper tokens
     /// @param wrappedAmount The desired amount of wrapper tokens
     /// @return The required amount of underlying tokens
-    function _getWrapInputRequired(
+    function getUnwrapInputRequired(
         uint256 wrappedAmount
-    ) internal view virtual returns (uint256);
+    ) public view virtual returns (uint256);
 
     /// @notice Calculates wrapper tokens needed to receive desired underlying tokens
     /// @param underlyingAmount The desired amount of underlying tokens
     /// @return The required amount of wrapper tokens
-    function _getUnwrapInputRequired(
+    function getWrapInputRequired(
         uint256 underlyingAmount
-    ) internal view virtual returns (uint256);
+    ) public view virtual returns (uint256);
 }

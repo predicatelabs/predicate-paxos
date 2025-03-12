@@ -83,7 +83,7 @@ contract PredicateHookTest is PredicateHookSetup, OperatorTestPrep {
                 params.amountSpecified,
                 params.sqrtPriceLimitX96
             ),
-            policyID: "x-aleo-6a52de9724a6e8f2",
+            policyID: "testPolicy",
             quorumThresholdCount: 1,
             expireByBlockNumber: block.number + 100
         });

@@ -17,6 +17,7 @@ interface INetwork {
         address serviceManager;
         string policyId;
         address ybsAddress;
+        address usdc;
         PoolKey poolKey;
     }
 

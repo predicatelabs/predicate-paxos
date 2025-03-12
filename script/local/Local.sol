@@ -26,7 +26,8 @@ contract Local is INetwork {
                 fee: 3000,
                 tickSpacing: 60,
                 hooks: IHooks(address(0))
-            })
+            }),
+            usdc: address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2)
         });
     }
 

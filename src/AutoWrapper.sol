@@ -97,7 +97,7 @@ contract AutoWrapper is BaseTokenWrapperHook, DeltaResolver {
             // USDC -> USDL
             // calculate the amount of USDC to swap through underlying liquidity pool
             swapParams.amountSpecified =
-                isExactInput ? params.amountSpecified : int256(getUnwrapInputRequired(uint256(params.amountSpecified)));
+                isExactInput ? params.amountSpecified : getUnwrapInputRequired(uint256(params.amountSpecified));
             delta = _swap(swapParams, hookData);
 
             // calculate the amount of USDC to settle the delta
@@ -116,9 +116,8 @@ contract AutoWrapper is BaseTokenWrapperHook, DeltaResolver {
         } else {
             // USDL -> USDC
             // calculate the amount of WUSDL to swap through underlying liquidity pool
-            swapParams.amountSpecified = isExactInput
-                ? -int256(getUnwrapInputRequired(uint256(-params.amountSpecified)))
-                : params.amountSpecified;
+            swapParams.amountSpecified =
+                isExactInput ? -getUnwrapInputRequired(uint256(-params.amountSpecified)) : params.amountSpecified;
             delta = _swap(swapParams, hookData);
             uint256 underlyingAmount;
 
@@ -137,7 +136,7 @@ contract AutoWrapper is BaseTokenWrapperHook, DeltaResolver {
                 require(delta1 < 0, "wUSDL delta is not negative for USDL -> USDC swap");
 
                 // underlyingAmount is the amount of USDL required to wrap delta1 amount of WUSDL
-                underlyingAmount = getWrapInputRequired(uint256(-delta1));
+                underlyingAmount = uint256(getWrapInputRequired(uint256(-delta1)));
                 IERC20(Currency.unwrap(underlyingCurrency)).transferFrom(
                     router.msgSender(), address(this), underlyingAmount
                 );
@@ -218,15 +217,15 @@ contract AutoWrapper is BaseTokenWrapperHook, DeltaResolver {
     /// @inheritdoc BaseTokenWrapperHook
     function getWrapInputRequired(
         uint256 wrappedAmount
-    ) public view override returns (uint256) {
-        return vault.convertToAssets({shares: wrappedAmount});
+    ) public view override returns (int256) {
+        return int256(vault.convertToAssets({shares: wrappedAmount}));
     }
 
     /// @inheritdoc BaseTokenWrapperHook
     function getUnwrapInputRequired(
         uint256 underlyingAmount
-    ) public view override returns (uint256) {
-        return vault.convertToShares({assets: underlyingAmount});
+    ) public view override returns (int256) {
+        return int256(vault.convertToShares({assets: underlyingAmount}));
     }
 
     /// @notice Fetches the user balance, pool balance, and delta for a given currency

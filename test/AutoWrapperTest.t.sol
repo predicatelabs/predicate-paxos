@@ -83,7 +83,7 @@ contract AutoWrapperTest is Test, AutoWrapperSetup, OperatorTestPrep {
         });
 
         IPoolManager.SwapParams memory paramsToSign = params;
-        paramsToSign.amountSpecified = int256(autoWrapper.getUnwrapInputRequired(uint256(params.amountSpecified)));
+        paramsToSign.amountSpecified = autoWrapper.getUnwrapInputRequired(uint256(params.amountSpecified));
 
         PredicateMessage memory message = getPredicateMessage(taskId, paramsToSign);
 
@@ -117,7 +117,7 @@ contract AutoWrapperTest is Test, AutoWrapperSetup, OperatorTestPrep {
         });
 
         IPoolManager.SwapParams memory paramsToSign = params;
-        paramsToSign.amountSpecified = -int256(autoWrapper.getUnwrapInputRequired(uint256(-params.amountSpecified)));
+        paramsToSign.amountSpecified = -autoWrapper.getUnwrapInputRequired(uint256(-params.amountSpecified));
 
         PredicateMessage memory message = getPredicateMessage(taskId, paramsToSign);
 

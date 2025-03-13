@@ -1,65 +1,71 @@
-# Paxos V4 Hook
+# Paxos USDL V4 Hooks
 
-#### Compliant exchange of USDL on Uniswap V4 powered by [Predicate](https://docs.predicate.io).
+This repository contains the Uniswap V4 hook implementation for USDL (Lift Dollar), enabling policy-compliant trading via the Predicate Network.
 
-![Paxos V4 Hook](assets/PaxosV4Hook.png)
+## Architecture
 
-## Overview
+![Architecture Diagram](assets/image.png)
 
-A Uniswap V4 Hook that enables Paxos to offer compliant, decentralized exchange of USDL/wUSDL within the Uniswap ecosystem. The hook uses Predicate to authorize transactions coming from an addresses in a certain jurisdiction and not on the OFAC sanctions list.
+This design consists of a single router (necessary for swapping against the PoolManager), configuration for initializing two pools on the PoolManager, and two hooks.
+
+#### AutoWrapper Hook
+- Manages USDL ↔ wUSDL conversion operations
+- Swaps against the liquid pool 
+- Enforces zero-liquidity constraints on ghost pool
+- Requires explicit liquid ERC20/wUSDL pool configuration
+
+#### Predicate Hook
+- Authorizes transactions on the liquid pool
+- Enforces access control on liquid pool operations
+
+## User Experience    
+Swapping wUSDL for an ERC20
+
+To trade wUSDL, users must first be screened against the Paxos compliance policy. This is done by submitting a task to the Predicate Operator Network (see Integration Guide).
+	- Screening is typically abstracted through a frontend interface
+	- Median latency is ~250ms
+	- A set of authorization signatures is returned from the Predicate API
+	- These signatures must be embedded into the transaction’s hookData field
+	- The transaction is then submitted to the Swap Router
+
+Swapping USDL Directly
+
+Uniswap pools are not compatible with rebasing assets like USDL. Typically, users would be required to:
+	•	Users must wrap USDL → wUSDL before swapping
+	•	Or unwrap wUSDL → USDL after swapping (e.g., if receiving USDL from a USDC swap)
+
+However, the AutoWrapperHook automates this process. Combined with the Ghost Pool, users can execute swaps involving USDL (e.g., USDL -> USDC or USDC -> USDL) in a single atomic transaction. Wrapping and unwrapping occur in-band.
+
+⚠️ The same Predicate authorization is required for these swaps. The embedded hook data will be forwarded from the AutoWrapperHook to the PredicateHook to be validated. 
 
 
-## Usage
+## OffChain Integration 
 
-#### Install dependencies:
-```bash
-make install
-```
+Under /transactor, you will find well documented script which leverages the predicate-sdk to fetch signatures and swap against a mainnet USDL/USDC pool. Below are the instructions for running it!
 
-#### Run tests:
-````bash
-forge test --via-ir
-````
+1. Install and set variables
+    ```bash
+    # Navigate to the transactor directory
+    cd transactor
 
-### Call the Predicate API
+    # Install dependencies
+    npm install
 
-```typescript
-const response = await axios.post(
-        PREDICATE_API_URL,
-        {
-            to: CONTRACT_ADDRESS,
-            from: wallet.address,
-            data: txData,
-            value: "0"
-        },
-        {
-            headers: {
-                'Content-Type': 'application/json',
-                'x-api-key': PREDICATE_API_KEY
-            }
-        }
-    );
-```
+    # Copy and configure environment variables
+    cp .env.example .env
+    ```
 
-## Deploy
+2. Deploy & Fund the Pool
+    
+    ⚠️ Use a private key which holds USDL and USDC
+    ```bash 
+    forge script script/DeployPaxosUSDLPools.sol:DeployPaxosUSDLPools --rpc-url {ethereum_rpc_url} --usdl 5 --usdc 5 --broadcast
+    ```
 
-In the `.env` file, set the following variables:
+3. Run the Transactor
+    
+    ```bash
+        npm run swap --usdl 5
+    ```
 
-```bash
-PRIVATE_KEY=private_key
-RPC_URL=rpc_url
-PREDICATE_API_KEY=predicate_api_key
-HOOK_ADDRESS=hook_address
-```
-
-#### Ethereum:
-
-```solidity
-forge script script/DeployPaxosHook.sol:DeployPaxosHook --rpc-url ethereum --broadcast
-```
-
-For verification:
-
-```bash
-forge verify-contract --chain-id 1 --etherscan-api-key <your_etherscan_api_key> --watch --constructor-args $(cast abi-encode "constructor(address,string)" $PREDICATE_MANAGER $POLICY_ID) src/PaxosHook.sol:PaxosHook
-```
+You should notice that your USDL balance has decreased by 5 USDL and USDC balance increased by 

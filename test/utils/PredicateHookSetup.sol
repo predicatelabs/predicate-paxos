@@ -34,8 +34,7 @@ contract PredicateHookSetup is MetaCoinTestSetup, PoolSetup {
         setTokenApprovalForRouters(currency1);
         vm.stopPrank();
 
-        // create hook here
-        uint160 flags = uint160(Hooks.BEFORE_SWAP_FLAG);
+        uint160 flags = uint160(Hooks.BEFORE_SWAP_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG);
         bytes memory constructorArgs = abi.encode(manager, swapRouter, address(serviceManager), "testPolicy");
         (address hookAddress, bytes32 salt) =
             HookMiner.find(address(this), flags, type(PredicateHook).creationCode, constructorArgs);
@@ -46,6 +45,14 @@ contract PredicateHookSetup is MetaCoinTestSetup, PoolSetup {
         // initialize the pool
         poolKey = PoolKey(currency0, currency1, 3000, tickSpacing, IHooks(hook));
         manager.initialize(poolKey, Constants.SQRT_PRICE_1_1);
+
+        address[] memory allowedAddresses = new address[](3);
+        allowedAddresses[0] = liquidityProvider;
+        allowedAddresses[1] = address(lpRouter);
+        allowedAddresses[2] = address(posm);
+        // allowedAddresses[3] = address(manager);
+        // allowedAddresses[4] = address(swapRouter);
+        hook.addToAllowList(allowedAddresses);
 
         vm.startPrank(liquidityProvider);
         provisionLiquidity(tickSpacing, poolKey, 100 ether, liquidityProvider, 100_000 ether, 100_000 ether);

@@ -7,7 +7,9 @@ import {
 } from "@uniswap/v4-core/src/types/BeforeSwapDelta.sol";
 import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
 import {SafeCast} from "@uniswap/v4-core/src/libraries/SafeCast.sol";
-import {BaseTokenWrapperHook} from "./base/BaseTokenWrapperHook.sol";
+import {BaseHook} from "@uniswap/v4-periphery/src/utils/BaseHook.sol";
+import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
+import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
 import {BalanceDelta, BalanceDeltaLibrary} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
 import {ISimpleV4Router} from "./interfaces/ISimpleV4Router.sol";
 import {Currency, CurrencyLibrary} from "@uniswap/v4-core/src/types/Currency.sol";
@@ -27,12 +29,20 @@ import {DeltaResolver} from "@uniswap/v4-periphery/src/base/DeltaResolver.sol";
  *      Lift Dollar (USDL) and its wrapped version (wUSDL) through a V4 Ghost pool.
  * @dev This contract also implements DeltaResolver to handle the token delta settlement
  */
-contract AutoWrapper is BaseTokenWrapperHook, DeltaResolver {
+contract AutoWrapper is BaseHook, DeltaResolver {
     using SafeCast for uint256;
     using SafeCast for int256;
     using CurrencyLibrary for Currency;
     using CurrencySettler for Currency;
     using TransientStateLibrary for IPoolManager;
+
+    /// @notice Thrown when attempting to add or remove liquidity
+    /// @dev Liquidity operations are blocked since all liquidity is managed by the token wrapper
+    error LiquidityNotAllowed();
+
+    /// @notice Thrown when initializing a pool with non-zero fee
+    /// @dev Fee must be 0 as wrapper pools don't charge fees
+    error InvalidPoolFee();
 
     /// @notice The ERC4626 vault contract
     ERC4626 public immutable vault;
@@ -46,6 +56,19 @@ contract AutoWrapper is BaseTokenWrapperHook, DeltaResolver {
     /// @notice USDC
     IERC20 public usdc;
 
+    /// @notice The wrapped token currency (e.g., WETH)
+    Currency public immutable wrapperCurrency;
+
+    /// @notice The underlying token currency (e.g., ETH)
+    Currency public immutable underlyingCurrency;
+
+    /// @notice Indicates whether wrapping occurs when swapping from token0 to token1
+    /// @dev This is determined by the relative ordering of the wrapper and underlying tokens
+    /// @dev If true: token0 is underlying (e.g. ETH) and token1 is wrapper (e.g. WETH)
+    /// @dev If false: token0 is wrapper (e.g. WETH) and token1 is underlying (e.g. ETH)
+    /// @dev This is set in the constructor based on the token addresses to ensure consistent behavior
+    bool public immutable wrapZeroForOne;
+
     /// @notice Creates a new ERC4626 wrapper hook
     /// @param _manager The Uniswap V4 pool manager
     /// @param _vault The ERC4626 vault contract address
@@ -56,13 +79,7 @@ contract AutoWrapper is BaseTokenWrapperHook, DeltaResolver {
         PoolKey memory _predicatePoolKey,
         ISimpleV4Router _router,
         IERC20 _usdc
-    )
-        BaseTokenWrapperHook(
-            _manager,
-            Currency.wrap(address(_vault)), // wrapper token is the ERC4626 vault itself // WUSDL
-            Currency.wrap(address(_vault.asset())) // underlying token is the underlying asset of ERC4626 vault i.e. USDL
-        )
-    {
+    ) BaseHook(_manager) {
         require(
             address(_usdc) == Currency.unwrap(_predicatePoolKey.currency0),
             "underlying currency mismatch; usdc mismatch"
@@ -75,7 +92,50 @@ contract AutoWrapper is BaseTokenWrapperHook, DeltaResolver {
         predicatePoolKey = _predicatePoolKey;
         router = _router;
         usdc = _usdc;
+        wrapperCurrency = Currency.wrap(address(_vault));
+        underlyingCurrency = Currency.wrap(_vault.asset());
+        wrapZeroForOne = underlyingCurrency < wrapperCurrency;
         IERC20(Currency.unwrap(underlyingCurrency)).approve(Currency.unwrap(wrapperCurrency), type(uint256).max);
+    }
+
+    /// @inheritdoc BaseHook
+    function getHookPermissions() public pure override returns (Hooks.Permissions memory) {
+        return Hooks.Permissions({
+            beforeInitialize: true,
+            beforeAddLiquidity: true,
+            beforeSwap: true,
+            beforeSwapReturnDelta: true,
+            afterSwap: false,
+            afterInitialize: false,
+            beforeRemoveLiquidity: false,
+            afterAddLiquidity: false,
+            afterRemoveLiquidity: false,
+            beforeDonate: false,
+            afterDonate: false,
+            afterSwapReturnDelta: false,
+            afterAddLiquidityReturnDelta: false,
+            afterRemoveLiquidityReturnDelta: false
+        });
+    }
+
+    /// @notice Validates pool initialization parameters
+    /// @dev Ensures pool contains  zero fee
+    /// @param poolKey The pool configuration including tokens and fee
+    /// @return The function selector if validation passes
+    function _beforeInitialize(address, PoolKey calldata poolKey, uint160) internal view override returns (bytes4) {
+        if (poolKey.fee != 0) revert InvalidPoolFee();
+        return IHooks.beforeInitialize.selector;
+    }
+
+    /// @notice Prevents liquidity operations on wrapper pools
+    /// @dev Always reverts as liquidity is managed through the token wrapper
+    function _beforeAddLiquidity(
+        address,
+        PoolKey calldata,
+        IPoolManager.ModifyLiquidityParams calldata,
+        bytes calldata
+    ) internal pure override returns (bytes4) {
+        revert LiquidityNotAllowed();
     }
 
     /// @notice Handles token wrapping and unwrapping during swaps
@@ -200,31 +260,37 @@ contract AutoWrapper is BaseTokenWrapperHook, DeltaResolver {
         token.transfer(address(poolManager), amount);
     }
 
-    /// @inheritdoc BaseTokenWrapperHook
+    /// @notice Deposits underlying tokens to receive wrapper tokens
+    /// @param underlyingAmount The amount of underlying tokens to deposit
+    /// @return wrappedAmount The amount of wrapper tokens received
     function _deposit(
         uint256 underlyingAmount
-    ) internal override returns (uint256) {
+    ) internal returns (uint256) {
         return vault.deposit({assets: underlyingAmount, receiver: address(this)});
     }
 
-    /// @inheritdoc BaseTokenWrapperHook
+    /// @notice Withdraws wrapper tokens to receive underlying tokens
+    /// @param wrappedAmount The amount of wrapper tokens to withdraw
+    /// @return underlyingAmount The amount of underlying tokens received
     function _withdraw(
         uint256 wrappedAmount
-    ) internal override returns (uint256) {
+    ) internal returns (uint256) {
         return vault.redeem({shares: wrappedAmount, receiver: address(this), owner: address(this)});
     }
 
-    /// @inheritdoc BaseTokenWrapperHook
+    /// @notice Calculates underlying tokens needed to receive desired wrapper tokens
+    /// @param wrappedAmount The desired amount of wrapper tokens
     function getWrapInputRequired(
         uint256 wrappedAmount
-    ) public view override returns (int256) {
+    ) public view returns (int256) {
         return int256(vault.convertToAssets({shares: wrappedAmount}));
     }
 
-    /// @inheritdoc BaseTokenWrapperHook
+    /// @notice Calculates wrapper tokens needed to receive desired underlying tokens
+    /// @param underlyingAmount The desired amount of underlying tokens
     function getUnwrapInputRequired(
         uint256 underlyingAmount
-    ) public view override returns (int256) {
+    ) public view returns (int256) {
         return int256(vault.convertToShares({assets: underlyingAmount}));
     }
 

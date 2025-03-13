@@ -19,6 +19,7 @@ import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
 /// @notice A hook for compliant swaps
 contract PredicateHook is BaseHook, PredicateClient {
     ISimpleV4Router public immutable router;
+    mapping(address => bool) public isAuthorized;
 
     constructor(
         IPoolManager _poolManager,

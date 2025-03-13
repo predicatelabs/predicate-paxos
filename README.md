@@ -6,11 +6,11 @@ This repository contains the Uniswap V4 hook implementation for USDL (Lift Dolla
 
 ![Architecture Diagram](assets/image.png)
 
-This design consists of a single router (necessary for swapping against the PoolManager), configuration for initializing two pools on the PoolManager, and two hooks.
+This design consists of a router (necessary for swapping against the PoolManager), configuration for initializing two pools on the PoolManager, and two hooks.
 
 #### AutoWrapper Hook
 - Manages USDL ↔ wUSDL conversion operations
-- Swaps against the liquid pool 
+- Swaps against the underlying ERC20/wUSDL pool 
 - Enforces zero-liquidity constraints on ghost pool
 - Requires explicit liquid ERC20/wUSDL pool configuration
 
@@ -19,7 +19,7 @@ This design consists of a single router (necessary for swapping against the Pool
 - Enforces access control on liquid pool operations
 
 ## User Experience    
-Swapping wUSDL for an ERC20
+### Swapping wUSDL for an ERC20
 
 To trade wUSDL, users must first be screened against the Paxos compliance policy. This is done by submitting a task to the Predicate Operator Network (see Integration Guide).
 	- Screening is typically abstracted through a frontend interface
@@ -28,7 +28,7 @@ To trade wUSDL, users must first be screened against the Paxos compliance policy
 	- These signatures must be embedded into the transaction’s hookData field
 	- The transaction is then submitted to the Swap Router
 
-Swapping USDL Directly
+### Swapping USDL Directly
 
 Uniswap pools are not compatible with rebasing assets like USDL. Typically, users would be required to:
 	•	Users must wrap USDL → wUSDL before swapping
@@ -39,9 +39,9 @@ However, the AutoWrapperHook automates this process. Combined with the Ghost Poo
 ⚠️ The same Predicate authorization is required for these swaps. The embedded hook data will be forwarded from the AutoWrapperHook to the PredicateHook to be validated. 
 
 
-## OffChain Integration 
+## Integration 
 
-Under /transactor, you will find well documented script which leverages the predicate-sdk to fetch signatures and swap against a mainnet USDL/USDC pool. Below are the instructions for running it!
+Under /transactor, you will find well documented script which leverages the `predicate-sdk` to fetch signatures and swap against a mainnet USDL/USDC pool. Below are the instructions for running it!
 
 1. Install and set variables
     ```bash

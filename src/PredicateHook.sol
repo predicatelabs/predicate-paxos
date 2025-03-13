@@ -13,11 +13,12 @@ import {BeforeSwapDelta, toBeforeSwapDelta} from "@uniswap/v4-core/src/types/Bef
 import {PredicateClient} from "@predicate/mixins/PredicateClient.sol";
 import {PredicateMessage} from "@predicate/interfaces/IPredicateClient.sol";
 import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 /// @title Predicated Hook
 /// @author Predicate Labs
 /// @notice A hook for compliant swaps
-contract PredicateHook is BaseHook, PredicateClient {
+contract PredicateHook is BaseHook, PredicateClient, Ownable {
     ISimpleV4Router public immutable router;
     mapping(address => bool) public isAuthorized;
 
@@ -26,7 +27,7 @@ contract PredicateHook is BaseHook, PredicateClient {
         ISimpleV4Router _router,
         address _serviceManager,
         string memory _policyID
-    ) BaseHook(_poolManager) {
+    ) BaseHook(_poolManager) Ownable(msg.sender) {
         _initPredicateClient(_serviceManager, _policyID);
         router = _router;
     }
@@ -35,7 +36,7 @@ contract PredicateHook is BaseHook, PredicateClient {
         return Hooks.Permissions({
             beforeInitialize: false,
             afterInitialize: false,
-            beforeAddLiquidity: false,
+            beforeAddLiquidity: true,
             afterAddLiquidity: false,
             beforeRemoveLiquidity: false,
             afterRemoveLiquidity: false,
@@ -48,6 +49,22 @@ contract PredicateHook is BaseHook, PredicateClient {
             afterAddLiquidityReturnDelta: false,
             afterRemoveLiquidityReturnDelta: false
         });
+    }
+
+    function addToAllowList(
+        address[] calldata _addresses
+    ) external onlyOwner {
+        for (uint256 i = 0; i < _addresses.length; i++) {
+            isAuthorized[_addresses[i]] = true;
+        }
+    }
+
+    function removeFromAllowList(
+        address[] calldata _addresses
+    ) external onlyOwner {
+        for (uint256 i = 0; i < _addresses.length; i++) {
+            isAuthorized[_addresses[i]] = false;
+        }
     }
 
     function _beforeSwap(
@@ -78,6 +95,17 @@ contract PredicateHook is BaseHook, PredicateClient {
         BeforeSwapDelta delta = toBeforeSwapDelta(0, 0);
 
         return (IHooks.beforeSwap.selector, delta, 100);
+    }
+
+    function _beforeAddLiquidity(
+        address sender,
+        PoolKey calldata,
+        IPoolManager.ModifyLiquidityParams calldata,
+        bytes calldata
+    ) internal override returns (bytes4) {
+        require(isAuthorized[sender], "Unauthorized sender"); // TODO: change to router.msgSender()
+
+        return IHooks.beforeAddLiquidity.selector;
     }
 
     function setPolicy(

@@ -336,4 +336,3 @@ contract PredicateHookTest is PredicateHookSetup, OperatorTestPrep {
         hook.addAuthorizedLP(lps);
     }
 }
-

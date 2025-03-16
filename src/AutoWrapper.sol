@@ -375,7 +375,7 @@ contract AutoWrapper is BaseHook, DeltaResolver {
     }
 
     /**
-     * @notice Retrieves balances and delta for a specific token 
+     * @notice Retrieves balances and delta for a specific token
      * @param currency The token to query (exchangeToken or wUSDL)
      * @param user The user address
      * @param deltaHolder The address responsible for settling deltas (typically this contract)

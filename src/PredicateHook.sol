@@ -13,19 +13,25 @@ import {BeforeSwapDelta, toBeforeSwapDelta} from "@uniswap/v4-core/src/types/Bef
 import {PredicateClient} from "@predicate/mixins/PredicateClient.sol";
 import {PredicateMessage} from "@predicate/interfaces/IPredicateClient.sol";
 import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 /// @title Predicated Hook
 /// @author Predicate Labs
 /// @notice A hook for compliant swaps
-contract PredicateHook is BaseHook, PredicateClient {
+contract PredicateHook is BaseHook, PredicateClient, Ownable {
     ISimpleV4Router public immutable router;
+
+    mapping(address => bool) public authorizedLPs;
+
+    event AuthorizedLPAdded(address indexed lp);
+    event AuthorizedLPRemoved(address indexed lp);
 
     constructor(
         IPoolManager _poolManager,
         ISimpleV4Router _router,
         address _serviceManager,
         string memory _policyID
-    ) BaseHook(_poolManager) {
+    ) BaseHook(_poolManager) Ownable(msg.sender) {
         _initPredicateClient(_serviceManager, _policyID);
         router = _router;
     }
@@ -76,19 +82,20 @@ contract PredicateHook is BaseHook, PredicateClient {
 
         BeforeSwapDelta delta = toBeforeSwapDelta(0, 0);
 
-        return (IHooks.beforeSwap.selector, delta, 100);
+        return (IHooks.beforeSwap.selector, delta, 0);
     }
 
-    function setPolicy(
-        string memory _policyID
-    ) external {
-        _setPolicy(_policyID);
-    }
+    function _beforeAddLiquidity(
+        address,
+        PoolKey calldata key,
+        IPoolManager.ModifyLiquidityParams calldata params,
+        bytes calldata hookData
+    ) internal override returns (bytes4) {
+        if (!authorizedLPs[msg.sender]) {
+            revert("Unauthorized liquidity provider");
+        }
 
-    function setPredicateManager(
-        address _predicateManager
-    ) public {
-        _setPredicateManager(_predicateManager);
+        return BaseHook.beforeAddLiquidity.selector;
     }
 
     function decodeHookData(
@@ -98,5 +105,41 @@ contract PredicateHook is BaseHook, PredicateClient {
             abi.decode(hookData, (PredicateMessage, address, uint256));
 
         return (predicateMessage, msgSender, msgValue);
+    }
+
+    function setPolicy(
+        string memory _policyID
+    ) external onlyOwner {
+        _setPolicy(_policyID);
+    }
+
+    function setPredicateManager(
+        address _predicateManager
+    ) external onlyOwner {
+        _setPredicateManager(_predicateManager);
+    }
+
+    function addAuthorizedLP(
+        address[] memory _lps
+    ) external onlyOwner {
+        for (uint256 i = 0; i < _lps.length; i++) {
+            emit AuthorizedLPAdded(_lps[i]);
+            authorizedLPs[_lps[i]] = true;
+        }
+    }
+
+    function removeAuthorizedLP(
+        address[] memory _lps
+    ) external onlyOwner {
+        for (uint256 i = 0; i < _lps.length; i++) {
+            emit AuthorizedLPRemoved(_lps[i]);
+            authorizedLPs[_lps[i]] = false;
+        }
+    }
+
+    function isAuthorizedLP(
+        address _lp
+    ) external view returns (bool) {
+        return authorizedLPs[_lp];
     }
 }

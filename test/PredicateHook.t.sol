@@ -235,13 +235,6 @@ contract PredicateHookTest is PredicateHookSetup, OperatorTestPrep {
         }
     }
 
-    function testSetPredicateManager() public {
-        address newManager = address(0x123);
-        vm.prank(address(serviceManager));
-        hook.setPredicateManager(newManager);
-        assertEq(address(hook.getPredicateManager()), newManager);
-    }
-
     function testSwapWithEmptySignatures() public permissionedOperators prepOperatorRegistration(true) {
         PoolKey memory key = getPoolKey();
         string memory taskId = "unique-identifier";
@@ -279,4 +272,68 @@ contract PredicateHookTest is PredicateHookSetup, OperatorTestPrep {
         assertEq(token0.balanceOf(liquidityProvider), initialBalance0, "Token0 balance should not change");
         assertEq(token1.balanceOf(liquidityProvider), initialBalance1, "Token1 balance should not change");
     }
+
+    function testSetPolicy() public {
+        string memory newPolicy = "new-policy";
+        vm.prank(hook.owner());
+        hook.setPolicy(newPolicy);
+        assertEq(hook.getPolicy(), newPolicy);
+    }
+
+    function testSetPolicyUnauthorized() public {
+        string memory newPolicy = "new-policy";
+        vm.prank(makeAddr("unauthorized"));
+        vm.expectRevert();
+        hook.setPolicy(newPolicy);
+    }
+
+    function testSetPredicateManager() public {
+        address newManager = makeAddr("new-manager");
+        vm.prank(hook.owner());
+        hook.setPredicateManager(newManager);
+        assertEq(hook.getPredicateManager(), newManager);
+    }
+
+    function testSetPredicateManagerUnauthorized() public {
+        address newManager = makeAddr("new-manager");
+        vm.prank(makeAddr("unauthorized"));
+        vm.expectRevert();
+        hook.setPredicateManager(newManager);
+    }
+
+    function testTransferOwnership() public {
+        address newOwner = makeAddr("new-owner");
+        vm.prank(hook.owner());
+        hook.transferOwnership(newOwner);
+        assertEq(hook.owner(), newOwner);
+    }
+
+    function testAddAuthorizedLP() public {
+        address[] memory lps = new address[](1);
+        lps[0] = liquidityProvider;
+        vm.prank(hook.owner());
+        hook.addAuthorizedLP(lps);
+        assertEq(hook.isAuthorizedLP(liquidityProvider), true);
+    }
+
+    function testRemoveAuthorizedLP() public {
+        address[] memory lps = new address[](1);
+        lps[0] = liquidityProvider;
+        vm.prank(hook.owner());
+        hook.addAuthorizedLP(lps);
+        assertEq(hook.isAuthorizedLP(liquidityProvider), true);
+
+        vm.prank(hook.owner());
+        hook.removeAuthorizedLP(lps);
+        assertEq(hook.isAuthorizedLP(liquidityProvider), false);
+    }
+
+    function testAddAuthorizedLPUnauthorized() public {
+        address[] memory lps = new address[](1);
+        lps[0] = liquidityProvider;
+        vm.prank(makeAddr("unauthorized"));
+        vm.expectRevert();
+        hook.addAuthorizedLP(lps);
+    }
 }
+

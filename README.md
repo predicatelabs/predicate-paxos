@@ -4,7 +4,7 @@ This repository contains the Uniswap V4 hook implementation for USDL (Lift Dolla
 
 ## Architecture
 
-![Architecture Diagram](assets/image.png)
+![Architecture Diagram](assets/PaxosV4Hook.png)
 
 This design consists of a router (necessary for swapping against the PoolManager), configuration for initializing two pools on the PoolManager, and the two associated hooks.
 

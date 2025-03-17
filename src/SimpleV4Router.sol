@@ -11,14 +11,30 @@ import {CurrencyLibrary, Currency} from "@uniswap/v4-core/src/types/Currency.sol
 import {TransientStateLibrary} from "@uniswap/v4-core/src/libraries/TransientStateLibrary.sol";
 import {CurrencySettler} from "@uniswap/v4-core/test/utils/CurrencySettler.sol";
 
+/**
+ * @title SimpleV4Router
+ * @notice A simple V4 router that allows users to swap between two currencies
+ * @dev This router is used to swap between two currencies in the Uniswap V4 protocol
+ */
 contract SimpleV4Router is ISimpleV4Router, SafeCallback, Lock {
     using CurrencySettler for Currency;
     using TransientStateLibrary for IPoolManager;
 
+    /**
+     * @notice Constructor for the SimpleV4Router
+     * @param _poolManager The Uniswap V4 pool manager
+     */
     constructor(
         IPoolManager _poolManager
     ) SafeCallback(_poolManager) {}
 
+    /**
+     * @notice Swaps between two currencies
+     * @param key The pool key
+     * @param params The swap parameters
+     * @param hookData The hook data
+     * @return delta The balance delta
+     */
     function swap(
         PoolKey memory key,
         IPoolManager.SwapParams memory params,
@@ -30,12 +46,20 @@ contract SimpleV4Router is ISimpleV4Router, SafeCallback, Lock {
         );
     }
 
-    /// @notice Public view function to be used instead of msg.sender, as the contract performs self-reentrancy and at
-    /// times msg.sender == address(this). Instead msgSender() returns the initiator of the lock
+    /**
+     * @notice Public view function to be used instead of msg.sender, as the contract performs self-reentrancy and at
+     * times msg.sender == address(this). Instead msgSender() returns the initiator of the lock
+     * @return The address of the initiator of the lock
+     */
     function msgSender() public view override returns (address) {
         return _getLocker();
     }
 
+    /**
+     * @notice Internal function to handle the callback from the pool manager
+     * @param rawData The raw data from the pool manager
+     * @return The encoded balance delta
+     */
     function _unlockCallback(
         bytes calldata rawData
     ) internal override returns (bytes memory) {
@@ -106,10 +130,19 @@ contract SimpleV4Router is ISimpleV4Router, SafeCallback, Lock {
         return abi.encode(delta);
     }
 
+    /**
+     * @notice Internal function to fetch the balances of the user and the pool
+     * @param currency The currency
+     * @param user The user
+     * @param deltaHolder The delta holder
+     * @return userBalance The balance of the user
+     * @return poolBalance The balance of the pool
+     * @return delta The delta
+     */
     function _fetchBalances(
         Currency currency,
         address user,
-        address deltaHolder
+        address pool
     ) internal view returns (uint256 userBalance, uint256 poolBalance, int256 delta) {
         userBalance = CurrencyLibrary.balanceOf(currency, user);
         poolBalance = CurrencyLibrary.balanceOf(currency, address(poolManager));

@@ -47,8 +47,10 @@ contract AutoWrapper is BaseHook, DeltaResolver {
      */
     error InvalidPoolFee();
 
-    /// @notice The ERC4626 vault contract
-    /// @dev This is the wrapped token (wUSDL in this case)
+    /**
+     * @notice The ERC4626 vault contract
+     * @dev This is the wrapped token (wUSDL in this case)
+     */
     ERC4626 public immutable wUSDL;
 
     /// @notice The predicate pool key
@@ -62,21 +64,29 @@ contract AutoWrapper is BaseHook, DeltaResolver {
      */
     ISimpleV4Router public router;
 
-    /// @notice The base currency for this USDL pool(e.g. USDC)
+    /**
+     * @notice The base currency for this USDL pool (e.g. USDC)
+     */
     Currency public immutable baseCurrency;
 
-    /// @notice Indicates whether the wUSDL is token0 in the baseCurrency/wUSDL pool
+    /**
+     * @notice Indicates whether the wUSDL is token0 in the baseCurrency/wUSDL pool
+     */
     bool public immutable wUSDLIsToken0ForPredicatePool;
 
-    /// @notice Indicates whether the base currency is token0 in the baseCurrency/USDL pool
+    /**
+     * @notice Indicates whether the base currency is token0 in the baseCurrency/USDL pool
+     */
     bool public immutable baseCurrencyIsToken0;
 
-    /// @notice Creates a new ERC4626 wrapper hook
-    /// @param _manager The Uniswap V4 pool manager
-    /// @param _wUSDL The ERC4626 vault contract address
-    /// @param _baseCurrency The base currency for wUSDL pool(e.g. USDC)
-    /// @param _predicatePoolKey The pool key for the pool with liquidity
-    /// @param _router The V4 router
+    /**
+     * @notice Creates a new ERC4626 wrapper hook
+     * @param _manager The Uniswap V4 pool manager
+     * @param _wUSDL The ERC4626 vault contract address
+     * @param _baseCurrency The base currency for wUSDL pool(e.g. USDC)
+     * @param _predicatePoolKey The pool key for the pool with liquidity
+     * @param _router The V4 router
+     */
     constructor(
         IPoolManager _manager,
         ERC4626 _wUSDL, // _wUSDL.asset() is USDL

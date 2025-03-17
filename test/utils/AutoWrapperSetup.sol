@@ -87,8 +87,8 @@ contract AutoWrapperSetup is MetaCoinTestSetup, PoolSetup {
 
         // initialize the auto wrapper
         uint160 autoWrapperFlags = uint160(
-            Hooks.BEFORE_SWAP_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG | Hooks.BEFORE_SWAP_RETURNS_DELTA_FLAG
-                | Hooks.BEFORE_INITIALIZE_FLAG
+            Hooks.BEFORE_INITIALIZE_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG | Hooks.BEFORE_SWAP_FLAG
+                | Hooks.BEFORE_SWAP_RETURNS_DELTA_FLAG
         );
         bytes memory autoWrapperConstructorArgs =
             abi.encode(manager, ERC4626(address(wUSDL)), predicatePoolKey, swapRouter, IERC20(Currency.unwrap(USDC)));

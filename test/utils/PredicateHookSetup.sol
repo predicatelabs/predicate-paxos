@@ -34,8 +34,7 @@ contract PredicateHookSetup is MetaCoinTestSetup, PoolSetup {
         setTokenApprovalForRouters(currency1);
         vm.stopPrank();
 
-        // create hook here
-        uint160 flags = uint160(Hooks.BEFORE_SWAP_FLAG);
+        uint160 flags = uint160(Hooks.BEFORE_SWAP_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG);
         bytes memory constructorArgs = abi.encode(manager, swapRouter, address(serviceManager), "testPolicy");
         (address hookAddress, bytes32 salt) =
             HookMiner.find(address(this), flags, type(PredicateHook).creationCode, constructorArgs);
@@ -43,9 +42,21 @@ contract PredicateHookSetup is MetaCoinTestSetup, PoolSetup {
         hook = new PredicateHook{salt: salt}(manager, swapRouter, address(serviceManager), "testPolicy");
         require(address(hook) == hookAddress, "Hook deployment failed");
 
-        // initialize the pool
         poolKey = PoolKey(currency0, currency1, 3000, tickSpacing, IHooks(hook));
         manager.initialize(poolKey, Constants.SQRT_PRICE_1_1);
+
+        address[] memory authorizedLps = new address[](4);
+        authorizedLps[0] = liquidityProvider;
+        authorizedLps[1] = address(lpRouter);
+        authorizedLps[2] = address(posm);
+        authorizedLps[3] = address(this);
+        vm.prank(hook.owner());
+        hook.addAuthorizedLP(authorizedLps);
+
+        require(hook.isAuthorizedLP(liquidityProvider), "LP not authorized");
+        require(hook.isAuthorizedLP(address(lpRouter)), "LP Router not authorized");
+        require(hook.isAuthorizedLP(address(posm)), "POSM not authorized");
+        require(hook.isAuthorizedLP(address(this)), "This contract not authorized");
 
         vm.startPrank(liquidityProvider);
         provisionLiquidity(tickSpacing, poolKey, 100 ether, liquidityProvider, 100_000 ether, 100_000 ether);

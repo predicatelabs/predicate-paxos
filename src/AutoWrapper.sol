@@ -56,7 +56,7 @@ contract AutoWrapper is BaseHook, DeltaResolver {
     /// @notice The V4 router
     ISimpleV4Router public router;
 
-    /// @notice The base currency for wUSDL pool(e.g. USDC)
+    /// @notice The base currency for this USDL pool(e.g. USDC)
     Currency public immutable baseCurrency;
 
     /// @notice Indicates whether the wUSDL is token0 in the baseCurrency/wUSDL pool
@@ -193,6 +193,7 @@ contract AutoWrapper is BaseHook, DeltaResolver {
                 isExactInput ? -getUnwrapInputRequired(uint256(-params.amountSpecified)) : params.amountSpecified;
             if (wUSDLIsToken0) {
                 swapParams.zeroForOne = !swapParams.zeroForOne;
+                swapParams.amountSpecified = -swapParams.amountSpecified;
             }
             delta = _swap(swapParams, hookData);
             uint256 underlyingAmount;

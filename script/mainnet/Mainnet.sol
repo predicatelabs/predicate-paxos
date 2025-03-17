@@ -38,7 +38,7 @@ contract Mainnet is INetwork {
                 tickSpacing: 60,
                 hooks: IHooks(address(0))
             }),
-            usdc: USDC
+            usdc: Currency.wrap(USDC)
         });
     }
 

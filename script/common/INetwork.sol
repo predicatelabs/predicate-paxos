@@ -6,6 +6,7 @@ import {PositionManager} from "@uniswap/v4-periphery/src/PositionManager.sol";
 import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
 import {ISimpleV4Router} from "../../src/interfaces/ISimpleV4Router.sol";
 import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
+import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
 
 interface INetwork {
     struct Config {
@@ -17,7 +18,7 @@ interface INetwork {
         address serviceManager;
         string policyId;
         address ybsAddress;
-        address usdc;
+        Currency usdc;
         PoolKey poolKey;
     }
 

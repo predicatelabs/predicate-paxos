@@ -74,11 +74,11 @@ contract AutoWrapper is BaseHook, DeltaResolver {
     constructor(
         IPoolManager _manager,
         ERC4626 _wUSDL, // _wUSDL.asset() is USDL
-        IERC20 _baseCurrency, // _baseCurrency is the other asset of the wUSDL pool. ex USDC
-        PoolKey calldata _predicatePoolKey,
+        Currency _baseCurrency, // _baseCurrency is the other asset of the wUSDL pool. ex USDC
+        PoolKey memory _predicatePoolKey,
         ISimpleV4Router _router
     ) BaseHook(_manager) {
-        if (address(_baseCurrency) == Currency.unwrap(_predicatePoolKey.currency0)) {
+        if (_baseCurrency == _predicatePoolKey.currency0) {
             // baseCurrency/wUSDL pool
             require(
                 address(_wUSDL) == Currency.unwrap(_predicatePoolKey.currency1),
@@ -97,7 +97,7 @@ contract AutoWrapper is BaseHook, DeltaResolver {
         wUSDL = _wUSDL;
         predicatePoolKey = _predicatePoolKey;
         router = _router;
-        baseCurrencyIsToken0 = baseCurrency < address(wUSDL.asset());
+        baseCurrencyIsToken0 = baseCurrency < Currency.wrap(wUSDL.asset());
         IERC20(Currency.unwrap(baseCurrency)).approve(address(wUSDL), type(uint256).max);
     }
 
@@ -183,7 +183,7 @@ contract AutoWrapper is BaseHook, DeltaResolver {
             // takes baseCurrency from the auto wrapper and settles the delta with the pool manager
             _settleDelta(delta);
 
-            // withdraw the USDL from the vault and transfers to the user
+            // withdraw the USDL from the wUSDL and transfers to the user
             uint256 redeemAmount = _withdraw(IERC20(address(wUSDL)).balanceOf(address(this)));
             IERC20(wUSDL.asset()).transfer(router.msgSender(), redeemAmount);
         } else {
@@ -220,8 +220,8 @@ contract AutoWrapper is BaseHook, DeltaResolver {
             _settleDelta(delta); // takes WUSDL from the auto wrapper and settles the delta with the pool manager
 
             // transfer the baseCurrency to the user directly
-            uint256 baseCurrencyBalance = IERC20(baseCurrency).balanceOf(address(this));
-            IERC20(baseCurrency).transfer(router.msgSender(), baseCurrencyBalance);
+            uint256 baseCurrencyBalance = IERC20(Currency.unwrap(baseCurrency)).balanceOf(address(this));
+            IERC20(Currency.unwrap(baseCurrency)).transfer(router.msgSender(), baseCurrencyBalance);
         }
         return (IHooks.beforeSwap.selector, swapDelta, 0);
     }
@@ -239,7 +239,7 @@ contract AutoWrapper is BaseHook, DeltaResolver {
         require(deltaBefore0 == 0, "deltaBefore0 is not 0");
         require(deltaBefore1 == 0, "deltaBefore1 is not 0");
 
-        delta = poolManager.swap(predicatePoolKey, params, hookData); // USDC/WUSDL pool
+        delta = poolManager.swap(predicatePoolKey, params, hookData);
 
         return delta;
     }
@@ -278,7 +278,7 @@ contract AutoWrapper is BaseHook, DeltaResolver {
     function _deposit(
         uint256 underlyingAmount
     ) internal returns (uint256) {
-        return vault.deposit({assets: underlyingAmount, receiver: address(this)});
+        return wUSDL.deposit({assets: underlyingAmount, receiver: address(this)});
     }
 
     /// @notice Withdraws wrapper tokens to receive underlying tokens
@@ -287,7 +287,7 @@ contract AutoWrapper is BaseHook, DeltaResolver {
     function _withdraw(
         uint256 wrappedAmount
     ) internal returns (uint256) {
-        return vault.redeem({shares: wrappedAmount, receiver: address(this), owner: address(this)});
+        return wUSDL.redeem({shares: wrappedAmount, receiver: address(this), owner: address(this)});
     }
 
     /// @notice Calculates underlying tokens needed to receive desired wrapper tokens
@@ -295,7 +295,7 @@ contract AutoWrapper is BaseHook, DeltaResolver {
     function getWrapInputRequired(
         uint256 wrappedAmount
     ) public view returns (int256) {
-        return int256(vault.convertToAssets({shares: wrappedAmount}));
+        return int256(wUSDL.convertToAssets({shares: wrappedAmount}));
     }
 
     /// @notice Calculates wrapper tokens needed to receive desired underlying tokens
@@ -303,7 +303,7 @@ contract AutoWrapper is BaseHook, DeltaResolver {
     function getUnwrapInputRequired(
         uint256 underlyingAmount
     ) public view returns (int256) {
-        return int256(vault.convertToShares({assets: underlyingAmount}));
+        return int256(wUSDL.convertToShares({assets: underlyingAmount}));
     }
 
     /// @notice Fetches the user balance, pool balance, and delta for a given currency

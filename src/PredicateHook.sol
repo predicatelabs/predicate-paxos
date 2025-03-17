@@ -15,9 +15,11 @@ import {PredicateMessage} from "@predicate/interfaces/IPredicateClient.sol";
 import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
-/// @title Predicated Hook
-/// @author Predicate Labs
-/// @notice A hook for compliant swaps
+/**
+ * @title Predicated Hook
+ * @author Predicate Labs
+ * @notice A hook for compliant swaps
+ */
 contract PredicateHook is BaseHook, PredicateClient, Ownable {
     /**
      * @notice The router contract that is used to swap tokens

@@ -82,7 +82,7 @@ contract PredicateHookIntegrationTest is PredicateHookSetup, OperatorTestPrep {
         });
 
         vm.prank(authorizedUsers[0]);
-        BalanceDelta delta = swapRouter.swap(key, params, abi.encode(0)); // adding no message
+        BalanceDelta delta = swapRouter.swap(key, params, abi.encode(0)); // no predicate message
         require(token0.balanceOf(authorizedUsers[0]) < balance0, "Token0 balance should decrease");
         require(token1.balanceOf(authorizedUsers[0]) > balance1, "Token1 balance should increase");
     }

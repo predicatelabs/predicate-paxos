@@ -13,36 +13,73 @@ import {BeforeSwapDelta, toBeforeSwapDelta} from "@uniswap/v4-core/src/types/Bef
 import {PredicateClient} from "@predicate/mixins/PredicateClient.sol";
 import {PredicateMessage} from "@predicate/interfaces/IPredicateClient.sol";
 import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
-/**
- * @title PredicateHook
- * @author Predicate Labs
- * @notice A Uniswap V4 hook for policy-enforced swaps via the Predicate Network
- * @dev Implements transaction authorization by validating signatures from Predicate Network that are
- *      passed by the sender against defined policies before allowing swaps to proceed
- */
-contract PredicateHook is BaseHook, PredicateClient {
+/// @title Predicated Hook
+/// @author Predicate Labs
+/// @notice A hook for compliant swaps
+contract PredicateHook is BaseHook, PredicateClient, Ownable {
     /**
-     * @notice Reference to the router handling swap requests
-     * @dev Used to determine the original message sender. This is a trusted contract.
+     * @notice The router contract that is used to swap tokens
+     * @dev This is the router contract is used to get the msgSender() who initiated the swap
      */
     ISimpleV4Router public immutable router;
 
     /**
-     * @notice Creates a PredicateHook with required dependencies
-     * @param _poolManager The Uniswap V4 pool manager
-     * @param _router The router for accessing the original message sender
-     * @param _serviceManager The Predicate service manager contract address
-     * @param _policyID The initial policy identifier
+     * @notice A mapping of authorized liquidity providers
+     * @dev This is used to check if the liquidity provider is authorized to add liquidity to the pool
+     */
+    mapping(address => bool) public isAuthorizedLP;
+
+    /**
+     * @notice A mapping of authorized users
+     * @dev This is used to check if the user is authorized to swap tokens
+     */
+    mapping(address => bool) public isAuthorizedUser;
+
+    /**
+     * @notice An event emitted when a liquidity provider is added to the authorized lp list
+     * @param lp The address of the liquidity provider
+     */
+    event AuthorizedLPAdded(address indexed lp);
+
+    /**
+     * @notice An event emitted when a liquidity provider is removed from the authorized lp list
+     * @param lp The address of the liquidity provider
+     */
+    event AuthorizedLPRemoved(address indexed lp);
+
+    /**
+     * @notice An event emitted when a user is added to the authorized user list
+     * @param user The address of the user
+     */
+    event AuthorizedUserAdded(address indexed user);
+
+    /**
+     * @notice An event emitted when a user is removed from the authorized user list
+     * @param user The address of the user
+     */
+    event AuthorizedUserRemoved(address indexed user);
+
+    /**
+     * @notice Constructor for the PredicateHook
+     * @param _poolManager The pool manager contract
+     * @param _router The router contract
+     * @param _serviceManager The service manager contract
+     * @param _policyID The policy ID
+     * @param _owner The owner of the contract
      */
     constructor(
         IPoolManager _poolManager,
         ISimpleV4Router _router,
         address _serviceManager,
-        string memory _policyID
-    ) BaseHook(_poolManager) {
+        string memory _policyID,
+        address _owner
+    ) BaseHook(_poolManager) Ownable(_owner) {
         _initPredicateClient(_serviceManager, _policyID);
         router = _router;
+        isAuthorizedLP[_owner] = true;
+        isAuthorizedUser[_owner] = true;
     }
 
     /**
@@ -53,7 +90,7 @@ contract PredicateHook is BaseHook, PredicateClient {
         return Hooks.Permissions({
             beforeInitialize: false,
             afterInitialize: false,
-            beforeAddLiquidity: false,
+            beforeAddLiquidity: true,
             afterAddLiquidity: false,
             beforeRemoveLiquidity: false,
             afterRemoveLiquidity: false,
@@ -80,16 +117,24 @@ contract PredicateHook is BaseHook, PredicateClient {
      * @return lpFeeOverride Fee override
      */
     function _beforeSwap(
-        address,
+        address sender,
         PoolKey calldata key,
         IPoolManager.SwapParams calldata params,
         bytes calldata hookData
     ) internal override returns (bytes4, BeforeSwapDelta, uint24) {
-        (
-            PredicateMessage memory predicateMessage,
-            address msgSender, // todo remove this from the hook data
-            uint256 msgValue
-        ) = this.decodeHookData(hookData);
+        BeforeSwapDelta delta = toBeforeSwapDelta(0, 0);
+
+        // If the sender is authorized, bypass the predicate check
+        if (isAuthorizedUser[router.msgSender()]) {
+            return (IHooks.beforeSwap.selector, delta, 0);
+        }
+
+        // If the sender is an authorized user, bypass the predicate check
+        if (isAuthorizedUser[sender]) {
+            return (IHooks.beforeSwap.selector, delta, 0);
+        }
+
+        (PredicateMessage memory predicateMessage, address msgSender, uint256 msgValue) = this.decodeHookData(hookData);
 
         bytes memory encodeSigAndArgs = abi.encodeWithSignature(
             "_beforeSwap(address,address,address,uint24,int24,address,bool,int256,uint160)",
@@ -108,32 +153,36 @@ contract PredicateHook is BaseHook, PredicateClient {
             _authorizeTransaction(predicateMessage, encodeSigAndArgs, msgSender, msgValue), "Unauthorized transaction"
         );
 
-        BeforeSwapDelta delta = toBeforeSwapDelta(0, 0);
-
         return (IHooks.beforeSwap.selector, delta, 0);
     }
 
     /**
-     * @notice Updates the policy ID
-     * @dev This policy ID is fetched by the Predicate Network
-     * @param _policyID The new policy identifier
+     * @notice Validates transactions against the authorized liquidity providers before allowing add liquidity
+     * @dev If the sender or router.msgSender() is not an authorized liquidity provider, the transaction will revert
+     * @param sender The address initiating the liquidity addition
+     * @param key Pool configuration information
+     * @param params Modify liquidity parameters
+     * @param hookData Encoded authorization data from the Predicate service
+     * @return selector The function selector indicating success
      */
-    function setPolicy(
-        string memory _policyID
-    ) external {
-        _setPolicy(_policyID);
-    }
+    function _beforeAddLiquidity(
+        address sender,
+        PoolKey calldata key,
+        IPoolManager.ModifyLiquidityParams calldata params,
+        bytes calldata hookData
+    ) internal override returns (bytes4) {
+        // If the sender is an authorized liquidity provider, bypass the check
+        if (isAuthorizedLP[sender]) {
+            return BaseHook.beforeAddLiquidity.selector;
+        }
 
-    /**
-     * @notice Updates the Predicate manager contract address
-     * @dev This contract maintains the Predicate Network Registry
-     *     and is used to validate signatures
-     * @param _predicateManager The new manager contract address
-     */
-    function setPredicateManager(
-        address _predicateManager
-    ) public {
-        _setPredicateManager(_predicateManager);
+        // If the router.msgSender() is a liquidity provider, check if the sender is an authorized liquidity provider
+        if (isAuthorizedLP[router.msgSender()]) {
+            return BaseHook.beforeAddLiquidity.selector;
+        }
+
+        // If the sender is not an authorized liquidity provider, the transaction will revert
+        revert("Unauthorized liquidity provider");
     }
 
     /**
@@ -154,5 +203,77 @@ contract PredicateHook is BaseHook, PredicateClient {
         ) = abi.decode(hookData, (PredicateMessage, address, uint256));
 
         return (predicateMessage, msgSender, msgValue);
+    }
+
+    /**
+     * @notice Sets the policy ID
+     * @param _policyID The new policy ID
+     */
+    function setPolicy(
+        string memory _policyID
+    ) external onlyOwner {
+        _setPolicy(_policyID);
+    }
+
+    /**
+     * @notice Sets the predicate manager
+     * @param _predicateManager The new predicate manager
+     */
+    function setPredicateManager(
+        address _predicateManager
+    ) external onlyOwner {
+        _setPredicateManager(_predicateManager);
+    }
+
+    /**
+     * @notice Adds authorized liquidity providers
+     * @param _lps The addresses of the liquidity providers to add
+     */
+    function addAuthorizedLPs(
+        address[] memory _lps
+    ) external onlyOwner {
+        for (uint256 i = 0; i < _lps.length; i++) {
+            isAuthorizedLP[_lps[i]] = true;
+            emit AuthorizedLPAdded(_lps[i]);
+        }
+    }
+
+    /**
+     * @notice Removes authorized liquidity providers
+     * @param _lps The addresses of the liquidity providers to remove
+     */
+    function removeAuthorizedLPs(
+        address[] memory _lps
+    ) external onlyOwner {
+        for (uint256 i = 0; i < _lps.length; i++) {
+            isAuthorizedLP[_lps[i]] = false;
+            emit AuthorizedLPRemoved(_lps[i]);
+        }
+    }
+
+    /**
+     * @notice Adds authorized users for swaps to skip the predicate check
+     * @param _users The addresses of the users to add
+     */
+    function addAuthorizedUsers(
+        address[] memory _users
+    ) external onlyOwner {
+        for (uint256 i = 0; i < _users.length; i++) {
+            isAuthorizedUser[_users[i]] = true;
+            emit AuthorizedUserAdded(_users[i]);
+        }
+    }
+
+    /**
+     * @notice Removes authorized users for swaps to skip the predicate check
+     * @param _users The addresses of the users to remove
+     */
+    function removeAuthorizedUsers(
+        address[] memory _users
+    ) external onlyOwner {
+        for (uint256 i = 0; i < _users.length; i++) {
+            isAuthorizedUser[_users[i]] = false;
+            emit AuthorizedUserRemoved(_users[i]);
+        }
     }
 }

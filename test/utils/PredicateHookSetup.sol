@@ -54,11 +54,8 @@ contract PredicateHookSetup is MetaCoinTestSetup, PoolSetup {
         require(hook.isAuthorizedLP(_owner), "LP not authorized");
         require(hook.isAuthorizedLP(address(lpRouter)), "LP Router not authorized");
         require(hook.isAuthorizedLP(address(posm)), "POSM not authorized");
-
         vm.startPrank(_owner);
-        hook.setByPassAuthorizedLPs(true);
         provisionLiquidity(tickSpacing, poolKey, 100 ether, _owner, 100_000 ether, 100_000 ether);
-        hook.setByPassAuthorizedLPs(false);
         vm.stopPrank();
     }
 

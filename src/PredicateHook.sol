@@ -19,17 +19,56 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 /// @author Predicate Labs
 /// @notice A hook for compliant swaps
 contract PredicateHook is BaseHook, PredicateClient, Ownable {
+    /**
+     * @notice The router contract that is used to swap tokens
+     * @dev This is the router contract is used to get the msgSender() who initiated the swap
+     */
     ISimpleV4Router public immutable router;
 
+    /**
+     * @notice A mapping of authorized liquidity providers
+     * @dev This is used to check if the liquidity provider is authorized to add liquidity to the pool
+     */
     mapping(address => bool) public isAuthorizedLP;
-    bool public byPassAuthorizedLPs;
+
+    /**
+     * @notice A mapping of authorized users
+     * @dev This is used to check if the user is authorized to swap tokens
+     */
     mapping(address => bool) public isAuthorizedUser;
 
+    /**
+     * @notice An event emitted when a liquidity provider is added to the authorized lp list
+     * @param lp The address of the liquidity provider
+     */
     event AuthorizedLPAdded(address indexed lp);
+
+    /**
+     * @notice An event emitted when a liquidity provider is removed from the authorized lp list
+     * @param lp The address of the liquidity provider
+     */
     event AuthorizedLPRemoved(address indexed lp);
+
+    /**
+     * @notice An event emitted when a user is added to the authorized user list
+     * @param user The address of the user
+     */
     event AuthorizedUserAdded(address indexed user);
+
+    /**
+     * @notice An event emitted when a user is removed from the authorized user list
+     * @param user The address of the user
+     */
     event AuthorizedUserRemoved(address indexed user);
 
+    /**
+     * @notice Constructor for the PredicateHook
+     * @param _poolManager The pool manager contract
+     * @param _router The router contract
+     * @param _serviceManager The service manager contract
+     * @param _policyID The policy ID
+     * @param _owner The owner of the contract
+     */
     constructor(
         IPoolManager _poolManager,
         ISimpleV4Router _router,
@@ -41,9 +80,12 @@ contract PredicateHook is BaseHook, PredicateClient, Ownable {
         router = _router;
         isAuthorizedLP[_owner] = true;
         isAuthorizedUser[_owner] = true;
-        byPassAuthorizedLPs = false;
     }
 
+    /**
+     * @notice Defines which hook callbacks are active for this contract
+     * @return Permissions struct with beforeSwap enabled
+     */
     function getHookPermissions() public pure override returns (Hooks.Permissions memory) {
         return Hooks.Permissions({
             beforeInitialize: false,
@@ -63,6 +105,17 @@ contract PredicateHook is BaseHook, PredicateClient, Ownable {
         });
     }
 
+    /**
+     * @notice Validates transactions against the defined policy before allowing swaps
+     * @dev Extracts authorization data, encodes transaction parameters, and verifies
+     *      signatures from the Predicate service against the current policy
+     * @param key Pool configuration information
+     * @param params Swap parameters including direction and amount
+     * @param hookData Encoded authorization data from the Predicate service
+     * @return selector The function selector indicating success
+     * @return delta Empty delta for the pool
+     * @return lpFeeOverride Fee override
+     */
     function _beforeSwap(
         address sender,
         PoolKey calldata key,
@@ -98,46 +151,79 @@ contract PredicateHook is BaseHook, PredicateClient, Ownable {
         return (IHooks.beforeSwap.selector, delta, 0);
     }
 
+    /**
+     * @notice Validates transactions against the authorized liquidity providers before allowing add liquidity
+     * @dev If the sender or router.msgSender() is not an authorized liquidity provider, the transaction will revert
+     * @param sender The address initiating the liquidity addition
+     * @param key Pool configuration information
+     * @param params Modify liquidity parameters
+     * @param hookData Encoded authorization data from the Predicate service
+     * @return selector The function selector indicating success
+     */
     function _beforeAddLiquidity(
-        address,
+        address sender,
         PoolKey calldata key,
         IPoolManager.ModifyLiquidityParams calldata params,
         bytes calldata hookData
     ) internal override returns (bytes4) {
-        if (!isAuthorizedLP[router.msgSender()] && !byPassAuthorizedLPs) {
-            revert("Unauthorized liquidity provider");
+        // If the sender is an authorized liquidity provider, bypass the check
+        if (isAuthorizedLP[sender]) {
+            return BaseHook.beforeAddLiquidity.selector;
         }
 
-        return BaseHook.beforeAddLiquidity.selector;
+        // If the router.msgSender() is a liquidity provider, check if the sender is an authorized liquidity provider
+        if (isAuthorizedLP[router.msgSender()]) {
+            return BaseHook.beforeAddLiquidity.selector;
+        }
+
+        // If the sender is not an authorized liquidity provider, the transaction will revert
+        revert("Unauthorized liquidity provider");
     }
 
+    /**
+     * @notice Utility to decode hook data into its components
+     * @dev Extracts the authorization message, sender, and value from encoded hook data
+     * @param hookData The encoded hook data from the swap call
+     * @return predicateMessage The Predicate authorization message with signatures
+     * @return msgSender The original transaction sender
+     * @return msgValue Any ETH value sent with the transaction
+     */
     function decodeHookData(
         bytes calldata hookData
     ) external pure returns (PredicateMessage memory, address, uint256) {
-        (PredicateMessage memory predicateMessage, address msgSender, uint256 msgValue) =
-            abi.decode(hookData, (PredicateMessage, address, uint256));
+        (
+            PredicateMessage memory predicateMessage,
+            address msgSender, // todo remove this from the hook data
+            uint256 msgValue
+        ) = abi.decode(hookData, (PredicateMessage, address, uint256));
 
         return (predicateMessage, msgSender, msgValue);
     }
 
+    /**
+     * @notice Sets the policy ID
+     * @param _policyID The new policy ID
+     */
     function setPolicy(
         string memory _policyID
     ) external onlyOwner {
         _setPolicy(_policyID);
     }
 
-    function setByPassAuthorizedLPs(
-        bool _byPassAuthorizedLPs
-    ) external onlyOwner {
-        byPassAuthorizedLPs = _byPassAuthorizedLPs;
-    }
-
+    /**
+     * @notice Sets the predicate manager
+     * @param _predicateManager The new predicate manager
+     */
     function setPredicateManager(
         address _predicateManager
     ) external onlyOwner {
         _setPredicateManager(_predicateManager);
     }
 
+    /**
+     * @notice Adds authorized liquidity providers
+     * @param _lps The addresses of the liquidity providers to add
+     */
     function addAuthorizedLPs(
         address[] memory _lps
     ) external onlyOwner {
@@ -147,6 +233,10 @@ contract PredicateHook is BaseHook, PredicateClient, Ownable {
         }
     }
 
+    /**
+     * @notice Removes authorized liquidity providers
+     * @param _lps The addresses of the liquidity providers to remove
+     */
     function removeAuthorizedLPs(
         address[] memory _lps
     ) external onlyOwner {
@@ -156,6 +246,10 @@ contract PredicateHook is BaseHook, PredicateClient, Ownable {
         }
     }
 
+    /**
+     * @notice Adds authorized users for swaps to skip the predicate check
+     * @param _users The addresses of the users to add
+     */
     function addAuthorizedUsers(
         address[] memory _users
     ) external onlyOwner {
@@ -165,6 +259,10 @@ contract PredicateHook is BaseHook, PredicateClient, Ownable {
         }
     }
 
+    /**
+     * @notice Removes authorized users for swaps to skip the predicate check
+     * @param _users The addresses of the users to remove
+     */
     function removeAuthorizedUsers(
         address[] memory _users
     ) external onlyOwner {

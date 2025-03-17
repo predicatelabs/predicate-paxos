@@ -122,9 +122,11 @@ contract AutoWrapperSetup is MetaCoinTestSetup, PoolSetup {
 
         // provision liquidity
         vm.startPrank(liquidityProvider);
-        predicateHook.setByPassAuthorizedLPs(true);
+        address[] memory authorizedLps = new address[](2);
+        authorizedLps[0] = address(lpRouter);
+        authorizedLps[1] = address(posm);
+        predicateHook.addAuthorizedLPs(authorizedLps);
         provisionLiquidity(tickSpacing, predicatePoolKey, 100 ether, liquidityProvider, 100_000 ether, 100_000 ether);
-        predicateHook.setByPassAuthorizedLPs(false);
         vm.stopPrank();
     }
 

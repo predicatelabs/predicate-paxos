@@ -111,16 +111,4 @@ contract PredicateHookTest is PredicateHookSetup {
         vm.expectRevert();
         hook.removeAuthorizedUsers(users);
     }
-
-    function testSetByPassAuthorizedLPs() public {
-        vm.prank(hook.owner());
-        hook.setByPassAuthorizedLPs(true);
-        assertEq(hook.byPassAuthorizedLPs(), true);
-    }
-
-    function testSetByPassAuthorizedLPsUnauthorized() public {
-        vm.prank(makeAddr("unauthorized"));
-        vm.expectRevert();
-        hook.setByPassAuthorizedLPs(true);
-    }
 }

@@ -125,6 +125,11 @@ contract PredicateHook is BaseHook, PredicateClient, Ownable {
         BeforeSwapDelta delta = toBeforeSwapDelta(0, 0);
 
         // If the sender is authorized, bypass the predicate check
+        if (isAuthorizedUser[router.msgSender()]) {
+            return (IHooks.beforeSwap.selector, delta, 0);
+        }
+
+        // If the sender is an authorized user, bypass the predicate check
         if (isAuthorizedUser[sender]) {
             return (IHooks.beforeSwap.selector, delta, 0);
         }

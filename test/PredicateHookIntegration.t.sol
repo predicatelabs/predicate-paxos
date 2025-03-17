@@ -81,9 +81,36 @@ contract PredicateHookIntegrationTest is PredicateHookSetup, OperatorTestPrep {
             sqrtPriceLimitX96: TickMath.MIN_SQRT_PRICE + 1
         });
 
+        vm.prank(authorizedUsers[0]);
         BalanceDelta delta = swapRouter.swap(key, params, abi.encode(0)); // adding no message
         require(token0.balanceOf(authorizedUsers[0]) < balance0, "Token0 balance should decrease");
         require(token1.balanceOf(authorizedUsers[0]) > balance1, "Token1 balance should increase");
+    }
+
+    function testSwapOneForZeroWithAuthorizedRouter() public {
+        address[] memory authorizedRouters = new address[](1);
+        authorizedRouters[0] = address(swapRouter); // this swapRouter can now bypass the predicate check
+
+        PoolKey memory key = getPoolKey();
+        vm.prank(hook.owner());
+        hook.addAuthorizedUsers(authorizedRouters);
+
+        IPoolManager.SwapParams memory params = IPoolManager.SwapParams({
+            zeroForOne: true,
+            amountSpecified: -1e18,
+            sqrtPriceLimitX96: TickMath.MIN_SQRT_PRICE + 1
+        });
+
+        IERC20 token0 = IERC20(Currency.unwrap(key.currency0));
+        IERC20 token1 = IERC20(Currency.unwrap(key.currency1));
+        uint256 balance0 = token0.balanceOf(liquidityProvider);
+        uint256 balance1 = token1.balanceOf(liquidityProvider);
+
+        vm.prank(address(liquidityProvider));
+        // adding no message to show that it will skip the predicate check
+        BalanceDelta delta = swapRouter.swap(key, params, abi.encode(0));
+        require(token0.balanceOf(liquidityProvider) < balance0, "Token0 balance should decrease");
+        require(token1.balanceOf(liquidityProvider) > balance1, "Token1 balance should increase");
     }
 
     function testSwapOneForZero() public permissionedOperators prepOperatorRegistration(true) {

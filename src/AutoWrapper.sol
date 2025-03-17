@@ -221,15 +221,15 @@ contract AutoWrapper is BaseHook, DeltaResolver {
                 USDLAmount = uint256(-params.amountSpecified);
 
                 // transfer the USDL to the auto wrapper
-                IERC20(wUSDL.asset()).transferFrom(router.msgSender(), address(this), underlyingAmount);
+                IERC20(wUSDL.asset()).transferFrom(router.msgSender(), address(this), USDLAmount);
             } else {
                 // For exact output: Calculate USDL needed based on wUSDL delta
                 int256 delta1 = BalanceDeltaLibrary.amount1(delta);
                 require(delta1 < 0, "wUSDL delta must be negative for USDL -> ERC20 swap");
 
                 // underlyingAmount is the amount of USDL required to wrap delta1 amount of WUSDL
-                underlyingAmount = uint256(getWrapInputRequired(uint256(-delta1)));
-                IERC20(wUSDL.asset()).transferFrom(router.msgSender(), address(this), underlyingAmount);
+                USDLAmount = uint256(getWrapInputRequired(uint256(-delta1)));
+                IERC20(wUSDL.asset()).transferFrom(router.msgSender(), address(this), USDLAmount);
             }
 
             // Wrap USDL to wUSDL for settlement
@@ -309,7 +309,7 @@ contract AutoWrapper is BaseHook, DeltaResolver {
     function _deposit(
         uint256 USDLAmount
     ) internal returns (uint256) {
-        return wUSDL.deposit({assets: underlyingAmount, receiver: address(this)});
+        return wUSDL.deposit({assets: USDLAmount, receiver: address(this)});
     }
     /**
      * @notice Withdraws wUSDL to receive USDL via the ERC4626 vault
@@ -321,7 +321,7 @@ contract AutoWrapper is BaseHook, DeltaResolver {
     function _withdraw(
         uint256 wUSDLAmount
     ) internal returns (uint256) {
-        return wUSDL.redeem({shares: wrappedAmount, receiver: address(this), owner: address(this)});
+        return wUSDL.redeem({shares: wUSDLAmount, receiver: address(this), owner: address(this)});
     }
 
     /**
@@ -332,7 +332,7 @@ contract AutoWrapper is BaseHook, DeltaResolver {
     function getWrapInputRequired(
         uint256 wUSDLAmount
     ) public view returns (int256) {
-        return int256(wUSDL.convertToAssets({shares: wrappedAmount}));
+        return int256(wUSDL.convertToAssets({shares: wUSDLAmount}));
     }
 
     /**
@@ -343,7 +343,7 @@ contract AutoWrapper is BaseHook, DeltaResolver {
     function getUnwrapInputRequired(
         uint256 USDLAmount
     ) public view returns (int256) {
-        return int256(wUSDL.convertToShares({assets: underlyingAmount}));
+        return int256(wUSDL.convertToShares({assets: USDLAmount}));
     }
 
     /**

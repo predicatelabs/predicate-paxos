@@ -23,13 +23,14 @@ contract PredicateHookSetup is MetaCoinTestSetup, PoolSetup {
     PoolKey poolKey;
 
     function setUpPredicateHook(
-        address _owner
+        address _liquidityProvider
     ) internal {
+        address _owner = makeAddr("owner");
         deployPoolManager();
         deployRouters();
         deployPosm();
-        (currency0, currency1) = deployAndMintTokens(_owner, 100_000 ether);
-        vm.startPrank(_owner);
+        (currency0, currency1) = deployAndMintTokens(_liquidityProvider, 100_000 ether);
+        vm.startPrank(_liquidityProvider);
         setTokenApprovalForRouters(currency0);
         setTokenApprovalForRouters(currency1);
         vm.stopPrank();
@@ -45,17 +46,20 @@ contract PredicateHookSetup is MetaCoinTestSetup, PoolSetup {
         poolKey = PoolKey(currency0, currency1, 3000, tickSpacing, IHooks(hook));
         manager.initialize(poolKey, Constants.SQRT_PRICE_1_1);
 
-        address[] memory authorizedLps = new address[](2);
+        address[] memory authorizedLps = new address[](3);
         authorizedLps[0] = address(lpRouter);
         authorizedLps[1] = address(posm);
+        authorizedLps[2] = _liquidityProvider;
         vm.prank(_owner);
         hook.addAuthorizedLPs(authorizedLps);
 
         require(hook.isAuthorizedLP(_owner), "LP not authorized");
         require(hook.isAuthorizedLP(address(lpRouter)), "LP Router not authorized");
         require(hook.isAuthorizedLP(address(posm)), "POSM not authorized");
-        vm.startPrank(_owner);
-        provisionLiquidity(tickSpacing, poolKey, 100 ether, _owner, 100_000 ether, 100_000 ether);
+        require(hook.isAuthorizedLP(_liquidityProvider), "Liquidity Provider not authorized");
+
+        vm.startPrank(_liquidityProvider);
+        provisionLiquidity(tickSpacing, poolKey, 100 ether, _liquidityProvider, 100_000 ether, 100_000 ether);
         vm.stopPrank();
     }
 

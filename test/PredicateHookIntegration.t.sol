@@ -32,56 +32,6 @@ contract PredicateHookIntegrationTest is PredicateHookSetup, OperatorTestPrep {
         _;
     }
 
-    function getPredicateMessage(
-        string memory taskId,
-        IPoolManager.SwapParams memory params
-    ) public returns (PredicateMessage memory) {
-        Task memory task = getTask(taskId, params);
-        bytes32 taskHash = serviceManager.hashTaskWithExpiry(task);
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(operatorOneAliasPk, taskHash);
-
-        bytes memory signature = abi.encodePacked(r, s, v);
-
-        address[] memory signerAddresses = new address[](1);
-        bytes[] memory operatorSignatures = new bytes[](1);
-        signerAddresses[0] = operatorOneAlias;
-        operatorSignatures[0] = signature;
-
-        PredicateMessage memory message = PredicateMessage({
-            taskId: taskId,
-            expireByBlockNumber: task.expireByBlockNumber,
-            signerAddresses: signerAddresses,
-            signatures: operatorSignatures
-        });
-
-        return message;
-    }
-
-    function getTask(string memory taskId, IPoolManager.SwapParams memory params) public returns (Task memory) {
-        PoolKey memory key = getPoolKey();
-        return Task({
-            taskId: taskId,
-            msgSender: liquidityProvider,
-            target: address(hook),
-            value: 0,
-            encodedSigAndArgs: abi.encodeWithSignature(
-                "_beforeSwap(address,address,address,uint24,int24,address,bool,int256,uint160)",
-                liquidityProvider,
-                key.currency0,
-                key.currency1,
-                key.fee,
-                key.tickSpacing,
-                address(key.hooks),
-                params.zeroForOne,
-                params.amountSpecified,
-                params.sqrtPriceLimitX96
-            ),
-            policyID: "testPolicy",
-            quorumThresholdCount: 1,
-            expireByBlockNumber: block.number + 100
-        });
-    }
-
     function testSwapZeroForOne() public permissionedOperators prepOperatorRegistration(true) {
         PoolKey memory key = getPoolKey();
         string memory taskId = "unique-identifier";
@@ -264,5 +214,55 @@ contract PredicateHookIntegrationTest is PredicateHookSetup, OperatorTestPrep {
 
         assertEq(token0.balanceOf(liquidityProvider), initialBalance0, "Token0 balance should not change");
         assertEq(token1.balanceOf(liquidityProvider), initialBalance1, "Token1 balance should not change");
+    }
+
+    function getPredicateMessage(
+        string memory taskId,
+        IPoolManager.SwapParams memory params
+    ) public returns (PredicateMessage memory) {
+        Task memory task = getTask(taskId, params);
+        bytes32 taskHash = serviceManager.hashTaskWithExpiry(task);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(operatorOneAliasPk, taskHash);
+
+        bytes memory signature = abi.encodePacked(r, s, v);
+
+        address[] memory signerAddresses = new address[](1);
+        bytes[] memory operatorSignatures = new bytes[](1);
+        signerAddresses[0] = operatorOneAlias;
+        operatorSignatures[0] = signature;
+
+        PredicateMessage memory message = PredicateMessage({
+            taskId: taskId,
+            expireByBlockNumber: task.expireByBlockNumber,
+            signerAddresses: signerAddresses,
+            signatures: operatorSignatures
+        });
+
+        return message;
+    }
+
+    function getTask(string memory taskId, IPoolManager.SwapParams memory params) public returns (Task memory) {
+        PoolKey memory key = getPoolKey();
+        return Task({
+            taskId: taskId,
+            msgSender: liquidityProvider,
+            target: address(hook),
+            value: 0,
+            encodedSigAndArgs: abi.encodeWithSignature(
+                "_beforeSwap(address,address,address,uint24,int24,address,bool,int256,uint160)",
+                liquidityProvider,
+                key.currency0,
+                key.currency1,
+                key.fee,
+                key.tickSpacing,
+                address(key.hooks),
+                params.zeroForOne,
+                params.amountSpecified,
+                params.sqrtPriceLimitX96
+            ),
+            policyID: "testPolicy",
+            quorumThresholdCount: 1,
+            expireByBlockNumber: block.number + 100
+        });
     }
 }

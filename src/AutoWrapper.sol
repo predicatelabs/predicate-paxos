@@ -158,19 +158,19 @@ contract AutoWrapper is BaseHook, DeltaResolver {
         BalanceDelta delta;
 
         // 4 possible cases:
-        // pool is USDL/baseCurrency and underlying is baseCurrency/wUSDL
-        // pool is USDL/baseCurrency and underlying is wUSDL/baseCurrency
         // pool is baseCurrency/USDL and underlying is baseCurrency/wUSDL
         // pool is baseCurrency/USDL and underlying is wUSDL/baseCurrency
-        // we need to check which case we are in and then swap through the correct underlying liquidity pool
-
-        // case 1: USDL/baseCurrency and baseCurrency/wUSDL
-
+        // pool is USDL/baseCurrency and underlying is baseCurrency/wUSDL
+        // pool is USDL/baseCurrency and underlying is wUSDL/baseCurrency
         if (baseCurrencyIsToken0 == params.zeroForOne) {
             // ex USDC -> wUSDL
             // calculate the amount of baseCurrency to swap through underlying liquidity pool
             swapParams.amountSpecified =
                 isExactInput ? params.amountSpecified : getUnwrapInputRequired(uint256(params.amountSpecified));
+
+            if (wUSDLIsToken0) {
+                swapParams.zeroForOne = !swapParams.zeroForOne;
+            }
             delta = _swap(swapParams, hookData);
 
             // calculate the amount of baseCurrency to settle the delta
@@ -184,13 +184,16 @@ contract AutoWrapper is BaseHook, DeltaResolver {
             _settleDelta(delta);
 
             // withdraw the USDL from the vault and transfers to the user
-            uint256 redeemAmount = _withdraw(IERC20(Currency.unwrap(wrapperCurrency)).balanceOf(address(this)));
-            IERC20(Currency.unwrap(underlyingCurrency)).transfer(router.msgSender(), redeemAmount);
+            uint256 redeemAmount = _withdraw(IERC20(address(wUSDL)).balanceOf(address(this)));
+            IERC20(wUSDL.asset()).transfer(router.msgSender(), redeemAmount);
         } else {
             // USDL -> USDC
             // calculate the amount of WUSDL to swap through underlying liquidity pool
             swapParams.amountSpecified =
                 isExactInput ? -getUnwrapInputRequired(uint256(-params.amountSpecified)) : params.amountSpecified;
+            if (wUSDLIsToken0) {
+                swapParams.zeroForOne = !swapParams.zeroForOne;
+            }
             delta = _swap(swapParams, hookData);
             uint256 underlyingAmount;
 
@@ -199,9 +202,7 @@ contract AutoWrapper is BaseHook, DeltaResolver {
                 underlyingAmount = uint256(-params.amountSpecified);
 
                 // transfer the USDL to the auto wrapper
-                IERC20(Currency.unwrap(underlyingCurrency)).transferFrom(
-                    router.msgSender(), address(this), underlyingAmount
-                );
+                IERC20(wUSDL.asset()).transferFrom(router.msgSender(), address(this), underlyingAmount);
             } else {
                 // delta1 is the amount of WUSDL required to settle the delta
                 // ex -6 WUSDL is required to settle the delta
@@ -210,9 +211,7 @@ contract AutoWrapper is BaseHook, DeltaResolver {
 
                 // underlyingAmount is the amount of USDL required to wrap delta1 amount of WUSDL
                 underlyingAmount = uint256(getWrapInputRequired(uint256(-delta1)));
-                IERC20(Currency.unwrap(underlyingCurrency)).transferFrom(
-                    router.msgSender(), address(this), underlyingAmount
-                );
+                IERC20(wUSDL.asset()).transferFrom(router.msgSender(), address(this), underlyingAmount);
             }
             // deposit the USDL
             uint256 wrappedAmount = _deposit(underlyingAmount);
@@ -220,9 +219,9 @@ contract AutoWrapper is BaseHook, DeltaResolver {
             // settle the delta
             _settleDelta(delta); // takes WUSDL from the auto wrapper and settles the delta with the pool manager
 
-            // transfer the USDC to the user directly
-            uint256 usdcBalance = usdc.balanceOf(address(this));
-            usdc.transfer(router.msgSender(), usdcBalance);
+            // transfer the baseCurrency to the user directly
+            uint256 baseCurrencyBalance = IERC20(baseCurrency).balanceOf(address(this));
+            IERC20(baseCurrency).transfer(router.msgSender(), baseCurrencyBalance);
         }
         return (IHooks.beforeSwap.selector, swapDelta, 0);
     }

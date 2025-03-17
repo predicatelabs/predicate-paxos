@@ -54,6 +54,34 @@ contract PredicateHookIntegrationTest is PredicateHookSetup, OperatorTestPrep {
         require(token1.balanceOf(liquidityProvider) > balance1, "Token1 balance should increase");
     }
 
+    function testSwapZeroForOneWithAuthorizedUser() public {
+        address[] memory authorizedUsers = new address[](1);
+        authorizedUsers[0] = makeAddr("authorizedUser");
+
+        vm.prank(hook.owner());
+        hook.addAuthorizedUsers(authorizedUsers);
+
+        vm.startPrank(authorizedUsers[0]);
+        IERC20 token0 = IERC20(Currency.unwrap(key.currency0));
+        token0.approve(address(swapRouter), type(uint256).max);
+        vm.stopPrank();
+
+        vm.startPrank(liquidityProvider);
+        token0.transfer(authorizedUsers[0], 1e18);
+        vm.stopPrank();
+
+        PoolKey memory key = getPoolKey();
+        IPoolManager.SwapParams memory params = IPoolManager.SwapParams({
+            zeroForOne: true,
+            amountSpecified: -1e18,
+            sqrtPriceLimitX96: TickMath.MIN_SQRT_PRICE + 1
+        });
+
+        BalanceDelta delta = swapRouter.swap(key, params, abi.encode(0)); // adding no message
+        require(token0.balanceOf(authorizedUsers[0]) < balance0, "Token0 balance should decrease");
+        require(token1.balanceOf(authorizedUsers[0]) > balance1, "Token1 balance should increase");
+    }
+
     function testSwapOneForZero() public permissionedOperators prepOperatorRegistration(true) {
         PoolKey memory key = getPoolKey();
         string memory taskId = "unique-identifier";

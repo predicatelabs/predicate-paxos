@@ -73,12 +73,12 @@ contract AutoWrapperSetup is MetaCoinTestSetup, PoolSetup {
         vm.stopPrank();
 
         // create hook here
-        uint160 predicateHookFlags = uint160(Hooks.BEFORE_SWAP_FLAG);
-        bytes memory constructorArgs = abi.encode(manager, swapRouter, address(serviceManager), "testPolicy");
+        uint160 predicateHookFlags = uint160(Hooks.BEFORE_SWAP_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG);
+        bytes memory constructorArgs = abi.encode(manager, swapRouter, address(serviceManager), "testPolicy", admin);
         (address hookAddress, bytes32 salt) =
             HookMiner.find(address(this), predicateHookFlags, type(PredicateHook).creationCode, constructorArgs);
 
-        predicateHook = new PredicateHook{salt: salt}(manager, swapRouter, address(serviceManager), "testPolicy");
+        predicateHook = new PredicateHook{salt: salt}(manager, swapRouter, address(serviceManager), "testPolicy", admin);
         require(address(predicateHook) == hookAddress, "Hook deployment failed");
 
         // initialize the pool
@@ -87,8 +87,8 @@ contract AutoWrapperSetup is MetaCoinTestSetup, PoolSetup {
 
         // initialize the auto wrapper
         uint160 autoWrapperFlags = uint160(
-            Hooks.BEFORE_SWAP_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG | Hooks.BEFORE_SWAP_RETURNS_DELTA_FLAG
-                | Hooks.BEFORE_INITIALIZE_FLAG
+            Hooks.BEFORE_INITIALIZE_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG | Hooks.BEFORE_SWAP_FLAG
+                | Hooks.BEFORE_SWAP_RETURNS_DELTA_FLAG
         );
         bytes memory autoWrapperConstructorArgs =
             abi.encode(manager, ERC4626(address(wUSDL)), USDC, predicatePoolKey, swapRouter);
@@ -118,6 +118,14 @@ contract AutoWrapperSetup is MetaCoinTestSetup, PoolSetup {
         vm.stopPrank();
 
         // provision liquidity
+        vm.startPrank(admin);
+        address[] memory authorizedLps = new address[](3);
+        authorizedLps[0] = address(lpRouter);
+        authorizedLps[1] = address(posm);
+        authorizedLps[2] = liquidityProvider;
+        predicateHook.addAuthorizedLPs(authorizedLps);
+        vm.stopPrank();
+
         vm.startPrank(liquidityProvider);
         provisionLiquidity(tickSpacing, predicatePoolKey, 100 ether, liquidityProvider, 100_000 ether, 100_000 ether);
         vm.stopPrank();

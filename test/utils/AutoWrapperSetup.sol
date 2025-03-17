@@ -73,12 +73,14 @@ contract AutoWrapperSetup is MetaCoinTestSetup, PoolSetup {
         vm.stopPrank();
 
         // create hook here
-        uint160 predicateHookFlags = uint160(Hooks.BEFORE_SWAP_FLAG);
-        bytes memory constructorArgs = abi.encode(manager, swapRouter, address(serviceManager), "testPolicy");
+        uint160 predicateHookFlags = uint160(Hooks.BEFORE_SWAP_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG);
+        bytes memory constructorArgs =
+            abi.encode(manager, swapRouter, address(serviceManager), "testPolicy", liquidityProvider);
         (address hookAddress, bytes32 salt) =
             HookMiner.find(address(this), predicateHookFlags, type(PredicateHook).creationCode, constructorArgs);
 
-        predicateHook = new PredicateHook{salt: salt}(manager, swapRouter, address(serviceManager), "testPolicy");
+        predicateHook =
+            new PredicateHook{salt: salt}(manager, swapRouter, address(serviceManager), "testPolicy", liquidityProvider);
         require(address(predicateHook) == hookAddress, "Hook deployment failed");
 
         // initialize the pool
@@ -120,7 +122,9 @@ contract AutoWrapperSetup is MetaCoinTestSetup, PoolSetup {
 
         // provision liquidity
         vm.startPrank(liquidityProvider);
+        predicateHook.setByPassAuthorizedLPs(true);
         provisionLiquidity(tickSpacing, predicatePoolKey, 100 ether, liquidityProvider, 100_000 ether, 100_000 ether);
+        predicateHook.setByPassAuthorizedLPs(false);
         vm.stopPrank();
     }
 

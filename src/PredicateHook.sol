@@ -21,19 +21,25 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 contract PredicateHook is BaseHook, PredicateClient, Ownable {
     ISimpleV4Router public immutable router;
 
-    mapping(address => bool) public authorizedLPs;
+    mapping(address => bool) public isAuthorizedLP;
+    bool public byPassAuthorizedLPs;
 
     event AuthorizedLPAdded(address indexed lp);
     event AuthorizedLPRemoved(address indexed lp);
+    event AuthorizedUserAdded(address indexed user);
+    event AuthorizedUserRemoved(address indexed user);
 
     constructor(
         IPoolManager _poolManager,
         ISimpleV4Router _router,
         address _serviceManager,
-        string memory _policyID
-    ) BaseHook(_poolManager) Ownable(msg.sender) {
+        string memory _policyID,
+        address _owner
+    ) BaseHook(_poolManager) Ownable(_owner) {
         _initPredicateClient(_serviceManager, _policyID);
         router = _router;
+        isAuthorizedLP[_owner] = true;
+        byPassAuthorizedLPs = false;
     }
 
     function getHookPermissions() public pure override returns (Hooks.Permissions memory) {
@@ -91,7 +97,7 @@ contract PredicateHook is BaseHook, PredicateClient, Ownable {
         IPoolManager.ModifyLiquidityParams calldata params,
         bytes calldata hookData
     ) internal override returns (bytes4) {
-        if (!authorizedLPs[msg.sender]) {
+        if (!isAuthorizedLP[router.msgSender()] && !byPassAuthorizedLPs) {
             revert("Unauthorized liquidity provider");
         }
 
@@ -113,33 +119,33 @@ contract PredicateHook is BaseHook, PredicateClient, Ownable {
         _setPolicy(_policyID);
     }
 
+    function setByPassAuthorizedLPs(
+        bool _byPassAuthorizedLPs
+    ) external onlyOwner {
+        byPassAuthorizedLPs = _byPassAuthorizedLPs;
+    }
+
     function setPredicateManager(
         address _predicateManager
     ) external onlyOwner {
         _setPredicateManager(_predicateManager);
     }
 
-    function addAuthorizedLP(
+    function addAuthorizedLPs(
         address[] memory _lps
     ) external onlyOwner {
         for (uint256 i = 0; i < _lps.length; i++) {
+            isAuthorizedLP[_lps[i]] = true;
             emit AuthorizedLPAdded(_lps[i]);
-            authorizedLPs[_lps[i]] = true;
         }
     }
 
-    function removeAuthorizedLP(
+    function removeAuthorizedLPs(
         address[] memory _lps
     ) external onlyOwner {
         for (uint256 i = 0; i < _lps.length; i++) {
+            isAuthorizedLP[_lps[i]] = false;
             emit AuthorizedLPRemoved(_lps[i]);
-            authorizedLPs[_lps[i]] = false;
         }
-    }
-
-    function isAuthorizedLP(
-        address _lp
-    ) external view returns (bool) {
-        return authorizedLPs[_lp];
     }
 }

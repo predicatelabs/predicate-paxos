@@ -312,7 +312,7 @@ contract PredicateHookTest is PredicateHookSetup, OperatorTestPrep {
         address[] memory lps = new address[](1);
         lps[0] = liquidityProvider;
         vm.prank(hook.owner());
-        hook.addAuthorizedLP(lps);
+        hook.addAuthorizedLPs(lps);
         assertEq(hook.isAuthorizedLP(liquidityProvider), true);
     }
 
@@ -320,11 +320,11 @@ contract PredicateHookTest is PredicateHookSetup, OperatorTestPrep {
         address[] memory lps = new address[](1);
         lps[0] = liquidityProvider;
         vm.prank(hook.owner());
-        hook.addAuthorizedLP(lps);
+        hook.addAuthorizedLPs(lps);
         assertEq(hook.isAuthorizedLP(liquidityProvider), true);
 
         vm.prank(hook.owner());
-        hook.removeAuthorizedLP(lps);
+        hook.removeAuthorizedLPs(lps);
         assertEq(hook.isAuthorizedLP(liquidityProvider), false);
     }
 
@@ -333,6 +333,6 @@ contract PredicateHookTest is PredicateHookSetup, OperatorTestPrep {
         lps[0] = liquidityProvider;
         vm.prank(makeAddr("unauthorized"));
         vm.expectRevert();
-        hook.addAuthorizedLP(lps);
+        hook.addAuthorizedLPs(lps);
     }
 }

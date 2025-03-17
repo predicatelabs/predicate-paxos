@@ -142,7 +142,7 @@ contract SimpleV4Router is ISimpleV4Router, SafeCallback, Lock {
     function _fetchBalances(
         Currency currency,
         address user,
-        address pool
+        address deltaHolder
     ) internal view returns (uint256 userBalance, uint256 poolBalance, int256 delta) {
         userBalance = CurrencyLibrary.balanceOf(currency, user);
         poolBalance = CurrencyLibrary.balanceOf(currency, address(poolManager));

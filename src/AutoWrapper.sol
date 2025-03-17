@@ -245,6 +245,9 @@ contract AutoWrapper is BaseHook, DeltaResolver {
             // Wrap USDL to wUSDL for settlement
             _deposit(USDLAmount);
 
+            // settle the delta
+            _settleDelta(delta);
+
             // transfer the baseCurrency to the user directly
             uint256 baseCurrencyBalance = IERC20(Currency.unwrap(baseCurrency)).balanceOf(address(this));
             IERC20(Currency.unwrap(baseCurrency)).transfer(router.msgSender(), baseCurrencyBalance);

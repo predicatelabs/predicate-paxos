@@ -45,57 +45,60 @@ contract AutoWrapper is BaseHook, DeltaResolver {
     error InvalidPoolFee();
 
     /// @notice The ERC4626 vault contract
-    ERC4626 public immutable vault;
+    /// @dev This is the wrapped token (wUSDL in this case)
+    ERC4626 public immutable wUSDL;
 
     /// @notice The predicate pool key
+    /// @dev This is the pool key for the pool with liquidity
+    /// @dev example: USDC/wUSDL pool key is {currency0: USDC, currency1: wUSDL, fee: 0}
     PoolKey public predicatePoolKey;
 
     /// @notice The V4 router
     ISimpleV4Router public router;
 
-    /// @notice USDC
-    IERC20 public usdc;
+    /// @notice The base currency for wUSDL pool(e.g. USDC)
+    Currency public immutable baseCurrency;
 
-    /// @notice The wrapped token currency (e.g., WETH)
-    Currency public immutable wrapperCurrency;
+    /// @notice Indicates whether the wUSDL is token0 in the baseCurrency/wUSDL pool
+    bool public immutable wUSDLIsToken0;
 
-    /// @notice The underlying token currency (e.g., ETH)
-    Currency public immutable underlyingCurrency;
-
-    /// @notice Indicates whether wrapping occurs when swapping from token0 to token1
-    /// @dev This is determined by the relative ordering of the wrapper and underlying tokens
-    /// @dev If true: token0 is underlying (e.g. ETH) and token1 is wrapper (e.g. WETH)
-    /// @dev If false: token0 is wrapper (e.g. WETH) and token1 is underlying (e.g. ETH)
-    /// @dev This is set in the constructor based on the token addresses to ensure consistent behavior
-    bool public immutable wrapZeroForOne;
+    /// @notice Indicates whether the base currency is token0 in the baseCurrency/USDL pool
+    bool public immutable baseCurrencyIsToken0;
 
     /// @notice Creates a new ERC4626 wrapper hook
     /// @param _manager The Uniswap V4 pool manager
-    /// @param _vault The ERC4626 vault contract address
-    /// @dev Initializes with the ERC4626 vault as wrapper token and the ERC4626 underlying asset as underlying token
+    /// @param _wUSDL The ERC4626 vault contract address
+    /// @param _baseCurrency The base currency for wUSDL pool(e.g. USDC)
+    /// @param _predicatePoolKey The pool key for the pool with liquidity
+    /// @param _router The V4 router
     constructor(
         IPoolManager _manager,
-        ERC4626 _vault,
-        PoolKey memory _predicatePoolKey,
-        ISimpleV4Router _router,
-        IERC20 _usdc
+        ERC4626 _wUSDL, // _wUSDL.asset() is USDL
+        IERC20 _baseCurrency, // _baseCurrency is the other asset of the wUSDL pool. ex USDC
+        PoolKey calldata _predicatePoolKey,
+        ISimpleV4Router _router
     ) BaseHook(_manager) {
-        require(
-            address(_usdc) == Currency.unwrap(_predicatePoolKey.currency0),
-            "underlying currency mismatch; usdc mismatch"
-        );
-        require(
-            address(_vault) == Currency.unwrap(_predicatePoolKey.currency1),
-            "underlying currency mismatch; wUSDL mismatch"
-        );
-        vault = _vault;
+        if (address(_baseCurrency) == Currency.unwrap(_predicatePoolKey.currency0)) {
+            // baseCurrency/wUSDL pool
+            require(
+                address(_wUSDL) == Currency.unwrap(_predicatePoolKey.currency1),
+                "currency mismatch; currency1 is not wUSDL"
+            );
+            wUSDLIsToken0 = false;
+        } else {
+            require(
+                address(_wUSDL) == Currency.unwrap(_predicatePoolKey.currency0),
+                "currency mismatch; currency0 is not wUSDL"
+            );
+            wUSDLIsToken0 = true;
+        }
+
+        baseCurrency = _baseCurrency;
+        wUSDL = _wUSDL;
         predicatePoolKey = _predicatePoolKey;
         router = _router;
-        usdc = _usdc;
-        wrapperCurrency = Currency.wrap(address(_vault));
-        underlyingCurrency = Currency.wrap(_vault.asset());
-        wrapZeroForOne = underlyingCurrency < wrapperCurrency;
-        IERC20(Currency.unwrap(underlyingCurrency)).approve(Currency.unwrap(wrapperCurrency), type(uint256).max);
+        baseCurrencyIsToken0 = baseCurrency < address(wUSDL.asset());
+        IERC20(Currency.unwrap(baseCurrency)).approve(address(wUSDL), type(uint256).max);
     }
 
     /// @inheritdoc BaseHook
@@ -153,21 +156,31 @@ contract AutoWrapper is BaseHook, DeltaResolver {
         bool isExactInput = params.amountSpecified < 0;
         IPoolManager.SwapParams memory swapParams = params;
         BalanceDelta delta;
-        if (wrapZeroForOne == params.zeroForOne) {
-            // USDC -> USDL
-            // calculate the amount of USDC to swap through underlying liquidity pool
+
+        // 4 possible cases:
+        // pool is USDL/baseCurrency and underlying is baseCurrency/wUSDL
+        // pool is USDL/baseCurrency and underlying is wUSDL/baseCurrency
+        // pool is baseCurrency/USDL and underlying is baseCurrency/wUSDL
+        // pool is baseCurrency/USDL and underlying is wUSDL/baseCurrency
+        // we need to check which case we are in and then swap through the correct underlying liquidity pool
+
+        // case 1: USDL/baseCurrency and baseCurrency/wUSDL
+
+        if (baseCurrencyIsToken0 == params.zeroForOne) {
+            // ex USDC -> wUSDL
+            // calculate the amount of baseCurrency to swap through underlying liquidity pool
             swapParams.amountSpecified =
                 isExactInput ? params.amountSpecified : getUnwrapInputRequired(uint256(params.amountSpecified));
             delta = _swap(swapParams, hookData);
 
-            // calculate the amount of USDC to settle the delta
-            // delta0 is the amount of USDC required to settle the delta
+            // calculate the amount of baseCurrency to settle the delta
+            // delta0 is the amount of baseCurrency required to settle the delta
             int256 delta0 = BalanceDeltaLibrary.amount0(delta);
-            require(delta0 < 0, "USDC delta is not negative for USDC -> USDL swap");
-            usdc.transferFrom(router.msgSender(), address(this), uint256(-delta0));
+            require(delta0 < 0, "baseCurrency delta is not negative for baseCurrency -> wUSDL swap");
+            IERC20(Currency.unwrap(baseCurrency)).transferFrom(router.msgSender(), address(this), uint256(-delta0));
 
             // settle the delta
-            // takes USDC from the auto wrapper and settles the delta with the pool manager
+            // takes baseCurrency from the auto wrapper and settles the delta with the pool manager
             _settleDelta(delta);
 
             // withdraw the USDL from the vault and transfers to the user

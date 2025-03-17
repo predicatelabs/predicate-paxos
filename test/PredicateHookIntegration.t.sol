@@ -58,11 +58,13 @@ contract PredicateHookIntegrationTest is PredicateHookSetup, OperatorTestPrep {
         address[] memory authorizedUsers = new address[](1);
         authorizedUsers[0] = makeAddr("authorizedUser");
 
+        PoolKey memory key = getPoolKey();
         vm.prank(hook.owner());
         hook.addAuthorizedUsers(authorizedUsers);
 
         vm.startPrank(authorizedUsers[0]);
         IERC20 token0 = IERC20(Currency.unwrap(key.currency0));
+        IERC20 token1 = IERC20(Currency.unwrap(key.currency1));
         token0.approve(address(swapRouter), type(uint256).max);
         vm.stopPrank();
 
@@ -70,7 +72,9 @@ contract PredicateHookIntegrationTest is PredicateHookSetup, OperatorTestPrep {
         token0.transfer(authorizedUsers[0], 1e18);
         vm.stopPrank();
 
-        PoolKey memory key = getPoolKey();
+        uint256 balance0 = token0.balanceOf(authorizedUsers[0]);
+        uint256 balance1 = token1.balanceOf(authorizedUsers[0]);
+
         IPoolManager.SwapParams memory params = IPoolManager.SwapParams({
             zeroForOne: true,
             amountSpecified: -1e18,

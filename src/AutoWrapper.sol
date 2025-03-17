@@ -60,7 +60,7 @@ contract AutoWrapper is BaseHook, DeltaResolver {
     Currency public immutable baseCurrency;
 
     /// @notice Indicates whether the wUSDL is token0 in the baseCurrency/wUSDL pool
-    bool public immutable wUSDLIsToken0;
+    bool public immutable wUSDLIsToken0ForPredicatePool;
 
     /// @notice Indicates whether the base currency is token0 in the baseCurrency/USDL pool
     bool public immutable baseCurrencyIsToken0;
@@ -84,13 +84,13 @@ contract AutoWrapper is BaseHook, DeltaResolver {
                 address(_wUSDL) == Currency.unwrap(_predicatePoolKey.currency1),
                 "currency mismatch; currency1 is not wUSDL"
             );
-            wUSDLIsToken0 = false;
+            wUSDLIsToken0ForPredicatePool = false;
         } else {
             require(
                 address(_wUSDL) == Currency.unwrap(_predicatePoolKey.currency0),
                 "currency mismatch; currency0 is not wUSDL"
             );
-            wUSDLIsToken0 = true;
+            wUSDLIsToken0ForPredicatePool = true;
         }
 
         baseCurrency = _baseCurrency;
@@ -98,7 +98,7 @@ contract AutoWrapper is BaseHook, DeltaResolver {
         predicatePoolKey = _predicatePoolKey;
         router = _router;
         baseCurrencyIsToken0 = baseCurrency < Currency.wrap(wUSDL.asset());
-        IERC20(Currency.unwrap(baseCurrency)).approve(address(wUSDL), type(uint256).max);
+        IERC20(wUSDL.asset()).approve(address(wUSDL), type(uint256).max);
     }
 
     /// @inheritdoc BaseHook
@@ -157,20 +157,17 @@ contract AutoWrapper is BaseHook, DeltaResolver {
         IPoolManager.SwapParams memory swapParams = params;
         BalanceDelta delta;
 
-        // 4 possible cases:
-        // pool is baseCurrency/USDL and underlying is baseCurrency/wUSDL
-        // pool is baseCurrency/USDL and underlying is wUSDL/baseCurrency
-        // pool is USDL/baseCurrency and underlying is baseCurrency/wUSDL
-        // pool is USDL/baseCurrency and underlying is wUSDL/baseCurrency
+        // if the wUSDL is token0 for the predicate pool, we need to swap the direction of the swap
+        if (wUSDLIsToken0ForPredicatePool) {
+            swapParams.zeroForOne = !swapParams.zeroForOne;
+        }
+
         if (baseCurrencyIsToken0 == params.zeroForOne) {
             // ex USDC -> wUSDL
             // calculate the amount of baseCurrency to swap through underlying liquidity pool
             swapParams.amountSpecified =
                 isExactInput ? params.amountSpecified : getUnwrapInputRequired(uint256(params.amountSpecified));
 
-            if (wUSDLIsToken0) {
-                swapParams.zeroForOne = !swapParams.zeroForOne;
-            }
             delta = _swap(swapParams, hookData);
 
             // calculate the amount of baseCurrency to settle the delta
@@ -191,10 +188,7 @@ contract AutoWrapper is BaseHook, DeltaResolver {
             // calculate the amount of WUSDL to swap through underlying liquidity pool
             swapParams.amountSpecified =
                 isExactInput ? -getUnwrapInputRequired(uint256(-params.amountSpecified)) : params.amountSpecified;
-            if (wUSDLIsToken0) {
-                swapParams.zeroForOne = !swapParams.zeroForOne;
-                swapParams.amountSpecified = -swapParams.amountSpecified;
-            }
+
             delta = _swap(swapParams, hookData);
             uint256 underlyingAmount;
 

@@ -23,6 +23,7 @@ contract PredicateHook is BaseHook, PredicateClient, Ownable {
 
     mapping(address => bool) public isAuthorizedLP;
     bool public byPassAuthorizedLPs;
+    mapping(address => bool) public isAuthorizedUser;
 
     event AuthorizedLPAdded(address indexed lp);
     event AuthorizedLPRemoved(address indexed lp);
@@ -39,6 +40,7 @@ contract PredicateHook is BaseHook, PredicateClient, Ownable {
         _initPredicateClient(_serviceManager, _policyID);
         router = _router;
         isAuthorizedLP[_owner] = true;
+        isAuthorizedUser[_owner] = true;
         byPassAuthorizedLPs = false;
     }
 
@@ -62,11 +64,18 @@ contract PredicateHook is BaseHook, PredicateClient, Ownable {
     }
 
     function _beforeSwap(
-        address,
+        address sender,
         PoolKey calldata key,
         IPoolManager.SwapParams calldata params,
         bytes calldata hookData
     ) internal override returns (bytes4, BeforeSwapDelta, uint24) {
+        BeforeSwapDelta delta = toBeforeSwapDelta(0, 0);
+
+        // If the sender is authorized, bypass the predicate check
+        if (isAuthorizedUser[sender]) {
+            return (IHooks.beforeSwap.selector, delta, 0);
+        }
+
         (PredicateMessage memory predicateMessage, address msgSender, uint256 msgValue) = this.decodeHookData(hookData);
 
         bytes memory encodeSigAndArgs = abi.encodeWithSignature(
@@ -85,8 +94,6 @@ contract PredicateHook is BaseHook, PredicateClient, Ownable {
         require(
             _authorizeTransaction(predicateMessage, encodeSigAndArgs, msgSender, msgValue), "Unauthorized transaction"
         );
-
-        BeforeSwapDelta delta = toBeforeSwapDelta(0, 0);
 
         return (IHooks.beforeSwap.selector, delta, 0);
     }
@@ -146,6 +153,24 @@ contract PredicateHook is BaseHook, PredicateClient, Ownable {
         for (uint256 i = 0; i < _lps.length; i++) {
             isAuthorizedLP[_lps[i]] = false;
             emit AuthorizedLPRemoved(_lps[i]);
+        }
+    }
+
+    function addAuthorizedUsers(
+        address[] memory _users
+    ) external onlyOwner {
+        for (uint256 i = 0; i < _users.length; i++) {
+            isAuthorizedUser[_users[i]] = true;
+            emit AuthorizedUserAdded(_users[i]);
+        }
+    }
+
+    function removeAuthorizedUsers(
+        address[] memory _users
+    ) external onlyOwner {
+        for (uint256 i = 0; i < _users.length; i++) {
+            isAuthorizedUser[_users[i]] = false;
+            emit AuthorizedUserRemoved(_users[i]);
         }
     }
 }

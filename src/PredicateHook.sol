@@ -19,13 +19,26 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
  * @title Predicated Hook
  * @author Predicate Labs
  * @notice A hook for compliant swaps
+ * @dev This hook is used to validate transactions against the defined policy before allowing swaps
+ * @dev This hook is also used to authorize liquidity providers and users to bypass the predicate check
+ * @dev This hook is also used to authorize the owner to set the policy and predicate manager
  */
 contract PredicateHook is BaseHook, PredicateClient, Ownable {
+    /**
+     * @notice An error emitted when a liquidity provider is not authorized
+     */
+    error UnauthorizedLiquidityProvider();
+
+    /**
+     * @notice An error emitted when a transaction is not authorized by predicate
+     */
+    error PredicateAuthorizationFailed();
+
     /**
      * @notice The router contract that is used to swap tokens
      * @dev This is the router contract is used to get the msgSender() who initiated the swap
      */
-    ISimpleV4Router public immutable router;
+    ISimpleV4Router public router;
 
     /**
      * @notice A mapping of authorized liquidity providers
@@ -151,9 +164,9 @@ contract PredicateHook is BaseHook, PredicateClient, Ownable {
             params.sqrtPriceLimitX96
         );
 
-        require(
-            _authorizeTransaction(predicateMessage, encodeSigAndArgs, msgSender, msgValue), "Unauthorized transaction"
-        );
+        if (!_authorizeTransaction(predicateMessage, encodeSigAndArgs, msgSender, msgValue)) {
+            revert PredicateAuthorizationFailed();
+        }
 
         return (IHooks.beforeSwap.selector, delta, 0);
     }
@@ -184,7 +197,7 @@ contract PredicateHook is BaseHook, PredicateClient, Ownable {
         }
 
         // If the sender is not an authorized liquidity provider, the transaction will revert
-        revert("Unauthorized liquidity provider");
+        revert UnauthorizedLiquidityProvider();
     }
 
     /**
@@ -225,6 +238,16 @@ contract PredicateHook is BaseHook, PredicateClient, Ownable {
         address _predicateManager
     ) external onlyOwner {
         _setPredicateManager(_predicateManager);
+    }
+
+    /**
+     * @notice Sets the router
+     * @param _router The new router
+     */
+    function setRouter(
+        ISimpleV4Router _router
+    ) external onlyOwner {
+        router = _router;
     }
 
     /**

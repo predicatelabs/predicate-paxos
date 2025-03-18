@@ -179,83 +179,122 @@ contract AutoWrapper is BaseHook, DeltaResolver {
      * @return lpFeeOverride Always 0 as fees are handled by the liquid pool
      */
     function _beforeSwap(
-        address,
+        address sender,
         PoolKey calldata,
         IPoolManager.SwapParams calldata params,
         bytes calldata hookData
     ) internal override returns (bytes4 selector, BeforeSwapDelta swapDelta, uint24 lpFeeOverride) {
-        // Determine if this is an exact input swap (amountSpecified < 0) or exact output swap
-        bool isExactInput = params.amountSpecified < 0;
-        IPoolManager.SwapParams memory swapParams = params;
-        BalanceDelta delta;
+        require(sender == address(router), "sender is not the router");
 
-        // if the wUSDL is token0 for the predicate pool, we need to swap the direction of the swap
-        if (wUSDLIsToken0ForPredicatePool) {
-            swapParams.zeroForOne = !swapParams.zeroForOne;
-        }
+        // Determines the amounts and direction of the swap through the liquidity pool
+        IPoolManager.SwapParams memory swapParams = IPoolManager.SwapParams({
+            zeroForOne: _getSwapZeroForOneForLiquidityPool(params),
+            amountSpecified: _getAmountSpecifiedForLiquidityPool(params),
+            sqrtPriceLimitX96: params.sqrtPriceLimitX96
+        });
 
-        if (baseCurrencyIsToken0 == params.zeroForOne) {
-            // ex USDC -> wUSDL
-            // calculate the amount of baseCurrency to swap through underlying liquidity pool
-            swapParams.amountSpecified =
-                isExactInput ? params.amountSpecified : getUnwrapInputRequired(uint256(params.amountSpecified));
+        // swap through the liquidity pool
+        BalanceDelta delta = _swap(swapParams, hookData);
 
-            delta = _swap(swapParams, hookData);
+        // transfer the tokens to the hook
+        _transferToHook(params, delta);
 
-            // calculate the amount of baseCurrency to settle the delta
-            // delta0 is the amount of baseCurrency required to settle the delta
-            int256 delta0 = BalanceDeltaLibrary.amount0(delta);
-            require(delta0 < 0, "baseCurrency delta is not negative for baseCurrency -> wUSDL swap");
-            IERC20(Currency.unwrap(baseCurrency)).transferFrom(router.msgSender(), address(this), uint256(-delta0));
+        // settle the delta
+        _settleDelta(delta);
 
-            // settle the delta
-            // takes baseCurrency from the auto wrapper and settles the delta with the pool manager
-            _settleDelta(delta);
-
-            // withdraw the USDL from the wUSDL and transfers to the user
-            uint256 redeemAmount = _withdraw(IERC20(address(wUSDL)).balanceOf(address(this)));
-            IERC20(wUSDL.asset()).transfer(router.msgSender(), redeemAmount);
-        } else {
-            // USDL -> ERC20 swap path
-
-            // Adjust swap parameters based on swap type
-            // For exact input, calculate equivalent wUSDL amount
-            swapParams.amountSpecified =
-                isExactInput ? -getUnwrapInputRequired(uint256(-params.amountSpecified)) : params.amountSpecified;
-
-            delta = _swap(swapParams, hookData);
-            uint256 USDLAmount;
-
-            if (isExactInput) {
-                // For exact input: User specifies exact USDL amount
-                USDLAmount = uint256(-params.amountSpecified);
-
-                // transfer the USDL to the auto wrapper
-                IERC20(wUSDL.asset()).transferFrom(router.msgSender(), address(this), USDLAmount);
-            } else {
-                // For exact output: Calculate USDL needed based on wUSDL delta
-                int256 delta1 = BalanceDeltaLibrary.amount1(delta);
-                require(delta1 < 0, "wUSDL delta must be negative for USDL -> ERC20 swap");
-
-                // underlyingAmount is the amount of USDL required to wrap delta1 amount of WUSDL
-                USDLAmount = uint256(getWrapInputRequired(uint256(-delta1)));
-                IERC20(wUSDL.asset()).transferFrom(router.msgSender(), address(this), USDLAmount);
-            }
-
-            // Wrap USDL to wUSDL for settlement
-            _deposit(USDLAmount);
-
-            // settle the delta
-            _settleDelta(delta);
-
-            // transfer the baseCurrency to the user directly
-            uint256 baseCurrencyBalance = IERC20(Currency.unwrap(baseCurrency)).balanceOf(address(this));
-            IERC20(Currency.unwrap(baseCurrency)).transfer(router.msgSender(), baseCurrencyBalance);
-        }
+        // transfer the swappedtokens to the user
+        _transferToUser(params, delta);
 
         // Return function selector, empty delta for ghost pool, and zero fee override
         // The actual swap occurs on the liquid pool where fees are charged
         return (IHooks.beforeSwap.selector, swapDelta, 0);
+    }
+
+    /**
+     * @notice Adjusts the amount specified for the underlying liquidity pool swap based on the swap direction
+     * @param params The swap parameters
+     * @return The adjusted amount specified
+     */
+    function _getAmountSpecifiedForLiquidityPool(
+        IPoolManager.SwapParams memory params
+    ) internal view returns (int256) {
+        // todo: verify this works for all cases
+        bool isExactInput = params.amountSpecified < 0;
+        if (params.zeroForOne == baseCurrencyIsToken0) {
+            return isExactInput ? params.amountSpecified : getUnwrapInputRequired(uint256(params.amountSpecified));
+        } else {
+            return isExactInput ? -getUnwrapInputRequired(uint256(-params.amountSpecified)) : params.amountSpecified;
+        }
+    }
+
+    /**
+     * @notice Adjusts the zeroForOne flag for the underlying liquidity pool swap based on the swap direction
+     * @param params The swap parameters
+     * @return The adjusted zeroForOne flag
+     */
+    function _getSwapZeroForOneForLiquidityPool(
+        IPoolManager.SwapParams memory params
+    ) internal view returns (bool) {
+        // todo: implement this
+        return params.zeroForOne;
+    }
+
+    /**
+     * @notice Transfers tokens to the hook based on swap parameters
+     * @param params The swap parameters
+     * @param delta The balance delta
+     * @dev This function transfers the tokens to the hook based on the swap parameters and the balance delta
+     */
+    function _transferToHook(IPoolManager.SwapParams memory params, BalanceDelta delta) internal {
+        bool isExactInput = params.amountSpecified < 0;
+        int256 delta0 = BalanceDeltaLibrary.amount0(delta);
+        int256 delta1 = BalanceDeltaLibrary.amount1(delta);
+
+        if (baseCurrencyIsToken0 == params.zeroForOne) {
+            // baseCurrency -> USDL swap path
+            require(delta0 < 0, "baseCurrency delta is not negative for baseCurrency -> wUSDL swap");
+            IERC20(Currency.unwrap(baseCurrency)).transferFrom(router.msgSender(), address(this), uint256(-delta0));
+        } else {
+            // USDL -> baseCurrency swap path
+            require(delta1 < 0, "wUSDL delta must be negative for USDL -> ERC20 swap");
+            uint256 USDLAmount;
+            if (isExactInput) {
+                // For exact input: User specifies exact USDL amount
+                USDLAmount = uint256(-params.amountSpecified);
+            } else {
+                // For exact output: underlyingAmount is the amount of USDL required to wrap delta1 amount of WUSDL
+                USDLAmount = uint256(getWrapInputRequired(uint256(-delta1)));
+            }
+
+            // transfer the USDL to the auto wrapper
+            IERC20(wUSDL.asset()).transferFrom(router.msgSender(), address(this), USDLAmount);
+
+            // Wrap USDL to wUSDL for settlement
+            _deposit(USDLAmount);
+        }
+    }
+
+    /**
+     * @notice Transfers tokens to the user
+     * @dev This function transfers the tokens to the user based on the swap direction
+     * @param params The swap parameters
+     * @param delta The balance delta
+     */
+    function _transferToUser(IPoolManager.SwapParams memory params, BalanceDelta delta) internal {
+        int256 delta0 = BalanceDeltaLibrary.amount0(delta);
+        int256 delta1 = BalanceDeltaLibrary.amount1(delta);
+
+        if (baseCurrencyIsToken0 == params.zeroForOne) {
+            // baseCurrency -> USDL swap path
+            require(delta1 > 0, "wUSDL delta is not positive for baseCurrency -> wUSDL swap");
+            // withdraw the USDL from the wUSDL and transfers to the user
+            uint256 redeemAmount = _withdraw(uint256(delta1));
+            IERC20(wUSDL.asset()).transfer(router.msgSender(), redeemAmount);
+        } else {
+            // transfer the baseCurrency to the user directly
+            uint256 baseCurrencyBalance = IERC20(Currency.unwrap(baseCurrency)).balanceOf(address(this));
+            IERC20(Currency.unwrap(baseCurrency)).transfer(router.msgSender(), baseCurrencyBalance);
+        }
     }
 
     /**

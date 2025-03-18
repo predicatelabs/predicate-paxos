@@ -192,24 +192,24 @@ contract AutoWrapper is BaseHook, DeltaResolver {
     ) internal override returns (bytes4 selector, BeforeSwapDelta swapDelta, uint24 lpFeeOverride) {
         if (sender != address(router)) revert CallerIsNotRouter();
 
-        // Determines the amounts and direction of the swap for the underlying liquidity pool
+        // Step 1: Determines the amounts and direction of the swap for the underlying liquidity pool
         IPoolManager.SwapParams memory swapParams = IPoolManager.SwapParams({
             zeroForOne: _getSwapZeroForOneForLiquidityPool(params),
             amountSpecified: _getAmountSpecifiedForLiquidityPool(params),
             sqrtPriceLimitX96: params.sqrtPriceLimitX96
         });
 
-        // swap through the liquidity pool
+        // Step 2: swap through the liquidity pool
         BalanceDelta delta = _swap(swapParams, hookData);
 
-        // transfer the tokens to the hook
-        _transferToHook(params, delta);
+        // Step 3: transfer the tokens to the hook for settlement
+        _transferTokensToHook(params, delta);
 
-        // settle the delta
+        // Step 4: settle the delta for the liquidity pool with the pool manager
         _settleDelta(delta);
 
-        // transfer the swappedtokens to the user
-        _transferToUser(params, delta);
+        // Step 5: transfer the swapped tokens to the user
+        _transferTokensToUser(params, delta);
 
         // Return function selector, empty delta for ghost pool, and zero fee override
         // The actual swap occurs on the liquid pool where fees are charged
@@ -265,7 +265,7 @@ contract AutoWrapper is BaseHook, DeltaResolver {
      * @param delta The balance delta
      * @dev This function transfers the tokens to the hook based on the swap parameters and the balance delta
      */
-    function _transferToHook(IPoolManager.SwapParams memory params, BalanceDelta delta) internal {
+    function _transferTokensToHook(IPoolManager.SwapParams memory params, BalanceDelta delta) internal {
         bool isExactInput = params.amountSpecified < 0;
         int256 delta0; // delta of the baseCurrency
         int256 delta1; // delta of the wUSDL
@@ -311,7 +311,7 @@ contract AutoWrapper is BaseHook, DeltaResolver {
      * @param params The swap parameters
      * @param delta The balance delta
      */
-    function _transferToUser(IPoolManager.SwapParams memory params, BalanceDelta delta) internal {
+    function _transferTokensToUser(IPoolManager.SwapParams memory params, BalanceDelta delta) internal {
         int256 delta0; // delta of the baseCurrency
         int256 delta1; // delta of the wUSDL
 

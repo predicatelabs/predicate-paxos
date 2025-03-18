@@ -19,9 +19,8 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
  * @title Predicated Hook
  * @author Predicate Labs
  * @notice A hook for compliant swaps
- * @dev This hook is used to validate transactions against the defined policy before allowing swaps
- * @dev This hook is also used to authorize liquidity providers and users to bypass the predicate check
- * @dev This hook is also used to authorize the owner to set the policy and predicate manager
+ * @dev This hook validates transactions against defined policies, authorizes liquidity providers and users to bypass checks,
+ *      and allows the owner to configure policies and manage the predicate manager
  */
 contract PredicateHook is BaseHook, PredicateClient, Ownable {
     /**

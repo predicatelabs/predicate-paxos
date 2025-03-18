@@ -5,7 +5,19 @@ import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
 import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
 import {BalanceDelta} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
 
+/**
+ * @title ISimpleV4Router
+ * @notice A simple V4 router that allows users to swap between two currencies
+ * @dev This router is used to swap between two currencies in the Uniswap V4 protocol
+ */
 interface ISimpleV4Router {
+    /**
+     * @notice A struct that contains the data for the callback
+     * @param sender The address of the sender
+     * @param key The pool key
+     * @param params The swap parameters
+     * @param hookData The hook data
+     */
     struct CallbackData {
         address sender;
         PoolKey key;

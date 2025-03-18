@@ -205,7 +205,7 @@ contract AutoWrapper is BaseHook, DeltaResolver {
         // Step 3: transfer the tokens to the hook for settlement
         _transferTokensToHook(params, delta);
 
-        // Step 4: settle the delta for the liquidity pool with the pool manager
+        // Step 4: settle the delta for the swap with the pool manager
         _settleDelta(delta);
 
         // Step 5: transfer the swapped tokens to the user

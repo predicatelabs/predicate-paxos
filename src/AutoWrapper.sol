@@ -49,7 +49,7 @@ contract AutoWrapper is BaseHook, DeltaResolver {
 
     /**
      * @notice Thrown when the caller is not the router
-     * @dev This is a security measure to ensure that only the router can call the hook
+     * @dev This is a security measure to ensure that only the router can call the pool manager
      */
     error CallerIsNotRouter();
 

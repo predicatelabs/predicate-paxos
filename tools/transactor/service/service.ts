@@ -35,6 +35,7 @@ export class TransactorService {
         const oneEther = ethers.utils.parseEther('1');
         const params: IPoolManagerSwapParams = {
             zeroForOne: true,
+            oneForZero: false,
             amountSpecified: oneEther,
             sqrtPriceLimitX96: ethers.BigNumber.from('4295128740')
         };

@@ -4,17 +4,19 @@
     "axios": "^1.8.1",
     "commander": "^13.1.0",
     "dotenv": "^16.4.7",
-    "ethers": "^5.7.2"
+    "ethers": "^5.7.2",
+    "express": "^4.21.2"
   },
   "devDependencies": {
+    "@types/express": "^5.0.0",
     "@types/node": "^22.13.9"
   },
   "scripts": {
     "build": "tsc",
-    "start": "node dist/main.js",
+    "start": "node dist/main.ts",
     "dev": "ts-node main.ts",
-    "mock-server": "node tools/transactor/mock-server.js",
+    "mock-server": "node tools/transactor/mock-server.ts",
+    "build-mock-server": "tsc tools/transactor/mock-server.ts",
     "swap": "npm run mock-server & npm run start"
-
   }
 }

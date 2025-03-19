@@ -25,6 +25,7 @@ export interface PoolKey {
 
 export interface IPoolManagerSwapParams {
     zeroForOne: boolean;
+    oneForZero: boolean;
     amountSpecified: ethers.BigNumber;
     sqrtPriceLimitX96: ethers.BigNumber;
 }

@@ -1,6 +1,6 @@
 import { ethers } from 'ethers';
 import axios from 'axios';
-import type { } from '../config/config';
+import type { Config } from '../config/config';
 import { encodeBeforeSwap, encodeHookData, waitForReceipt } from './utils';
 import type { PoolKey, IPoolManagerSwapParams, PredicateMessage, STMRequest, STMResponse } from '../types/types';
 
@@ -65,17 +65,35 @@ export class TransactorService {
                 timeout: API_REQUEST_TIMEOUT
             });
             return response.data;
-        } catch (error) {
-            throw new Error(`Failed to make predicate request: ${error.message}`);
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            throw new Error(`Failed to make predicate request: ${errorMessage}`);
         }
     }
 
     async getHookData(params: IPoolManagerSwapParams): Promise<string> {
-        const data = encodeBeforeSwap(this.signer, this.poolKey, params);
+        // Get address first to avoid passing a Promise
+        const signerAddress = await this.signer.getAddress();
+        
+        const data = await encodeBeforeSwap(
+            signerAddress,
+            {
+                Currency0: this.poolKey.currency0,
+                Currency1: this.poolKey.currency1,
+                Fee: this.poolKey.fee,
+                TickSpacing: this.poolKey.tickSpacing,
+                Hooks: this.poolKey.hooks
+            },
+            {
+                ZeroForOne: params.zeroForOne,
+                AmountSpecified: params.amountSpecified,
+                SqrtPriceLimitX96: params.sqrtPriceLimitX96
+            }
+        );
         
         const stmRequest: STMRequest = {
             to: this.poolKey.hooks,
-            from: await this.signer.getAddress(),
+            from: signerAddress,
             data: ethers.utils.hexlify(data),
             value: '0'
         };
@@ -88,14 +106,14 @@ export class TransactorService {
         }
 
         console.log('STM Response:', stmResponse);
-        const pm: PredicateMessage = {
-            taskId: stmResponse.taskId,
-            expireByBlockNumber: ethers.BigNumber.from(stmResponse.expiryBlock),
-            signerAddresses: stmResponse.signers.map(addr => ethers.utils.getAddress(addr)),
-            signatures: stmResponse.signatures.map(sig => ethers.utils.arrayify(sig))
+        const pm = {
+            TaskId: stmResponse.taskId,
+            ExpireByBlockNumber: ethers.BigNumber.from(stmResponse.expiryBlock),
+            SignerAddresses: stmResponse.signers.map(addr => ethers.utils.getAddress(addr)),
+            Signatures: stmResponse.signatures
         };
 
-        return encodeHookData(pm, await this.signer.getAddress(), ethers.BigNumber.from(0));
+        return encodeHookData(pm, signerAddress, ethers.BigNumber.from(0));
     }
 }
 
@@ -103,7 +121,7 @@ export function createContext() {
     return {};
 }
 
-export async function runService(_ctx: any, config: Config) {
+export async function runService(_ctx: unknown, config: Config) {
     const service = new TransactorService(config);
     await service.start();
 }

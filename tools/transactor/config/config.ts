@@ -64,3 +64,18 @@ export async function waitForReceipt(
         await new Promise(resolve => setTimeout(resolve, 1000));
     }
 }
+
+// Define the Config interface for the transactor service
+export interface Config {
+    predicateApiUrl: string;
+    apiKey: string;
+    ethRpcUrl: string;
+    privateKey: string;
+    environment: string;
+    currency0Address: string;
+    currency1Address: string;
+    routerAddress: string;
+    hookAddress: string;
+    lpFees: number;
+    tickSpacing: number;
+}

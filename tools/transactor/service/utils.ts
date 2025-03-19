@@ -1,6 +1,6 @@
 import { ethers } from "ethers";
 
-async function encodeBeforeSwap(
+export async function encodeBeforeSwap(
   sender: string,
   key: { Currency0: string; Currency1: string; Fee: number; TickSpacing: number; Hooks: string },
   params: { ZeroForOne: boolean; AmountSpecified: ethers.BigNumber; SqrtPriceLimitX96: ethers.BigNumber }
@@ -24,7 +24,7 @@ async function encodeBeforeSwap(
   return selector + abiCoder.encode(paramTypes, values).slice(2);
 }
 
-function encodeHookData(
+export function encodeHookData(
   pm: { TaskId: string; ExpireByBlockNumber: ethers.BigNumber; SignerAddresses: string[]; Signatures: string[] },
   msgSender: string,
   msgValue: ethers.BigNumber
@@ -40,17 +40,17 @@ function encodeHookData(
   return abiCoder.encode(paramTypes, values);
 }
 
-async function getChainID(provider: ethers.providers.Provider): Promise<number> {
+export async function getChainID(provider: ethers.providers.Provider): Promise<number> {
   const chainId = await provider.getNetwork();
   return chainId.chainId;
 }
 
-function getECDSAKey(privateKeyStr: string): ethers.utils.SigningKey {
+export function getECDSAKey(privateKeyStr: string): ethers.utils.SigningKey {
   const cleanKey = privateKeyStr.startsWith('0x') ? privateKeyStr.slice(2) : privateKeyStr;
   return new ethers.utils.SigningKey(cleanKey);
 }
 
-async function waitForReceipt(provider: ethers.providers.Provider, txHash: string): Promise<ethers.providers.TransactionReceipt> {
+export async function waitForReceipt(provider: ethers.providers.Provider, txHash: string): Promise<ethers.providers.TransactionReceipt> {
   let receipt: ethers.providers.TransactionReceipt | null = null;
   while (receipt === null) {
     receipt = await provider.getTransactionReceipt(txHash);

@@ -1,22 +1,20 @@
 {
-  "dependencies": {
-    "@types/axios": "^0.9.36",
-    "axios": "^1.8.1",
-    "commander": "^13.1.0",
-    "dotenv": "^16.4.7",
-    "ethers": "^5.7.2",
-    "express": "^4.21.2"
-  },
-  "devDependencies": {
-    "@types/express": "^5.0.0",
-    "@types/node": "^22.13.9",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.3.3"
-  },
+  "name": "transactor",
+  "version": "1.0.0",
+  "description": "Transactor service rewritten from Go to TypeScript",
+  "main": "tools/transactor/dist/main.js",
   "scripts": {
     "build": "tsc",
-    "start": "node dist/tools/transactor/main.js",
-    "dev": "ts-node tools/transactor/main.ts",
-    "swap": "npm run mock-server & npm run start"
+    "start": "node tools/transactor/dist/main.js"
+  },
+  "dependencies": {
+    "commander": "^10.0.0",
+    "ethers": "^5.7.2",
+    "node-fetch": "^3.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^18.16.0",
+    "@types/node-fetch": "^3.0.3",
+    "typescript": "^5.0.0"
   }
 }

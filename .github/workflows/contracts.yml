@@ -28,7 +28,7 @@ jobs:
             run: forge --version
 
           - name: Build
-            run: forge build --via-ir
+            run: forge build
 
     test:
         runs-on: ubuntu-latest
@@ -53,7 +53,7 @@ jobs:
             run: forge --version
 
           - name: Run tests
-            run: forge test --via-ir -vvvv
+            run: forge test -vvvv
 
     fmt:
         runs-on: ubuntu-latest

@@ -2,25 +2,25 @@
 pragma solidity ^0.8.19;
 
 import "forge-std/Script.sol";
-import {IHooks} from "v4-core/src/interfaces/IHooks.sol";
-import {Hooks} from "v4-core/src/libraries/Hooks.sol";
-import {PoolManager} from "v4-core/src/PoolManager.sol";
-import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
-import {PoolModifyLiquidityTest} from "v4-core/src/test/PoolModifyLiquidityTest.sol";
-import {PoolSwapTest} from "v4-core/src/test/PoolSwapTest.sol";
-import {PoolKey} from "v4-core/src/types/PoolKey.sol";
+import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
+import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
+import {PoolManager} from "@uniswap/v4-core/src/PoolManager.sol";
+import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
+import {PoolModifyLiquidityTest} from "@uniswap/v4-core/src/test/PoolModifyLiquidityTest.sol";
+import {PoolSwapTest} from "@uniswap/v4-core/src/test/PoolSwapTest.sol";
+import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
 import {MockERC20} from "solmate/src/test/utils/mocks/MockERC20.sol";
-import {Constants} from "v4-core/src/../test/utils/Constants.sol";
-import {TickMath} from "v4-core/src/libraries/TickMath.sol";
-import {CurrencyLibrary, Currency} from "v4-core/src/types/Currency.sol";
-import {IPositionManager} from "v4-periphery/src/interfaces/IPositionManager.sol";
-import {PositionManager} from "v4-periphery/src/PositionManager.sol";
+import {Constants} from "@uniswap/v4-core/src/../test/utils/Constants.sol";
+import {TickMath} from "@uniswap/v4-core/src/libraries/TickMath.sol";
+import {CurrencyLibrary, Currency} from "@uniswap/v4-core/src/types/Currency.sol";
+import {IPositionManager} from "@uniswap/v4-periphery/src/interfaces/IPositionManager.sol";
+import {PositionManager} from "@uniswap/v4-periphery/src/PositionManager.sol";
 import {EasyPosm} from "../../test/utils/EasyPosm.sol";
 import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
 import {DeployPermit2} from "../../test/utils/forks/DeployPermit2.sol";
 import {IERC20} from "forge-std/interfaces/IERC20.sol";
-import {IPositionDescriptor} from "v4-periphery/src/interfaces/IPositionDescriptor.sol";
-import {IWETH9} from "v4-periphery/src/interfaces/external/IWETH9.sol";
+import {IPositionDescriptor} from "@uniswap/v4-periphery/src/interfaces/IPositionDescriptor.sol";
+import {IWETH9} from "@uniswap/v4-periphery/src/interfaces/external/IWETH9.sol";
 
 import {INetwork} from "./INetwork.sol";
 import {NetworkSelector} from "./NetworkSelector.sol";
@@ -55,7 +55,6 @@ contract DeployTokensAndPool is Script, DeployPermit2 {
         console.log("Deployed LP Router: %s", address(lpRouter));
         vm.stopBroadcast();
 
-        // test the lifecycle (create pool, add liquidity, swap)
         vm.startBroadcast();
         setApprovalsAndMintLiquidity(manager, hookAddress, posm, lpRouter, swapRouter);
         vm.stopBroadcast();
@@ -81,10 +80,7 @@ contract DeployTokensAndPool is Script, DeployPermit2 {
     }
 
     function approvePosmCurrency(IPositionManager posm, Currency currency) internal {
-        // Because POSM uses permit2, we must execute 2 permits/approvals.
-        // 1. First, the caller must approve permit2 on the token.
         IERC20(Currency.unwrap(currency)).approve(address(permit2), type(uint256).max);
-        // 2. Then, the caller must approve POSM as a spender of permit2
         permit2.approve(Currency.unwrap(currency), address(posm), type(uint160).max, type(uint48).max);
     }
 
@@ -115,13 +111,11 @@ contract DeployTokensAndPool is Script, DeployPermit2 {
 
         bytes memory ZERO_BYTES = new bytes(0);
 
-        // initialize the pool
         int24 tickSpacing = 60;
         PoolKey memory poolKey =
             PoolKey(Currency.wrap(address(token0)), Currency.wrap(address(token1)), 3000, tickSpacing, IHooks(hook));
         manager.initialize(poolKey, Constants.SQRT_PRICE_1_1);
 
-        // approve the tokens to the routers
         token0.approve(address(lpRouter), type(uint256).max);
         token1.approve(address(lpRouter), type(uint256).max);
         token0.approve(address(swapRouter), type(uint256).max);
@@ -130,7 +124,6 @@ contract DeployTokensAndPool is Script, DeployPermit2 {
         approvePosmCurrency(posm, Currency.wrap(address(token0)));
         approvePosmCurrency(posm, Currency.wrap(address(token1)));
 
-        // add full range liquidity to the pool
         lpRouter.modifyLiquidity(
             poolKey,
             IPoolManager.ModifyLiquidityParams(

@@ -2,12 +2,12 @@
 pragma solidity ^0.8.12;
 
 import "../common/INetwork.sol";
-import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
+import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
 import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
-import {PositionManager} from "v4-periphery/src/PositionManager.sol";
+import {PositionManager} from "@uniswap/v4-periphery/src/PositionManager.sol";
 import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
 import {ISimpleV4Router} from "../../src/interfaces/ISimpleV4Router.sol";
-import {IHooks} from "v4-core/src/interfaces/IHooks.sol";
+import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
 
 contract Local is INetwork {
     function config() external pure override returns (Config memory) {
@@ -26,7 +26,8 @@ contract Local is INetwork {
                 fee: 3000,
                 tickSpacing: 60,
                 hooks: IHooks(address(0))
-            })
+            }),
+            usdc: address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2)
         });
     }
 

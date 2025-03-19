@@ -2,10 +2,10 @@
 pragma solidity ^0.8.12;
 
 import "../common/INetwork.sol";
-import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
-import {PositionManager} from "v4-periphery/src/PositionManager.sol";
+import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
+import {PositionManager} from "@uniswap/v4-periphery/src/PositionManager.sol";
 import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
-import {IHooks} from "v4-core/src/interfaces/IHooks.sol";
+import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
 import {ISimpleV4Router} from "../../src/interfaces/ISimpleV4Router.sol";
 import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
 
@@ -19,6 +19,7 @@ contract Mainnet is INetwork {
     address public constant USDe = address(0x4c9EDD5852cd905f086C759E8383e09bff1E68B3);
     address public constant DAI = address(0x6B175474E89094C44Da98b954EedeAC495271d0F);
     address public constant YBS_ADDRESS = address(0x6B175474E89094C44Da98b954EedeAC495271d0F);
+    address public constant USDC = address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
 
     function config() external pure override returns (Config memory) {
         return Config({
@@ -36,7 +37,8 @@ contract Mainnet is INetwork {
                 fee: 3000,
                 tickSpacing: 60,
                 hooks: IHooks(address(0))
-            })
+            }),
+            usdc: USDC
         });
     }
 

@@ -5,7 +5,8 @@
   "main": "tools/transactor/dist/main.js",
   "scripts": {
     "build": "tsc",
-    "start": "node tools/transactor/dist/main.js"
+    "start": "node tools/transactor/dist/main.js",
+    "fmt": "prettier --write \"tools/transactor/**/*.{ts,js,json,md}\""
   },
   "dependencies": {
     "commander": "^10.0.0",
@@ -15,6 +16,7 @@
   "devDependencies": {
     "@types/node": "^18.16.0",
     "@types/node-fetch": "^3.0.3",
+    "prettier": "^3.5.3",
     "typescript": "^5.0.0"
   }
 }

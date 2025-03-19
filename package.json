@@ -10,6 +10,11 @@
     "@types/node": "^22.13.9"
   },
   "scripts": {
-    "swap": "node tools/transactor/main.ts"
+    "build": "tsc",
+    "start": "node dist/main.js",
+    "dev": "ts-node main.ts",
+    "mock-server": "node tools/transactor/mock-server.js",
+    "swap": "npm run mock-server & npm run start"
+
   }
 }

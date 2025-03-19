@@ -9,14 +9,14 @@
   },
   "devDependencies": {
     "@types/express": "^5.0.0",
-    "@types/node": "^22.13.9"
+    "@types/node": "^22.13.9",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
   },
   "scripts": {
     "build": "tsc",
-    "start": "node dist/main.ts",
-    "dev": "ts-node main.ts",
-    "mock-server": "node tools/transactor/mock-server.ts",
-    "build-mock-server": "tsc tools/transactor/mock-server.ts",
+    "start": "node dist/tools/transactor/main.js",
+    "dev": "ts-node tools/transactor/main.ts",
     "swap": "npm run mock-server & npm run start"
   }
 }

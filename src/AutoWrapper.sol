@@ -62,7 +62,7 @@ contract AutoWrapper is BaseHook, DeltaResolver {
     /// @notice The predicate pool key
     /// @dev This is the pool key for the pool with liquidity
     /// @dev example: USDC/wUSDL pool key is {currency0: USDC, currency1: wUSDL, fee: 0}
-    PoolKey public predicatePoolKey;
+    PoolKey public wUSDLPoolKey;
 
     /**
      * @notice Reference to the router handling user swap requests
@@ -90,34 +90,32 @@ contract AutoWrapper is BaseHook, DeltaResolver {
      * @param _manager The Uniswap V4 pool manager
      * @param _wUSDL The ERC4626 vault contract address
      * @param _baseCurrency The base currency for wUSDL pool(e.g. USDC)
-     * @param _predicatePoolKey The pool key for the pool with liquidity
+     * @param _wUSDLPoolKey The pool key for the pool with liquidity
      * @param _router The V4 router
      */
     constructor(
         IPoolManager _manager,
         ERC4626 _wUSDL, // _wUSDL.asset() is USDL
         Currency _baseCurrency, // _baseCurrency is the other asset of the wUSDL pool. ex USDC
-        PoolKey memory _predicatePoolKey,
+        PoolKey memory _wUSDLPoolKey,
         ISimpleV4Router _router
     ) BaseHook(_manager) {
-        if (_baseCurrency == _predicatePoolKey.currency0) {
+        if (_baseCurrency == _wUSDLPoolKey.currency0) {
             // baseCurrency/wUSDL pool
             require(
-                address(_wUSDL) == Currency.unwrap(_predicatePoolKey.currency1),
-                "currency mismatch; currency1 is not wUSDL"
+                address(_wUSDL) == Currency.unwrap(_wUSDLPoolKey.currency1), "currency mismatch; currency1 is not wUSDL"
             );
             baseCurrencyIsToken0ForPredicatePool = true;
         } else {
             require(
-                address(_wUSDL) == Currency.unwrap(_predicatePoolKey.currency0),
-                "currency mismatch; currency0 is not wUSDL"
+                address(_wUSDL) == Currency.unwrap(_wUSDLPoolKey.currency0), "currency mismatch; currency0 is not wUSDL"
             );
             baseCurrencyIsToken0ForPredicatePool = false;
         }
 
         baseCurrency = _baseCurrency;
         wUSDL = _wUSDL;
-        predicatePoolKey = _predicatePoolKey;
+        wUSDLPoolKey = _wUSDLPoolKey; // predicate pool key
         router = _router;
         baseCurrencyIsToken0 = baseCurrency < Currency.wrap(wUSDL.asset());
         IERC20(wUSDL.asset()).approve(address(wUSDL), type(uint256).max);
@@ -267,34 +265,37 @@ contract AutoWrapper is BaseHook, DeltaResolver {
      */
     function _transferTokensToHook(IPoolManager.SwapParams memory params, BalanceDelta delta) internal {
         bool isExactInput = params.amountSpecified < 0;
-        int256 delta0; // delta of the baseCurrency
-        int256 delta1; // delta of the wUSDL
+        int256 baseCurrencyDelta; // delta of the baseCurrency
+        int256 wUSDLDelta; // delta of the wUSDL
 
         // get the delta for the correct token based on the token0/token1 position of the liquidity pool
         if (baseCurrencyIsToken0ForPredicatePool) {
-            delta0 = BalanceDeltaLibrary.amount0(delta);
-            delta1 = BalanceDeltaLibrary.amount1(delta);
+            baseCurrencyDelta = BalanceDeltaLibrary.amount0(delta);
+            wUSDLDelta = BalanceDeltaLibrary.amount1(delta);
         } else {
-            delta0 = BalanceDeltaLibrary.amount1(delta);
-            delta1 = BalanceDeltaLibrary.amount0(delta);
+            baseCurrencyDelta = BalanceDeltaLibrary.amount1(delta);
+            wUSDLDelta = BalanceDeltaLibrary.amount0(delta);
         }
 
         // check if the swap is a baseCurrency -> USDL swap or a USDL -> baseCurrency swap
         // irrespective of the token0/token1 position of the ghost pool
         if (baseCurrencyIsToken0 == params.zeroForOne) {
             // baseCurrency -> USDL swap path
-            require(delta0 < 0, "baseCurrency delta is not negative for baseCurrency -> wUSDL swap");
-            IERC20(Currency.unwrap(baseCurrency)).transferFrom(router.msgSender(), address(this), uint256(-delta0));
+            require(baseCurrencyDelta < 0, "baseCurrency delta is not negative for baseCurrency -> wUSDL swap");
+            IERC20(Currency.unwrap(baseCurrency)).transferFrom(
+                router.msgSender(), address(this), uint256(-baseCurrencyDelta)
+            );
         } else {
             // USDL -> baseCurrency swap path
-            require(delta1 < 0, "wUSDL delta must be negative for USDL -> ERC20 swap");
-            uint256 USDLAmount;
+            require(wUSDLDelta < 0, "wUSDL delta must be negative for USDL -> ERC20 swap");
+            uint256 USDLAmount; // amount of USDL to transfer to the hook
+
             if (isExactInput) {
                 // For exact input: User specifies exact USDL amount
                 USDLAmount = uint256(-params.amountSpecified);
             } else {
                 // For exact output: underlyingAmount is the amount of USDL required to wrap delta1 amount of WUSDL
-                USDLAmount = uint256(getWrapInputRequired(uint256(-delta1)));
+                USDLAmount = uint256(getWrapInputRequired(uint256(-wUSDLDelta)));
             }
 
             // transfer the USDL to the auto wrapper
@@ -312,31 +313,31 @@ contract AutoWrapper is BaseHook, DeltaResolver {
      * @param delta The balance delta
      */
     function _transferTokensToUser(IPoolManager.SwapParams memory params, BalanceDelta delta) internal {
-        int256 delta0; // delta of the baseCurrency
-        int256 delta1; // delta of the wUSDL
+        int256 baseCurrencyDelta; // delta of the baseCurrency
+        int256 wUSDLDelta; // delta of the wUSDL
 
         // get the delta for the correct token based on the token0/token1 position of the liquidity pool
         if (baseCurrencyIsToken0ForPredicatePool) {
-            delta0 = BalanceDeltaLibrary.amount0(delta);
-            delta1 = BalanceDeltaLibrary.amount1(delta);
+            baseCurrencyDelta = BalanceDeltaLibrary.amount0(delta);
+            wUSDLDelta = BalanceDeltaLibrary.amount1(delta);
         } else {
-            delta0 = BalanceDeltaLibrary.amount1(delta);
-            delta1 = BalanceDeltaLibrary.amount0(delta);
+            baseCurrencyDelta = BalanceDeltaLibrary.amount1(delta);
+            wUSDLDelta = BalanceDeltaLibrary.amount0(delta);
         }
 
         // check if the swap is a baseCurrency -> USDL swap or a USDL -> baseCurrency swap
         // irrespective of the token0/token1 position of the ghost pool
         if (baseCurrencyIsToken0 == params.zeroForOne) {
             // baseCurrency -> USDL swap path
-            require(delta1 > 0, "wUSDL delta is not positive for baseCurrency -> wUSDL swap");
+            require(wUSDLDelta > 0, "wUSDL delta is not positive for baseCurrency -> wUSDL swap");
             // withdraw the USDL using the wUSDL and transfers to the user
-            uint256 redeemAmount = _withdraw(uint256(delta1));
+            uint256 redeemAmount = _withdraw(uint256(wUSDLDelta));
             IERC20(wUSDL.asset()).transfer(router.msgSender(), redeemAmount);
         } else {
             // USDL -> baseCurrency swap path
-            require(delta0 > 0, "baseCurrency delta is not positive for USDL -> ERC20 swap");
+            require(baseCurrencyDelta > 0, "baseCurrency delta is not positive for USDL -> ERC20 swap");
             // transfer the baseCurrency to the user directly
-            IERC20(Currency.unwrap(baseCurrency)).transfer(router.msgSender(), uint256(delta0));
+            IERC20(Currency.unwrap(baseCurrency)).transfer(router.msgSender(), uint256(baseCurrencyDelta));
         }
     }
 
@@ -351,14 +352,7 @@ contract AutoWrapper is BaseHook, DeltaResolver {
         IPoolManager.SwapParams memory params,
         bytes calldata hookData
     ) internal returns (BalanceDelta delta) {
-        (,, int256 deltaBefore0) = _fetchBalances(predicatePoolKey.currency0, router.msgSender(), address(this));
-        (,, int256 deltaBefore1) = _fetchBalances(predicatePoolKey.currency1, router.msgSender(), address(this));
-        require(deltaBefore0 == 0, "deltaBefore0 is not 0");
-        require(deltaBefore1 == 0, "deltaBefore1 is not 0");
-
-        delta = poolManager.swap(predicatePoolKey, params, hookData);
-
-        return delta;
+        return poolManager.swap(wUSDLPoolKey, params, hookData);
     }
 
     /**
@@ -373,15 +367,15 @@ contract AutoWrapper is BaseHook, DeltaResolver {
         int256 delta1 = BalanceDeltaLibrary.amount1(delta);
 
         if (delta0 < 0) {
-            _settle(predicatePoolKey.currency0, address(this), uint256(-delta0));
+            _settle(wUSDLPoolKey.currency0, address(this), uint256(-delta0));
         } else {
-            _take(predicatePoolKey.currency0, address(this), uint256(delta0));
+            _take(wUSDLPoolKey.currency0, address(this), uint256(delta0));
         }
 
         if (delta1 < 0) {
-            _settle(predicatePoolKey.currency1, address(this), uint256(-delta1));
+            _settle(wUSDLPoolKey.currency1, address(this), uint256(-delta1));
         } else {
-            _take(predicatePoolKey.currency1, address(this), uint256(delta1));
+            _take(wUSDLPoolKey.currency1, address(this), uint256(delta1));
         }
     }
 
@@ -439,24 +433,5 @@ contract AutoWrapper is BaseHook, DeltaResolver {
         uint256 USDLAmount
     ) public view returns (int256) {
         return int256(wUSDL.convertToShares({assets: USDLAmount}));
-    }
-
-    /**
-     * @notice Retrieves balances and delta for a specific token
-     * @param currency The token to query (exchangeToken or wUSDL)
-     * @param user The user address
-     * @param deltaHolder The address responsible for settling deltas (typically this contract)
-     * @return userBalance The user's current balance
-     * @return poolBalance The pool manager's current balance
-     * @return delta The outstanding delta owed to/from the pool manager
-     */
-    function _fetchBalances(
-        Currency currency,
-        address user,
-        address deltaHolder
-    ) internal view returns (uint256 userBalance, uint256 poolBalance, int256 delta) {
-        userBalance = CurrencyLibrary.balanceOf(currency, user);
-        poolBalance = CurrencyLibrary.balanceOf(currency, address(poolManager));
-        delta = poolManager.currencyDelta(deltaHolder, currency);
     }
 }

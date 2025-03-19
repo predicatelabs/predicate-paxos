@@ -3,6 +3,7 @@ import axios from 'axios';
 import type { Config } from '../config/config';
 import { encodeBeforeSwap, encodeHookData, waitForReceipt } from './utils';
 import type { PoolKey, IPoolManagerSwapParams, PredicateMessage, STMRequest, STMResponse } from '../types/types';
+import { ROUTER_ABI } from '../config/abi';
 
 const API_REQUEST_TIMEOUT = 5000; // 5 seconds
 
@@ -17,7 +18,7 @@ export class TransactorService {
         this.config = config;
         this.provider = new ethers.providers.JsonRpcProvider(config.ethRpcUrl);
         this.signer = new ethers.Wallet(config.privateKey, this.provider);
-        this.swapRouter = new ethers.Contract(config.routerAddress, [], this.signer);
+        this.swapRouter = new ethers.Contract(config.routerAddress, ROUTER_ABI, this.signer);
         
         this.poolKey = {
             currency0: config.currency0Address,
@@ -39,6 +40,8 @@ export class TransactorService {
         };
 
         try {
+            await this.approveTokensForSwap(oneEther.mul(2)); 
+            
             const hookData = await this.getHookData(params);
             console.log('Hook Data:', hookData);
 
@@ -114,6 +117,27 @@ export class TransactorService {
         };
 
         return encodeHookData(pm, signerAddress, ethers.BigNumber.from(0));
+    }
+
+    async approveTokensForSwap(amount: ethers.BigNumber): Promise<void> {
+        const token0 = new ethers.Contract(
+            this.poolKey.currency0,
+            ["function approve(address spender, uint256 amount) external returns (bool)"],
+            this.signer
+        );
+        
+        const token1 = new ethers.Contract(
+            this.poolKey.currency1,
+            ["function approve(address spender, uint256 amount) external returns (bool)"],
+            this.signer
+        );
+        
+        console.log("Approving tokens for swap...");
+        
+        await (await token0.approve(this.swapRouter.address, amount)).wait();
+        await (await token1.approve(this.swapRouter.address, amount)).wait();
+        
+        console.log("Token approvals complete");
     }
 }
 

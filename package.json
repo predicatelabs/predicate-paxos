@@ -1,7 +1,7 @@
 {
   "name": "transactor",
   "version": "1.0.0",
-  "description": "Transactor service rewritten from Go to TypeScript",
+  "description": "Transactor service is a tool to transact with the UniV4 Hook",
   "main": "tools/transactor/dist/main.js",
   "scripts": {
     "build": "tsc",

@@ -51,7 +51,7 @@ deploy-hook:
 
 deploy-tokens-and-pool:
 	export NETWORK=LOCAL && \
-	export HOOK_ADDRESS=0x18A5c776bdb3502C4172F8b5558281cf0060c080 && \
+	export HOOK_ADDRESS=0xD7dFbA1804a35363c2c9cC897eBacACAF3104880 && \
 	forge script script/common/DeployTokensAndPool.s.sol \
 		--via-ir \
 		--rpc-url http://localhost:8545 \

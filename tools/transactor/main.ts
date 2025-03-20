@@ -14,8 +14,8 @@ let config: Config = {
     environment: "local",
     currency0Address: "0x0DCd1Bf9A1b36cE34237eEaFef220932846BCD82",
     currency1Address: "0xA51c1fc2f0D1a1b8494Ed1FE312d7C3a78Ed91C0",
-    routerAddress: "0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6",
-    hookAddress: "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853",
+    routerAddress: "0x8A791620dd6260079BF849Dc5567aDC3F2FdC318",
+    hookAddress: "0xD7dFbA1804a35363c2c9cC897eBacACAF3104880",
     lpFees: 3000,
     tickSpacing: 60,
 };

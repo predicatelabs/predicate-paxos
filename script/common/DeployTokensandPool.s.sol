@@ -25,6 +25,7 @@ import {IWETH9} from "@uniswap/v4-periphery/src/interfaces/external/IWETH9.sol";
 import {INetwork} from "./INetwork.sol";
 import {NetworkSelector} from "./NetworkSelector.sol";
 import {ISimpleV4Router} from "../../src/interfaces/ISimpleV4Router.sol";
+import {PredicateHook} from "../../src/PredicateHook.sol";
 
 /// @notice Forge script for deploying v4 & hooks
 contract DeployTokensAndPool is Script, DeployPermit2 {
@@ -56,6 +57,11 @@ contract DeployTokensAndPool is Script, DeployPermit2 {
         vm.stopBroadcast();
 
         vm.startBroadcast();
+        PredicateHook predicateHook = PredicateHook(hookAddress);
+        address[] memory _lps = new address[](2);
+        _lps[0] = address(posm);
+        _lps[1] = address(lpRouter);
+        predicateHook.addAuthorizedLPs(_lps);
         setApprovalsAndMintLiquidity(manager, hookAddress, posm, lpRouter, swapRouter);
         vm.stopBroadcast();
     }

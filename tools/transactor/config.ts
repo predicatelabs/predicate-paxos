@@ -8,7 +8,8 @@ export interface Config {
     ethRPCURL: string;
     privateKey: string;
     routerAddress: string;
-    hookAddress: string;
+    predicateHookAddress: string;
+    autoWrapperAddress: string;
     lpFees: number;
     tickSpacing: number;
     currency0Address: string;
@@ -46,9 +47,14 @@ export function validateConfig(cfg: Config): void {
             "swap router address is required and must be a valid Ethereum address",
         );
     }
-    if (!cfg.hookAddress || !utils.isAddress(cfg.hookAddress)) {
+    if (!cfg.predicateHookAddress || !utils.isAddress(cfg.predicateHookAddress)) {
         throw new Error(
-            "hook address is required and must be a valid Ethereum address",
+            "predicate hook address is required and must be a valid Ethereum address",
+        );
+    }
+    if (!cfg.autoWrapperAddress || !utils.isAddress(cfg.autoWrapperAddress)) {
+        throw new Error(
+            "auto wrapper address is required and must be a valid Ethereum address",
         );
     }
 }

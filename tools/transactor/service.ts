@@ -28,24 +28,6 @@ export class TransactorService {
         // Create provider and wallet
         this.provider = new ethers.providers.JsonRpcProvider(config.ethRPCURL);
         this.wallet = new ethers.Wallet(config.privateKey, this.provider);
-
-        if (!ethers.utils.isAddress(config.currency0Address)) {
-            throw new Error(
-                `Invalid currency0 address: ${config.currency0Address}`,
-            );
-        }
-        if (!ethers.utils.isAddress(config.currency1Address)) {
-            throw new Error(
-                `Invalid currency1 address: ${config.currency1Address}`,
-            );
-        }
-        if (!ethers.utils.isAddress(config.hookAddress)) {
-            throw new Error(`Invalid hook address: ${config.hookAddress}`);
-        }
-        if (!ethers.utils.isAddress(config.routerAddress)) {
-            throw new Error(`Invalid router address: ${config.routerAddress}`);
-        }
-
         this.routerAddress = config.routerAddress;
         this.swapRouter = new ethers.Contract(
             this.routerAddress,
@@ -58,14 +40,15 @@ export class TransactorService {
             currency1: config.currency1Address,
             fee: config.lpFees,
             tickSpacing: config.tickSpacing,
-            hooks: config.hookAddress,
+            hooks: config.autoWrapperAddress,
         };
 
         console.log("Config values:", {
             routerAddress: config.routerAddress,
             currency0Address: config.currency0Address,
             currency1Address: config.currency1Address,
-            hookAddress: config.hookAddress,
+            predicateHookAddress: config.predicateHookAddress,
+            autoWrapperAddress: config.autoWrapperAddress,
             ethRPCURL: config.ethRPCURL,
         });
     }
@@ -101,7 +84,7 @@ export class TransactorService {
         );
 
         const stmRequest: STMRequest = {
-            to: this.poolKey.hooks,
+            to: this.config.predicateHookAddress,
             from: this.wallet.address,
             data: dataBeforeSwap,
             msg_value: "0",

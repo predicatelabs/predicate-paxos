@@ -12,10 +12,11 @@ let config: Config = {
     privateKey:
         "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
     environment: "local",
-    currency0Address: "0x0B306BF915C4d645ff596e518fAf3F9669b97016",
-    currency1Address: "0x9A676e781A523b5d0C0e43731313A708CB607508",
+    currency0Address: "0x68B1D87F95878fE05B998F19b66F4baba5De1aed",
+    currency1Address: "0x959922bE3CAee4b8Cd9a407cc3ac1C251C2007B1",
     routerAddress: "0x8A791620dd6260079BF849Dc5567aDC3F2FdC318",
-    hookAddress: "0xD7dFbA1804a35363c2c9cC897eBacACAF3104880",
+    predicateHookAddress: "0x86Dfe3508346255a9540200f231F7248d3d8c880",
+    autoWrapperAddress: "0x3fDf5a1EAaF5d31C8aAb68ffB9b694B546FE6888",
     lpFees: 0,
     tickSpacing: 60,
 };
@@ -45,7 +46,16 @@ program
         "Swap router address",
         config.routerAddress,
     )
-    .option("--hook-address <address>", "Hook address", config.hookAddress)
+    .option(
+        "--predicate-hook-address <address>",
+        "Predicate hook address",
+        config.predicateHookAddress,
+    )
+    .option(
+        "--auto-wrapper-address <address>",
+        "Auto wrapper address",
+        config.autoWrapperAddress,
+    )
     .option(
         "--lp-fees <number>",
         "LP fees",
@@ -72,7 +82,8 @@ config = {
     currency0Address: options.currency0Address,
     currency1Address: options.currency1Address,
     routerAddress: options.swapRouterAddress || options.swap_router_address,
-    hookAddress: options.hookAddress,
+    predicateHookAddress: options.predicateHookAddress,
+    autoWrapperAddress: options.autoWrapperAddress,
     lpFees: options.lpFees,
     tickSpacing: options.tickSpacing,
 };

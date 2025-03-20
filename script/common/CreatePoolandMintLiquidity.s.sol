@@ -27,17 +27,15 @@ contract CreatePoolAndAddLiquidityScript is Script {
     ISimpleV4Router private swapRouter;
 
     INetwork private _env;
+    address private hookAddress;
 
     function _init() internal {
         bool networkExists = vm.envExists("NETWORK");
-        if (networkExists) {
-            require(networkExists, "All environment variables must be set if any are specified");
-            string memory _network = vm.envString("NETWORK");
-            _env = new NetworkSelector().select(_network);
-        } else {
-            _env = new NetworkSelector().select("LOCAL");
-            console.log("No network specified. Defaulting to LOCAL.");
-        }
+        bool hookAddressExists = vm.envExists("HOOK_ADDRESS");
+        require(networkExists && hookAddressExists, "All environment variables must be set if any are specified");
+        string memory _network = vm.envString("NETWORK");
+        _env = new NetworkSelector().select(_network);
+        hookAddress = vm.envAddress("HOOK_ADDRESS");
     }
 
     /////////////////////////////////////
@@ -45,8 +43,7 @@ contract CreatePoolAndAddLiquidityScript is Script {
     function run() external {
         _init();
         INetwork.Config memory config = _env.config();
-        INetwork.PoolConfig memory poolConfig = _env.poolConfig();
-        INetwork.HookConfig memory hookConfig = _env.hookConfig();
+        INetwork.LiquidityPoolConfig memory poolConfig = _env.liquidityPoolConfig();
 
         // --------------------------------- //
         posm = config.positionManager;
@@ -63,7 +60,7 @@ contract CreatePoolAndAddLiquidityScript is Script {
             currency1: Currency.wrap(poolConfig.token1),
             fee: poolConfig.fee,
             tickSpacing: poolConfig.tickSpacing,
-            hooks: IHooks(hookConfig.hookContract)
+            hooks: IHooks(hookAddress)
         });
         bytes memory hookData = new bytes(0);
 

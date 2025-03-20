@@ -14,7 +14,7 @@ import {AutoWrapper} from "../../src/AutoWrapper.sol";
 import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
 import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
 import {HookMiner} from "../../test/utils/HookMiner.sol";
-import {Constants} from "@uniswap/v4-core/src/../test/utils/Constants.sol";
+import {Constants} from "@uniswap/v4-core/test/utils/Constants.sol";
 
 contract DeployAutoWrapper is Script {
     INetwork private _env;

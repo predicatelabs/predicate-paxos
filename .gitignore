@@ -3,10 +3,14 @@ cache/
 out/
 broadcast/
 
-# Dotenv file
 .env
 
 # vscode
 .vscode
+
+node_modules/
+dist/
+
 .idea/
 .DS_Store
+

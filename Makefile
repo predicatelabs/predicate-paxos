@@ -5,6 +5,8 @@ DEPLOYER_ECDSA_PRIV_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d
 # public key - 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
 
 RPC_URLS=http://localhost:8545,http://localhost:8545
+PREDICATE_HOOK_ADDRESS=0x86Dfe3508346255a9540200f231F7248d3d8c880
+SWAP_ROUTER_ADDRESS=0x8A791620dd6260079BF849Dc5567aDC3F2FdC318
 
 COMMIT_HASH=$(shell git rev-parse --short HEAD)
 
@@ -41,7 +43,7 @@ deploy-router:
 		--private-key ${DEPLOYER_ECDSA_PRIV_KEY} \
 		--broadcast -vvvv
 
-deploy-hook:
+deploy-predicate-hook:
 	export NETWORK=LOCAL && \
 	forge script script/common/DeployPredicateHook.s.sol \
 		--via-ir \
@@ -49,13 +51,23 @@ deploy-hook:
 		--private-key ${DEPLOYER_ECDSA_PRIV_KEY} \
 		--broadcast -vvvv
 
-deploy-tokens-and-pool:
+deploy-tokens-and-liquidity-pool:
 	export NETWORK=LOCAL && \
-	export HOOK_ADDRESS=0x18A5c776bdb3502C4172F8b5558281cf0060c080 && \
+	export HOOK_ADDRESS=${PREDICATE_HOOK_ADDRESS} && \
 	forge script script/common/DeployTokensAndPool.s.sol \
 		--via-ir \
 		--rpc-url http://localhost:8545 \
 		--private-key ${DEPLOYER_ECDSA_PRIV_KEY} \
 		--broadcast -vvvv
 
-deploy-contracts: deploy-pool-manager deploy-router deploy-hook deploy-tokens-and-pool
+deploy-auto-wrapper:
+	export NETWORK=LOCAL && \
+	export HOOK_ADDRESS=${PREDICATE_HOOK_ADDRESS} && \
+	export SWAP_ROUTER_ADDRESS=${SWAP_ROUTER_ADDRESS} && \
+	forge script script/common/DeployAutoWrapper.s.sol \
+		--via-ir \
+		--rpc-url http://localhost:8545 \
+		--private-key ${DEPLOYER_ECDSA_PRIV_KEY} \
+		--broadcast -vvvv
+
+deploy-contracts: deploy-pool-manager deploy-router deploy-predicate-hook deploy-tokens-and-liquidity-pool deploy-auto-wrapper

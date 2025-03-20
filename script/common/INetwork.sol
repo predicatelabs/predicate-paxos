@@ -17,12 +17,9 @@ interface INetwork {
         address create2Deployer;
         address serviceManager;
         string policyId;
-        address ybsAddress;
-        Currency usdc;
-        PoolKey poolKey;
     }
 
-    struct PoolConfig {
+    struct LiquidityPoolConfig {
         address token0;
         address token1;
         uint24 fee;
@@ -34,11 +31,13 @@ interface INetwork {
         uint256 token1Amount;
     }
 
-    struct HookConfig {
-        address hookContract;
+    struct TokenConfig {
+        Currency USDL;
+        Currency wUSDL;
+        Currency USDC; // USDC
     }
 
     function config() external view returns (Config memory);
-    function poolConfig() external view returns (PoolConfig memory);
-    function hookConfig() external view returns (HookConfig memory);
+    function liquidityPoolConfig() external view returns (LiquidityPoolConfig memory);
+    function tokenConfig() external view returns (TokenConfig memory);
 }

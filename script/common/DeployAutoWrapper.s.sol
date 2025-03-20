@@ -23,7 +23,10 @@ contract DeployAutoWrapper is Script {
         bool networkExists = vm.envExists("NETWORK");
         bool hookAddressExists = vm.envExists("HOOK_ADDRESS");
         bool swapRouterExists = vm.envExists("SWAP_ROUTER");
-        require(networkExists && hookAddressExists && swapRouterExists, "All environment variables must be set if any are specified");
+        require(
+            networkExists && hookAddressExists && swapRouterExists,
+            "All environment variables must be set if any are specified"
+        );
         string memory _network = vm.envString("NETWORK");
         _env = new NetworkSelector().select(_network);
         hookAddress = vm.envAddress("HOOK_ADDRESS");
@@ -43,7 +46,13 @@ contract DeployAutoWrapper is Script {
         IERC20 USDL = IERC20(tokenConfig.USDL);
         IHooks hook = IHooks(hookAddress);
         tickSpacing = poolConfig.tickSpacing;
-        PoolKey memory predicatePoolKey = PoolKey(Currency.wrap(poolConfig.token0), Currency.wrap(poolConfig.token1), poolConfig.fee, poolConfig.tickSpacing, hook);
+        PoolKey memory predicatePoolKey = PoolKey(
+            Currency.wrap(poolConfig.token0),
+            Currency.wrap(poolConfig.token1),
+            poolConfig.fee,
+            poolConfig.tickSpacing,
+            hook
+        );
 
         // initialize the auto wrapper
         uint160 autoWrapperFlags = uint160(
@@ -63,10 +72,18 @@ contract DeployAutoWrapper is Script {
         // initialize the ghost pool
         if (uint160(address(USDL)) < uint160(address(USDC))) {
             ghostPoolKey = PoolKey(Currency.wrap(address(USDL)), USDC, 0, tickSpacing, IHooks(autoWrapper));
-            console.log("Deploying ghost pool with token0: %s and token1: %s", Currency.unwrap(ghostPoolKey.currency0), Currency.unwrap(ghostPoolKey.currency1));
+            console.log(
+                "Deploying ghost pool with token0: %s and token1: %s",
+                Currency.unwrap(ghostPoolKey.currency0),
+                Currency.unwrap(ghostPoolKey.currency1)
+            );
         } else {
             ghostPoolKey = PoolKey(USDC, Currency.wrap(address(USDL)), 0, tickSpacing, IHooks(autoWrapper));
-            console.log("Deploying ghost pool with token0: %s and token1: %s", Currency.unwrap(ghostPoolKey.currency0), Currency.unwrap(ghostPoolKey.currency1));
+            console.log(
+                "Deploying ghost pool with token0: %s and token1: %s",
+                Currency.unwrap(ghostPoolKey.currency0),
+                Currency.unwrap(ghostPoolKey.currency1)
+            );
         }
         manager.initialize(ghostPoolKey, Constants.SQRT_PRICE_1_1);
 

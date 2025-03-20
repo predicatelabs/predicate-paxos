@@ -25,7 +25,7 @@ contract DeployAutoWrapper is Script {
     function _init() internal {
         bool networkExists = vm.envExists("NETWORK");
         bool hookAddressExists = vm.envExists("HOOK_ADDRESS");
-        bool swapRouterExists = vm.envExists("SWAP_ROUTER");
+        bool swapRouterExists = vm.envExists("SWAP_ROUTER_ADDRESS");
         require(
             networkExists && hookAddressExists && swapRouterExists,
             "All environment variables must be set if any are specified"
@@ -33,7 +33,7 @@ contract DeployAutoWrapper is Script {
         string memory _network = vm.envString("NETWORK");
         _env = new NetworkSelector().select(_network);
         hookAddress = vm.envAddress("HOOK_ADDRESS");
-        swapRouter = ISimpleV4Router(vm.envAddress("SWAP_ROUTER"));
+        swapRouter = ISimpleV4Router(vm.envAddress("SWAP_ROUTER_ADDRESS"));
     }
 
     function run() public {

@@ -10,6 +10,10 @@ import {ISimpleV4Router} from "../../src/interfaces/ISimpleV4Router.sol";
 import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
 
 contract Local is INetwork {
+    address public constant USDL = address(0x959922bE3CAee4b8Cd9a407cc3ac1C251C2007B1);
+    address public constant WUSDL = address(0x9A9f2CCfdE556A7E9Ff0848998Aa4a0CFD8863AE);
+    address public constant USDC = address(0x68B1D87F95878fE05B998F19b66F4baba5De1aed);
+
     function config() external pure override returns (Config memory) {
         return Config({
             poolManager: IPoolManager(address(0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6)),
@@ -23,10 +27,9 @@ contract Local is INetwork {
     }
 
     function liquidityPoolConfig() external pure override returns (LiquidityPoolConfig memory) {
-        // note: this is not used right now
         return LiquidityPoolConfig({
-            token0: address(0x6B175474E89094C44Da98b954EedeAC495271d0F),
-            token1: address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2),
+            token0: USDC,
+            token1: WUSDL,
             fee: 3000,
             tickSpacing: 60,
             tickLower: -600,
@@ -37,12 +40,7 @@ contract Local is INetwork {
         });
     }
 
-    // note: this is not used right now
     function tokenConfig() external pure override returns (TokenConfig memory) {
-        return TokenConfig({
-            USDL: Currency.wrap(address(0x6B175474E89094C44Da98b954EedeAC495271d0F)),
-            wUSDL: Currency.wrap(address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2)),
-            USDC: Currency.wrap(address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2))
-        });
+        return TokenConfig({USDL: Currency.wrap(USDL), wUSDL: Currency.wrap(WUSDL), USDC: Currency.wrap(USDC)});
     }
 }

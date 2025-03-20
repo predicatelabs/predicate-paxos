@@ -222,12 +222,6 @@ contract DeployTokensAndPool is Script, DeployPermit2 {
         USDL.transfer(msg.sender, initialSupply * 6);
         // Approve wUSDL to deposit USDL from msg.sender
         IERC20Upgradeable(address(USDL)).approve(address(wUSDL), type(uint256).max);
-        // Approve autoWrapper to spend USDC from msg.sender
-        // IERC20(address(USDL)).approve(address(autoWrapper), type(uint256).max);
-        // // Approve autoWrapper to spend USDC from msg.sender
-        // IERC20(address(baseToken)).approve(address(autoWrapper), type(uint256).max);
-        // // Approve autoWrapper to spend wUSDL from msg.sender
-        // IERC20Upgradeable(address(wUSDL)).approve(address(autoWrapper), type(uint256).max);
         // Deposit 3 * initialSupply of USDL from msg.sender to wUSDL
         wUSDL.deposit(3 * initialSupply, msg.sender);
 

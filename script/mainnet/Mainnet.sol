@@ -53,8 +53,4 @@ contract Mainnet is INetwork {
             USDC: Currency.wrap(address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2))
         });
     }
-
-    function hookConfig() external pure override returns (HookConfig memory) {
-        return HookConfig({hookContract: address(0x57Df5778B93ab56CEEF966311EBeEcd295918080)});
-    }
 }

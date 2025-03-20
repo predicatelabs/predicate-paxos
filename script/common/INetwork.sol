@@ -37,12 +37,7 @@ interface INetwork {
         Currency USDC; // USDC
     }
 
-    struct HookConfig {
-        address hookContract;
-    }
-
     function config() external view returns (Config memory);
     function liquidityPoolConfig() external view returns (LiquidityPoolConfig memory);
-    function hookConfig() external view returns (HookConfig memory);
     function tokenConfig() external view returns (TokenConfig memory);
 }

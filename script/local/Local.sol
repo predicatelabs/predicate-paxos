@@ -38,11 +38,6 @@ contract Local is INetwork {
     }
 
     // note: this is not used right now
-    function hookConfig() external pure override returns (HookConfig memory) {
-        return HookConfig({hookContract: address(0xB88D683B9959c2A10f9d1A000A12a94EA8260080)});
-    }
-
-    // note: this is not used right now
     function tokenConfig() external pure override returns (TokenConfig memory) {
         return TokenConfig({
             USDL: Currency.wrap(address(0x6B175474E89094C44Da98b954EedeAC495271d0F)),

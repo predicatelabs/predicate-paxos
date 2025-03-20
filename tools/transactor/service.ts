@@ -102,7 +102,23 @@ export class TransactorService {
             },
             body: JSON.stringify(stmRequest),
         });
-        const stmResponse = (await response.json()) as STMResponse;
+        
+        // Log the raw response for debugging
+        const responseText = await response.text();
+        if (!response.ok) {
+            throw new Error(
+                `Failed to fetch hook data: ${response.status} ${response.statusText}\nResponse: ${responseText}`,
+            );
+        }
+
+        let stmResponse: STMResponse;
+        try {
+            stmResponse = JSON.parse(responseText) as STMResponse;
+        } catch (error) {
+            throw new Error(
+                `Failed to parse API response as JSON: ${error}\nResponse: ${responseText}`,
+            );
+        }
 
         if (!stmResponse.is_compliant) {
             throw new Error("STM Response is not compliant");

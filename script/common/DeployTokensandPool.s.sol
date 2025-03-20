@@ -187,7 +187,7 @@ contract DeployTokensAndPool is Script, DeployPermit2 {
         );
 
         ERC1967Proxy ybsProxy = new ERC1967Proxy(address(ybsImpl), ybsData);
-        YBSV1_1 USDL = YBSV1_1(address(ybsProxy));
+        USDL = YBSV1_1(address(ybsProxy));
 
         bytes memory wYbsData = abi.encodeWithSelector(
             wYBSV1.initialize.selector,
@@ -200,10 +200,10 @@ contract DeployTokensAndPool is Script, DeployPermit2 {
         );
 
         ERC1967Proxy wYbsProxy = new ERC1967Proxy(address(wYbsImpl), wYbsData);
-        wYBSV1 wUSDL = wYBSV1(address(wYbsProxy));
+        wUSDL = wYBSV1(address(wYbsProxy));
 
         // Deploy baseCurrency for pool
-        MockERC20 baseToken = new MockERC20("MockA", "A", 18); // USDC
+        baseToken = new MockERC20("MockA", "A", 18); // USDC
         // Mint 100_000 ether to msg.sender
         baseToken.mint(msg.sender, 100_000 ether);
 

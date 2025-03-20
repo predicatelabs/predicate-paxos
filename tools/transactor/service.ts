@@ -2,6 +2,7 @@
 import { ethers, BigNumber } from "ethers";
 import fetch from "node-fetch"; // If using Node.js <18; otherwise, use the global fetch
 import { Config } from "./config";
+import { SwapRouterABI } from "./swapRouter";
 import {
     STMRequest,
     STMResponse,
@@ -28,16 +29,28 @@ export class TransactorService {
         this.provider = new ethers.providers.JsonRpcProvider(config.ethRPCURL);
         this.wallet = new ethers.Wallet(config.privateKey, this.provider);
 
-        // Create a contract instance for the swap router.
-        // NOTE: Replace the ABI below with your actual contract ABI.
-        const swapRouterAbi = [
-            // Example function definition for Swap; adjust types as needed.
-            "function Swap((address,address,address,uint24,int24,address) poolKey, (bool zeroForOne, int256 amountSpecified, uint160 sqrtPriceLimitX96) params, bytes hookData) external returns (bytes32)",
-        ];
+        // Validate addresses before constructing poolKey
+        if (!ethers.utils.isAddress(config.currency0Address)) {
+            throw new Error(
+                `Invalid currency0 address: ${config.currency0Address}`,
+            );
+        }
+        if (!ethers.utils.isAddress(config.currency1Address)) {
+            throw new Error(
+                `Invalid currency1 address: ${config.currency1Address}`,
+            );
+        }
+        if (!ethers.utils.isAddress(config.hookAddress)) {
+            throw new Error(`Invalid hook address: ${config.hookAddress}`);
+        }
+        if (!ethers.utils.isAddress(config.routerAddress)) {
+            throw new Error(`Invalid router address: ${config.routerAddress}`);
+        }  
+
         this.routerAddress = config.routerAddress;
         this.swapRouter = new ethers.Contract(
             this.routerAddress,
-            swapRouterAbi,
+            SwapRouterABI,
             this.wallet,
         );
 
@@ -49,6 +62,14 @@ export class TransactorService {
             tickSpacing: config.tickSpacing,
             hooks: config.hookAddress,
         };
+
+        console.log("Config values:", {
+            routerAddress: config.routerAddress,
+            currency0Address: config.currency0Address,
+            currency1Address: config.currency1Address,
+            hookAddress: config.hookAddress,
+            ethRPCURL: config.ethRPCURL,
+        });
     }
 
     async start() {
@@ -67,7 +88,7 @@ export class TransactorService {
         console.log("Hook Data:", hookData);
 
         // Call the Swap function on the router contract
-        const tx = await this.swapRouter.Swap(this.poolKey, params, hookData);
+        const tx = await this.swapRouter.swap(this.poolKey, params, hookData);
         console.log("Transaction submitted, hash:", tx.hash);
         const receipt = await tx.wait();
         if (receipt.status !== 1) {
@@ -102,7 +123,7 @@ export class TransactorService {
             },
             body: JSON.stringify(stmRequest),
         });
-        
+
         // Log the raw response for debugging
         const responseText = await response.text();
         if (!response.ok) {

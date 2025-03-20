@@ -12,8 +12,8 @@ let config: Config = {
     privateKey:
         "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
     environment: "local",
-    currency0Address: "0x0DCd1Bf9A1b36cE34237eEaFef220932846BCD82",
-    currency1Address: "0xA51c1fc2f0D1a1b8494Ed1FE312d7C3a78Ed91C0",
+    currency0Address: "0x0B306BF915C4d645ff596e518fAf3F9669b97016",
+    currency1Address: "0x9A676e781A523b5d0C0e43731313A708CB607508",
     routerAddress: "0x8A791620dd6260079BF849Dc5567aDC3F2FdC318",
     hookAddress: "0xD7dFbA1804a35363c2c9cC897eBacACAF3104880",
     lpFees: 3000,

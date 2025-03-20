@@ -16,7 +16,7 @@ let config: Config = {
     currency1Address: "0x9A676e781A523b5d0C0e43731313A708CB607508",
     routerAddress: "0x8A791620dd6260079BF849Dc5567aDC3F2FdC318",
     hookAddress: "0xD7dFbA1804a35363c2c9cC897eBacACAF3104880",
-    lpFees: 3000,
+    lpFees: 0,
     tickSpacing: 60,
 };
 
@@ -62,7 +62,6 @@ program
 program.parse(process.argv);
 const options = program.opts();
 
-// Override default config with command-line options where provided
 config = {
     ...config,
     predicateAPIURL: options.predicateApiUrl || options.predicate_api_url,

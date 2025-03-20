@@ -45,7 +45,7 @@ contract CreatePoolAndAddLiquidityScript is Script {
     function run() external {
         _init();
         INetwork.Config memory config = _env.config();
-        INetwork.PoolConfig memory poolConfig = _env.poolConfig();
+        INetwork.LiquidityPoolConfig memory poolConfig = _env.liquidityPoolConfig();
         INetwork.HookConfig memory hookConfig = _env.hookConfig();
 
         // --------------------------------- //

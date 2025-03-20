@@ -18,22 +18,13 @@ contract Local is INetwork {
             permit2: IAllowanceTransfer(address(0x1f98407aaB862CdDeF78Ed252D6f557aA5b0f00d)), // not used
             create2Deployer: address(0x4e59b44847b379578588920cA78FbF26c0B4956C),
             serviceManager: address(0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0),
-            policyId: "strict-membership-policy",
-            ybsAddress: address(0x6B175474E89094C44Da98b954EedeAC495271d0F),
-            poolKey: PoolKey({
-                currency0: Currency.wrap(address(0x6B175474E89094C44Da98b954EedeAC495271d0F)),
-                currency1: Currency.wrap(address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2)),
-                fee: 3000,
-                tickSpacing: 60,
-                hooks: IHooks(address(0))
-            }),
-            usdc: address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2)
+            policyId: "local-test-policy"
         });
     }
 
-    function poolConfig() external pure override returns (PoolConfig memory) {
+    function liquidityPoolConfig() external pure override returns (LiquidityPoolConfig memory) {
         // note: this is not used right now
-        return PoolConfig({
+        return LiquidityPoolConfig({
             token0: address(0x6B175474E89094C44Da98b954EedeAC495271d0F),
             token1: address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2),
             fee: 3000,
@@ -46,8 +37,17 @@ contract Local is INetwork {
         });
     }
 
+    // note: this is not used right now
     function hookConfig() external pure override returns (HookConfig memory) {
-        // note: this is not used right now
         return HookConfig({hookContract: address(0xB88D683B9959c2A10f9d1A000A12a94EA8260080)});
+    }
+
+    // note: this is not used right now
+    function tokenConfig() external pure override returns (TokenConfig memory) {
+        return TokenConfig({
+            USDL: Currency.wrap(address(0x6B175474E89094C44Da98b954EedeAC495271d0F)),
+            wUSDL: Currency.wrap(address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2)),
+            USDC: Currency.wrap(address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2))
+        });
     }
 }

@@ -21,7 +21,10 @@ import {DeployPermit2} from "../../test/utils/forks/DeployPermit2.sol";
 import {IERC20} from "forge-std/interfaces/IERC20.sol";
 import {IPositionDescriptor} from "@uniswap/v4-periphery/src/interfaces/IPositionDescriptor.sol";
 import {IWETH9} from "@uniswap/v4-periphery/src/interfaces/external/IWETH9.sol";
-
+import {IERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import {YBSV1_1} from "../../src/paxos/YBSV1_1.sol";
+import {wYBSV1} from "../../src/paxos/wYBSV1.sol";
+import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {INetwork} from "./INetwork.sol";
 import {NetworkSelector} from "./NetworkSelector.sol";
 import {ISimpleV4Router} from "../../src/interfaces/ISimpleV4Router.sol";
@@ -62,7 +65,7 @@ contract DeployTokensAndPool is Script, DeployPermit2 {
         _lps[0] = address(posm);
         _lps[1] = address(lpRouter);
         predicateHook.addAuthorizedLPs(_lps);
-        setApprovalsAndMintLiquidity(manager, hookAddress, posm, lpRouter, swapRouter);
+        initializePool(manager, hookAddress, posm, lpRouter, swapRouter);
         vm.stopBroadcast();
     }
 
@@ -90,45 +93,44 @@ contract DeployTokensAndPool is Script, DeployPermit2 {
         permit2.approve(Currency.unwrap(currency), address(posm), type(uint160).max, type(uint48).max);
     }
 
-    function deployTokens() internal returns (MockERC20 token0, MockERC20 token1) {
-        MockERC20 tokenA = new MockERC20("MockA", "A", 18);
-        MockERC20 tokenB = new MockERC20("MockB", "B", 18);
-        if (uint160(address(tokenA)) < uint160(address(tokenB))) {
-            token0 = tokenA;
-            token1 = tokenB;
-        } else {
-            token0 = tokenB;
-            token1 = tokenA;
-        }
-    }
-
-    function setApprovalsAndMintLiquidity(
+    function initializePool(
         IPoolManager manager,
         address hook,
         IPositionManager posm,
         PoolModifyLiquidityTest lpRouter,
         ISimpleV4Router swapRouter
     ) internal {
-        (MockERC20 token0, MockERC20 token1) = deployTokens();
-        console.log("Deployed Token0: %s", address(token0));
-        console.log("Deployed Token1: %s", address(token1));
-        token0.mint(msg.sender, 100_000 ether);
-        token1.mint(msg.sender, 100_000 ether);
+        (YBSV1_1 USDL, wYBSV1 wUSDL, MockERC20 baseToken) = setupTokens();
+        logTokens(address(USDL), address(wUSDL), address(baseToken));
 
+        Currency token0;
+        Currency token1;
+        if (uint160(address(baseToken)) < uint160(address(wUSDL))) {
+            token0 = Currency.wrap(address(baseToken));
+            token1 = Currency.wrap(address(wUSDL));
+        } else {
+            token0 = Currency.wrap(address(wUSDL));
+            token1 = Currency.wrap(address(baseToken));
+        }
+
+        console.log(
+            "Deploying liquidity pool with token0: %s and token1: %s", Currency.unwrap(token0), Currency.unwrap(token1)
+        );
+
+        // Deploy liquidity pool with predicate hook
         bytes memory ZERO_BYTES = new bytes(0);
-
         int24 tickSpacing = 60;
-        PoolKey memory poolKey =
-            PoolKey(Currency.wrap(address(token0)), Currency.wrap(address(token1)), 3000, tickSpacing, IHooks(hook));
+        PoolKey memory poolKey = PoolKey(token0, token1, 3000, tickSpacing, IHooks(hook));
         manager.initialize(poolKey, Constants.SQRT_PRICE_1_1);
 
-        token0.approve(address(lpRouter), type(uint256).max);
-        token1.approve(address(lpRouter), type(uint256).max);
-        token0.approve(address(swapRouter), type(uint256).max);
-        token1.approve(address(swapRouter), type(uint256).max);
+        // Approve tokens for liquidity router and swap router
+        IERC20(Currency.unwrap(token0)).approve(address(lpRouter), type(uint256).max);
+        IERC20(Currency.unwrap(token1)).approve(address(lpRouter), type(uint256).max);
+        IERC20(Currency.unwrap(token0)).approve(address(swapRouter), type(uint256).max);
+        IERC20(Currency.unwrap(token1)).approve(address(swapRouter), type(uint256).max);
 
-        approvePosmCurrency(posm, Currency.wrap(address(token0)));
-        approvePosmCurrency(posm, Currency.wrap(address(token1)));
+        approvePosmCurrency(posm, token0);
+        approvePosmCurrency(posm, token1);
 
         lpRouter.modifyLiquidity(
             poolKey,
@@ -149,5 +151,104 @@ contract DeployTokensAndPool is Script, DeployPermit2 {
             block.timestamp + 300,
             ZERO_BYTES
         );
+    }
+
+    /*
+    * @notice Deploy YBSV1_1, wYBSV1 and baseToken
+    * @dev This function is used to deploy the YBSV1_1, wYBSV1 and baseToken
+    * @dev also mints and approves tokens for the deployer for baseToken
+    * @dev sets defaults and ensures token is ready for use in a pool
+    * @dev also sets approvals for autoWrapper, wUSDL and baseToken
+    */
+    function setupTokens() internal returns (YBSV1_1 USDL, wYBSV1 wUSDL, MockERC20 baseToken) {
+        address admin = msg.sender;
+        address supplyController = msg.sender;
+        address pauser = msg.sender;
+        address assetProtector = msg.sender;
+        address rebaser = msg.sender;
+        address rebaserAdmin = msg.sender;
+
+        uint256 initialSupply = 1000 * 10 ** 18; // 1000 token
+
+        YBSV1_1 ybsImpl = new YBSV1_1();
+        wYBSV1 wYbsImpl = new wYBSV1();
+
+        bytes memory ybsData = abi.encodeWithSelector(
+            YBSV1_1.initialize.selector,
+            "Yield Bearing Stablecoin",
+            "YBS",
+            18,
+            admin,
+            supplyController,
+            pauser,
+            assetProtector,
+            rebaserAdmin,
+            rebaser
+        );
+
+        ERC1967Proxy ybsProxy = new ERC1967Proxy(address(ybsImpl), ybsData);
+        YBSV1_1 USDL = YBSV1_1(address(ybsProxy));
+
+        bytes memory wYbsData = abi.encodeWithSelector(
+            wYBSV1.initialize.selector,
+            "Wrapped YBS",
+            "wYBS",
+            IERC20Upgradeable(address(USDL)),
+            admin,
+            pauser,
+            assetProtector
+        );
+
+        ERC1967Proxy wYbsProxy = new ERC1967Proxy(address(wYbsImpl), wYbsData);
+        wYBSV1 wUSDL = wYBSV1(address(wYbsProxy));
+
+        // Deploy baseCurrency for pool
+        MockERC20 baseToken = new MockERC20("MockA", "A", 18); // USDC
+        // Mint 100_000 ether to msg.sender
+        baseToken.mint(msg.sender, 100_000 ether);
+
+        // Set max rebase rate to 5%
+        USDL.setMaxRebaseRate(0.05 * 10 ** 18);
+
+        // Set rebase period to 1 day
+        USDL.setRebasePeriod(1 days);
+
+        // Grant wrapped ybs role to wUSDL
+        USDL.grantRole(USDL.WRAPPED_YBS_ROLE(), address(wUSDL));
+
+        // Mint 7 * initialSupply of USDL to msg.sender
+        USDL.increaseSupply(initialSupply * 7);
+        // Transfer 6 * initialSupply of USDL to msg.sender
+        USDL.transfer(msg.sender, initialSupply * 6);
+        // Approve wUSDL to deposit USDL from msg.sender
+        IERC20Upgradeable(address(USDL)).approve(address(wUSDL), type(uint256).max);
+        // Approve autoWrapper to spend USDC from msg.sender
+        // IERC20(address(USDL)).approve(address(autoWrapper), type(uint256).max);
+        // // Approve autoWrapper to spend USDC from msg.sender
+        // IERC20(address(baseToken)).approve(address(autoWrapper), type(uint256).max);
+        // // Approve autoWrapper to spend wUSDL from msg.sender
+        // IERC20Upgradeable(address(wUSDL)).approve(address(autoWrapper), type(uint256).max);
+        // Deposit 3 * initialSupply of USDL from msg.sender to wUSDL
+        wUSDL.deposit(3 * initialSupply, msg.sender);
+
+        return (USDL, wUSDL, baseToken);
+    }
+
+    function logTokens(address USDL, address wUSDL, address baseToken) internal {
+        console.log("Deployed YBSV1_1: %s", address(USDL));
+        console.log("Deployed wYBSV1: %s", address(wUSDL));
+        console.log("Deployed baseToken: %s", address(baseToken));
+
+        if (uint160(address(USDL)) < uint160(address(baseToken))) {
+            console.log("USDL is less than baseToken; it will be USDL/baseToken pool");
+        } else {
+            console.log("USDL is greater than baseToken; it will be baseToken/USDL pool");
+        }
+
+        if (uint160(address(wUSDL)) < uint160(address(baseToken))) {
+            console.log("wUSDL is less than baseToken; it will be wUSDL/baseToken pool");
+        } else {
+            console.log("wUSDL is greater than baseToken; it will be baseToken/wUSDL pool");
+        }
     }
 }

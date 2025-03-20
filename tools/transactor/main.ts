@@ -72,7 +72,6 @@ program
 program.parse(process.argv);
 const options = program.opts();
 
-// Override default config with command-line options where provided
 config = {
     ...config,
     predicateAPIURL: options.predicateApiUrl || options.predicate_api_url,

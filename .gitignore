@@ -3,7 +3,6 @@ cache/
 out/
 broadcast/
 
-# Dotenv file
 .env
 
 # vscode

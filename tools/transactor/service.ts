@@ -35,7 +35,6 @@ export class TransactorService {
             this.wallet,
         );
 
-        // Construct poolKey
         this.poolKey = {
             currency0: config.currency0Address,
             currency1: config.currency1Address,
@@ -65,11 +64,9 @@ export class TransactorService {
             sqrtPriceLimitX96: BigNumber.from("4295128740"),
         };
 
-        // Get hook data from predicate API
         const hookData = await this.getHookData(params);
         console.log("Hook Data:", hookData);
 
-        // Call the Swap function on the router contract
         const tx = await this.swapRouter.swap(this.poolKey, params, hookData);
         console.log("Transaction submitted, hash:", tx.hash);
         const receipt = await tx.wait();
@@ -80,14 +77,12 @@ export class TransactorService {
     }
 
     async getHookData(params: SwapParams): Promise<string> {
-        // Encode the swap parameters (similar to encodeBeforeSwap in Go)
         const dataBeforeSwap = this.encodeBeforeSwap(
             this.wallet.address,
             this.poolKey,
             params,
         );
 
-        // Build the STMRequest object
         const stmRequest: STMRequest = {
             to: this.config.predicateHookAddress,
             from: this.wallet.address,
@@ -96,7 +91,6 @@ export class TransactorService {
         };
         console.log("STM Request:", stmRequest);
 
-        // Make the HTTP POST request to the predicate API
         const response = await fetch(this.predicateAPIURL, {
             method: "POST",
             headers: {
@@ -106,7 +100,6 @@ export class TransactorService {
             body: JSON.stringify(stmRequest),
         });
 
-        // Log the raw response for debugging
         const responseText = await response.text();
         if (!response.ok) {
             throw new Error(
@@ -128,7 +121,6 @@ export class TransactorService {
         }
         console.log("STM Response:", stmResponse);
 
-        // Build the PredicateMessage object
         const pm: PredicateMessage = {
             taskId: stmResponse.task_id,
             expireByBlockNumber: BigNumber.from(stmResponse.expiry_block),
@@ -136,7 +128,6 @@ export class TransactorService {
             signatures: stmResponse.signature,
         };
 
-        // Encode the PredicateMessage and additional parameters (similar to encodeHookData in Go)
         const hookDataEncoded = this.encodeHookData(
             pm,
             this.wallet.address,
@@ -146,16 +137,11 @@ export class TransactorService {
     }
 
     encodeBeforeSwap(sender: string, key: PoolKey, params: SwapParams): string {
-        // The Go version computed the 4-byte selector for:
-        // _beforeSwap(address,address,address,uint24,int24,address,bool,int256,uint160)
-        // Here we do the same manually.
         const functionSignature =
             "_beforeSwap(address,address,address,uint24,int24,address,bool,int256,uint160)";
         const selector = ethers.utils
             .keccak256(ethers.utils.toUtf8Bytes(functionSignature))
             .substring(0, 10);
-        // Pack the arguments with the appropriate types.
-        // (Note: ethers does not natively support "uint24" or "int24", so we assume fee and tickSpacing fit in a normal number.)
         const abiCoder = ethers.utils.defaultAbiCoder;
         const encodedArgs = abiCoder.encode(
             [
@@ -181,7 +167,6 @@ export class TransactorService {
                 params.sqrtPriceLimitX96,
             ],
         );
-        // Return the concatenation of the selector and encoded arguments (removing the "0x" prefix from the args)
         return selector + encodedArgs.substring(2);
     }
 
@@ -190,8 +175,6 @@ export class TransactorService {
         msgSender: string,
         msgValue: BigNumber,
     ): string {
-        // Encode (PredicateMessage, address, uint256)
-        // PredicateMessage is defined as a tuple: (string, uint256, address[], bytes[])
         const abiCoder = ethers.utils.defaultAbiCoder;
         const encoded = abiCoder.encode(
             ["tuple(string,uint256,address[],bytes[])", "address", "uint256"],

@@ -28,9 +28,6 @@ export function validateConfig(cfg: Config): void {
     if (!cfg.privateKey) {
         throw new Error("private key is required");
     }
-    if (!cfg.lpFees) {
-        throw new Error("lp fees is required");
-    }
     if (!cfg.tickSpacing) {
         throw new Error("tick spacing is required");
     }

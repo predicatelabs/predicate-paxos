@@ -34,6 +34,11 @@ contract PredicateHook is BaseHook, PredicateClient, Ownable {
     error PredicateAuthorizationFailed();
 
     /**
+     * @notice An error emitted when a pool fee is not valid
+     */
+    error InvalidPoolFee();
+
+    /**
      * @notice The router contract that is used to swap tokens
      * @dev This is the router contract is used to get the msgSender() who initiated the swap
      */
@@ -102,7 +107,7 @@ contract PredicateHook is BaseHook, PredicateClient, Ownable {
      */
     function getHookPermissions() public pure override returns (Hooks.Permissions memory) {
         return Hooks.Permissions({
-            beforeInitialize: false,
+            beforeInitialize: true,
             afterInitialize: false,
             beforeAddLiquidity: true,
             afterAddLiquidity: false,
@@ -117,6 +122,17 @@ contract PredicateHook is BaseHook, PredicateClient, Ownable {
             afterAddLiquidityReturnDelta: false,
             afterRemoveLiquidityReturnDelta: false
         });
+    }
+
+    /**
+     * @notice Validates pool initialization parameters for the ghost pool
+     * @dev Ensures ghost pool has zero fee since actual fees will be charged on the liquid pool
+     * @param poolKey The pool configuration being initialized
+     * @return The function selector if validation passes
+     */
+    function _beforeInitialize(address, PoolKey calldata poolKey, uint160) internal view override returns (bytes4) {
+        if (poolKey.fee != 0) revert InvalidPoolFee();
+        return IHooks.beforeInitialize.selector;
     }
 
     /**

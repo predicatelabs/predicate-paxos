@@ -30,7 +30,7 @@ contract Local is INetwork {
         return LiquidityPoolConfig({
             token0: USDC,
             token1: WUSDL,
-            fee: 3000,
+            fee: 0,
             tickSpacing: 60,
             tickLower: -600,
             tickUpper: 600,

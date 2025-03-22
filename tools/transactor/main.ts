@@ -15,8 +15,8 @@ let config: Config = {
     currency0Address: "0x68B1D87F95878fE05B998F19b66F4baba5De1aed",
     currency1Address: "0x959922bE3CAee4b8Cd9a407cc3ac1C251C2007B1",
     routerAddress: "0x8A791620dd6260079BF849Dc5567aDC3F2FdC318",
-    predicateHookAddress: "0x86Dfe3508346255a9540200f231F7248d3d8c880",
-    autoWrapperAddress: "0x3fDf5a1EAaF5d31C8aAb68ffB9b694B546FE6888",
+    predicateHookAddress: "0xfEAC0BF3e7cC32E119a687f18400F2A8f559a880",
+    autoWrapperAddress: "0x787Ae5950b1F2665bE9D9e6F9cE03a27A19da888",
     lpFees: 0,
     tickSpacing: 60,
 };

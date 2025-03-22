@@ -5,7 +5,7 @@ DEPLOYER_ECDSA_PRIV_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d
 # public key - 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
 
 RPC_URLS=http://localhost:8545,http://localhost:8545
-PREDICATE_HOOK_ADDRESS=0x86Dfe3508346255a9540200f231F7248d3d8c880
+PREDICATE_HOOK_ADDRESS=0xfEAC0BF3e7cC32E119a687f18400F2A8f559a880
 SWAP_ROUTER_ADDRESS=0x8A791620dd6260079BF849Dc5567aDC3F2FdC318
 
 COMMIT_HASH=$(shell git rev-parse --short HEAD)
@@ -69,5 +69,4 @@ deploy-auto-wrapper:
 		--rpc-url http://localhost:8545 \
 		--private-key ${DEPLOYER_ECDSA_PRIV_KEY} \
 		--broadcast -vvvv
-
 deploy-contracts: deploy-pool-manager deploy-router deploy-predicate-hook deploy-tokens-and-liquidity-pool deploy-auto-wrapper

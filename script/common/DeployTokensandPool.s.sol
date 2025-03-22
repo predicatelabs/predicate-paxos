@@ -120,7 +120,7 @@ contract DeployTokensAndPool is Script, DeployPermit2 {
         // Deploy liquidity pool with predicate hook
         bytes memory ZERO_BYTES = new bytes(0);
         int24 tickSpacing = 60;
-        PoolKey memory poolKey = PoolKey(token0, token1, 3000, tickSpacing, IHooks(hook));
+        PoolKey memory poolKey = PoolKey(token0, token1, 0, tickSpacing, IHooks(hook));
         manager.initialize(poolKey, Constants.SQRT_PRICE_1_1);
 
         // Approve tokens for liquidity router and swap router

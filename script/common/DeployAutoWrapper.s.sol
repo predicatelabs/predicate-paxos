@@ -63,8 +63,10 @@ contract DeployAutoWrapper is Script {
         );
         bytes memory autoWrapperConstructorArgs =
             abi.encode(manager, ERC4626(address(wUSDL)), USDC, predicatePoolKey, swapRouter);
-        (address autoWrapperAddress, bytes32 autoWrapperSalt) =
-            HookMiner.find(address(this), autoWrapperFlags, type(AutoWrapper).creationCode, autoWrapperConstructorArgs);
+        (address autoWrapperAddress, bytes32 autoWrapperSalt) = HookMiner.find(
+            config.create2Deployer, autoWrapperFlags, type(AutoWrapper).creationCode, autoWrapperConstructorArgs
+        );
+        vm.startBroadcast();
         AutoWrapper autoWrapper = new AutoWrapper{salt: autoWrapperSalt}(
             manager, ERC4626(address(wUSDL)), Currency.wrap(address(USDC)), predicatePoolKey, swapRouter
         );
@@ -94,6 +96,7 @@ contract DeployAutoWrapper is Script {
 
         // set approvals
         _setApprovals(wUSDL, USDC, USDL, autoWrapper);
+        vm.stopBroadcast();
     }
 
     function _setApprovals(IERC20 wUSDL, IERC20 USDC, IERC20 USDL, AutoWrapper autoWrapper) internal {

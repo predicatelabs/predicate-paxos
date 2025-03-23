@@ -69,7 +69,7 @@ deploy-auto-wrapper:
 	export NETWORK=LOCAL && \
 	export HOOK_ADDRESS=${PREDICATE_HOOK_ADDRESS} && \
 	export SWAP_ROUTER_ADDRESS=${SWAP_ROUTER_ADDRESS} && \
-	forge script script/common/DeployAutoWrapper.s.sol \
+	forge script script/common/DeployAutoWrapperAndInitPool.s.sol \
 		--via-ir \
 		--rpc-url http://localhost:8545 \
 		--private-key ${DEPLOYER_ECDSA_PRIV_KEY} \

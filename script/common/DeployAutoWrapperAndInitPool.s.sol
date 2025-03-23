@@ -16,7 +16,7 @@ import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
 import {HookMiner} from "../../test/utils/HookMiner.sol";
 import {Constants} from "@uniswap/v4-core/test/utils/Constants.sol";
 
-contract DeployAutoWrapper is Script {
+contract DeployAutoWrapperAndInitPool is Script {
     INetwork private _env;
     address private autoWrapperHookAddress; // this is auto
     ISimpleV4Router private swapRouter;

@@ -15,7 +15,6 @@ interface INetwork {
         IAllowanceTransfer permit2;
         address create2Deployer;
         address serviceManager;
-        string policyId;
     }
 
     struct LiquidityPoolConfig {

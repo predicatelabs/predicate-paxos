@@ -7,6 +7,7 @@ DEPLOYER_ECDSA_PRIV_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d
 RPC_URLS=http://localhost:8545,http://localhost:8545
 PREDICATE_HOOK_ADDRESS=0xfEAC0BF3e7cC32E119a687f18400F2A8f559a880
 SWAP_ROUTER_ADDRESS=0x8A791620dd6260079BF849Dc5567aDC3F2FdC318
+POLICY_ID=x-aleo-6a52de9724a6e8f2
 
 COMMIT_HASH=$(shell git rev-parse --short HEAD)
 
@@ -46,6 +47,7 @@ deploy-router:
 deploy-predicate-hook:
 	export NETWORK=LOCAL && \
 	export SWAP_ROUTER_ADDRESS=${SWAP_ROUTER_ADDRESS} && \
+	export POLICY_ID=${POLICY_ID} && \
 	forge script script/common/DeployPredicateHook.s.sol \
 		--via-ir \
 		--rpc-url http://localhost:8545 \
@@ -55,6 +57,7 @@ deploy-predicate-hook:
 deploy-tokens-and-liquidity-pool:
 	export NETWORK=LOCAL && \
 	export HOOK_ADDRESS=${PREDICATE_HOOK_ADDRESS} && \
+	export SWAP_ROUTER_ADDRESS=${SWAP_ROUTER_ADDRESS} && \
 	forge script script/common/DeployTokensAndPool.s.sol \
 		--via-ir \
 		--rpc-url http://localhost:8545 \

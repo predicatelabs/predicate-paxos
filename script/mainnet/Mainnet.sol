@@ -25,8 +25,7 @@ contract Mainnet is INetwork {
             positionManager: PositionManager(payable(POSITION_MANAGER)),
             permit2: IAllowanceTransfer(PERMIT2),
             create2Deployer: CREATE2_DEPLOYER,
-            serviceManager: SERVICE_MANAGER,
-            policyId: "x-aleo-6a52de9724a6e8f2"
+            serviceManager: SERVICE_MANAGER
         });
     }
 

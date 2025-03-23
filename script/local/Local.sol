@@ -16,12 +16,12 @@ contract Local is INetwork {
 
     function config() external pure override returns (Config memory) {
         return Config({
+            id: 1,
             poolManager: IPoolManager(address(0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6)),
             positionManager: PositionManager(payable(address(0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0))), // not used
             permit2: IAllowanceTransfer(address(0x1f98407aaB862CdDeF78Ed252D6f557aA5b0f00d)), // not used
             create2Deployer: address(0x4e59b44847b379578588920cA78FbF26c0B4956C),
-            serviceManager: address(0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0),
-            policyId: "local-test-policy"
+            serviceManager: address(0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0)
         });
     }
 

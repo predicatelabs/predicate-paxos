@@ -70,7 +70,7 @@ contract DeployTokensAndPool is Script, DeployPermit2 {
         _lps[0] = address(posm);
         _lps[1] = address(lpRouter);
         predicateHook.addAuthorizedLPs(_lps);
-        initializePool(manager, hookAddress, posm, lpRouter, swapRouter);
+        initializePool(manager, posm, lpRouter);
         vm.stopBroadcast();
     }
 
@@ -98,13 +98,7 @@ contract DeployTokensAndPool is Script, DeployPermit2 {
         permit2.approve(Currency.unwrap(currency), address(posm), type(uint160).max, type(uint48).max);
     }
 
-    function initializePool(
-        IPoolManager manager,
-        address hook,
-        IPositionManager posm,
-        PoolModifyLiquidityTest lpRouter,
-        ISimpleV4Router swapRouter
-    ) internal {
+    function initializePool(IPoolManager manager, IPositionManager posm, PoolModifyLiquidityTest lpRouter) internal {
         (YBSV1_1 USDL, wYBSV1 wUSDL, MockERC20 baseToken) = setupTokens();
         logTokens(address(USDL), address(wUSDL), address(baseToken));
 
@@ -125,7 +119,7 @@ contract DeployTokensAndPool is Script, DeployPermit2 {
         // Deploy liquidity pool with predicate hook
         bytes memory ZERO_BYTES = new bytes(0);
         int24 tickSpacing = 60;
-        PoolKey memory poolKey = PoolKey(token0, token1, 0, tickSpacing, IHooks(hook));
+        PoolKey memory poolKey = PoolKey(token0, token1, 0, tickSpacing, IHooks(hookAddress));
         manager.initialize(poolKey, Constants.SQRT_PRICE_1_1);
 
         // Approve tokens for liquidity router and swap router

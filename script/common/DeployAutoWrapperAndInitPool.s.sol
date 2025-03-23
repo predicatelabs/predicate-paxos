@@ -18,41 +18,40 @@ import {Constants} from "@uniswap/v4-core/test/utils/Constants.sol";
 
 contract DeployAutoWrapper is Script {
     INetwork private _env;
-    address private hookAddress;
+    address private autoWrapperHookAddress; // this is auto
     ISimpleV4Router private swapRouter;
     int24 private tickSpacing;
 
     function _init() internal {
         bool networkExists = vm.envExists("NETWORK");
-        bool hookAddressExists = vm.envExists("HOOK_ADDRESS");
+        bool autoWrapperHookAddressExists = vm.envExists("AUTO_WRAPPER_HOOK_ADDRESS");
         bool swapRouterExists = vm.envExists("SWAP_ROUTER_ADDRESS");
         require(
-            networkExists && hookAddressExists && swapRouterExists,
+            networkExists && autoWrapperHookAddressExists && swapRouterExists,
             "All environment variables must be set if any are specified"
         );
         string memory _network = vm.envString("NETWORK");
         _env = new NetworkSelector().select(_network);
-        hookAddress = vm.envAddress("HOOK_ADDRESS");
+        autoWrapperHookAddress = vm.envAddress("AUTO_WRAPPER_HOOK_ADDRESS");
         swapRouter = ISimpleV4Router(vm.envAddress("SWAP_ROUTER_ADDRESS"));
     }
 
     function run() public {
         _init();
         INetwork.Config memory config = _env.config();
-        INetwork.LiquidityPoolConfig memory poolConfig = _env.liquidityPoolConfig();
         INetwork.TokenConfig memory tokenConfig = _env.tokenConfig();
 
         IPoolManager manager = config.poolManager;
         IERC20 wUSDL = IERC20(Currency.unwrap(tokenConfig.wUSDL));
         IERC20 USDC = IERC20(Currency.unwrap(tokenConfig.USDC));
         IERC20 USDL = IERC20(Currency.unwrap(tokenConfig.USDL));
-        IHooks hook = IHooks(hookAddress);
-        tickSpacing = poolConfig.tickSpacing;
+        IHooks hook = IHooks(autoWrapperHookAddress);
+        tickSpacing = 60;
         PoolKey memory predicatePoolKey = PoolKey(
-            Currency.wrap(poolConfig.token0),
-            Currency.wrap(poolConfig.token1),
-            poolConfig.fee,
-            poolConfig.tickSpacing,
+            tokenConfig.USDL,
+            tokenConfig.USDC,
+            0, // fee
+            tickSpacing,
             hook
         );
 
@@ -92,6 +91,8 @@ contract DeployAutoWrapper is Script {
                 Currency.unwrap(ghostPoolKey.currency1)
             );
         }
+
+        // initialize the ghost pool for
         manager.initialize(ghostPoolKey, Constants.SQRT_PRICE_1_1);
 
         // set approvals

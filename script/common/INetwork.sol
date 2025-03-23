@@ -10,6 +10,7 @@ import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
 
 interface INetwork {
     struct Config {
+        uint256 id;
         IPoolManager poolManager;
         PositionManager positionManager;
         IAllowanceTransfer permit2;

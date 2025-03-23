@@ -8,7 +8,7 @@ RPC_URLS=http://localhost:8545,http://localhost:8545
 PREDICATE_HOOK_ADDRESS=0xfEAC0BF3e7cC32E119a687f18400F2A8f559a880
 SWAP_ROUTER_ADDRESS=0x8A791620dd6260079BF849Dc5567aDC3F2FdC318
 # POLICY_ID=x-aleo-6a52de9724a6e8f2 // mainnet
-POLICY_ID=testPolicy // local
+POLICY_ID=local-test-policy // local
 
 COMMIT_HASH=$(shell git rev-parse --short HEAD)
 

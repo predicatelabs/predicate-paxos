@@ -21,6 +21,7 @@ contract Mainnet is INetwork {
 
     function config() external pure override returns (Config memory) {
         return Config({
+            id: 0,
             poolManager: IPoolManager(POOL_MANAGER),
             positionManager: PositionManager(payable(POSITION_MANAGER)),
             permit2: IAllowanceTransfer(PERMIT2),

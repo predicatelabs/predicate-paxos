@@ -219,8 +219,6 @@ contract DeployTokensAndPool is Script, DeployPermit2 {
         USDL.increaseSupply(initialSupply * 7);
         // Transfer 6 * initialSupply of USDL to msg.sender
         USDL.transfer(msg.sender, initialSupply * 6);
-        // Approve wUSDL to deposit USDL from msg.sender
-        IERC20Upgradeable(address(USDL)).approve(address(wUSDL), type(uint256).max);
         // Deposit 3 * initialSupply of USDL from msg.sender to wUSDL
         wUSDL.deposit(3 * initialSupply, msg.sender);
 

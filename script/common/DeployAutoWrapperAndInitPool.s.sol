@@ -103,9 +103,11 @@ contract DeployAutoWrapperAndInitPool is Script {
     function _setApprovals(IERC20 wUSDL, IERC20 USDC, IERC20 USDL, AutoWrapper autoWrapper) internal {
         // Approve autoWrapper to spend USDC from msg.sender
         USDL.approve(address(autoWrapper), type(uint256).max);
-        // // Approve autoWrapper to spend USDC from msg.sender
+        // Approve autoWrapper to spend USDC from msg.sender
         USDC.approve(address(autoWrapper), type(uint256).max);
-        // // Approve autoWrapper to spend wUSDL from msg.sender
+        // Approve autoWrapper to spend wUSDL from msg.sender
         wUSDL.approve(address(autoWrapper), type(uint256).max);
+        // Approve wUSDL to spend USDL from msg.sender
+        USDL.approve(Currency.unwrap(wUSDL), type(uint256).max);
     }
 }

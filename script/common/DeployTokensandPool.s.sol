@@ -36,14 +36,17 @@ contract DeployTokensAndPool is Script, DeployPermit2 {
 
     INetwork private _env;
     address private hookAddress;
+    ISimpleV4Router private swapRouter;
 
     function _init() internal {
         bool networkExists = vm.envExists("NETWORK");
         bool hookAddressExists = vm.envExists("HOOK_ADDRESS");
-        require(networkExists && hookAddressExists, "All environment variables must be set if any are specified");
+        bool swapRouterExists = vm.envExists("SWAP_ROUTER_ADDRESS");
+        require(networkExists && hookAddressExists && swapRouterExists, "All environment variables must be set if any are specified");
         string memory _network = vm.envString("NETWORK");
         _env = new NetworkSelector().select(_network);
         hookAddress = vm.envAddress("HOOK_ADDRESS");
+        swapRouter = ISimpleV4Router(vm.envAddress("SWAP_ROUTER_ADDRESS"));
     }
 
     function run() public {
@@ -52,7 +55,6 @@ contract DeployTokensAndPool is Script, DeployPermit2 {
 
         vm.startBroadcast();
         IPoolManager manager = config.poolManager;
-        ISimpleV4Router swapRouter = config.router;
         IPositionManager posm = deployPosm(manager);
         PoolModifyLiquidityTest lpRouter = deployRouters(manager);
         console.log("Deployed POSM: %s", address(posm));

@@ -11,7 +11,6 @@ import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
 interface INetwork {
     struct Config {
         IPoolManager poolManager;
-        ISimpleV4Router router;
         PositionManager positionManager;
         IAllowanceTransfer permit2;
         address create2Deployer;

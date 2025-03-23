@@ -11,7 +11,6 @@ import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol"
 
 contract Mainnet is INetwork {
     address public constant POOL_MANAGER = address(0x000000000004444c5dc75cB358380D2e3dE08A90);
-    address public constant SWAP_ROUTER = address(0x0cb9d2172864d965eF693915bee403a040b7410D); //todo: udpate this
     address public constant POSITION_MANAGER = address(0xbD216513d74C8cf14cf4747E6AaA6420FF64ee9e);
     address public constant PERMIT2 = address(0x000000000022D473030F116dDEE9F6B43aC78BA3);
     address public constant SERVICE_MANAGER = address(0xf6f4A30EeF7cf51Ed4Ee1415fB3bFDAf3694B0d2);
@@ -23,7 +22,6 @@ contract Mainnet is INetwork {
     function config() external pure override returns (Config memory) {
         return Config({
             poolManager: IPoolManager(POOL_MANAGER),
-            router: ISimpleV4Router(SWAP_ROUTER),
             positionManager: PositionManager(payable(POSITION_MANAGER)),
             permit2: IAllowanceTransfer(PERMIT2),
             create2Deployer: CREATE2_DEPLOYER,

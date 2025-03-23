@@ -45,6 +45,7 @@ deploy-router:
 
 deploy-predicate-hook:
 	export NETWORK=LOCAL && \
+	export SWAP_ROUTER_ADDRESS=${SWAP_ROUTER_ADDRESS} && \
 	forge script script/common/DeployPredicateHook.s.sol \
 		--via-ir \
 		--rpc-url http://localhost:8545 \

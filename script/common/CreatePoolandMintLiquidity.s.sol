@@ -32,10 +32,12 @@ contract CreatePoolAndAddLiquidityScript is Script {
     function _init() internal {
         bool networkExists = vm.envExists("NETWORK");
         bool hookAddressExists = vm.envExists("HOOK_ADDRESS");
-        require(networkExists && hookAddressExists, "All environment variables must be set if any are specified");
+        bool swapRouterExists = vm.envExists("SWAP_ROUTER_ADDRESS");    
+        require(networkExists && hookAddressExists && swapRouterExists, "All environment variables must be set if any are specified");
         string memory _network = vm.envString("NETWORK");
         _env = new NetworkSelector().select(_network);
         hookAddress = vm.envAddress("HOOK_ADDRESS");
+        swapRouter = ISimpleV4Router(vm.envAddress("SWAP_ROUTER_ADDRESS"));
     }
 
     /////////////////////////////////////
@@ -52,7 +54,6 @@ contract CreatePoolAndAddLiquidityScript is Script {
         currency1 = Currency.wrap(poolConfig.token1);
         token0 = IERC20(poolConfig.token0);
         token1 = IERC20(poolConfig.token1);
-        swapRouter = config.router;
 
         // tokens should be sorted
         PoolKey memory pool = PoolKey({

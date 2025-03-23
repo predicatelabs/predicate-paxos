@@ -18,40 +18,41 @@ import {Constants} from "@uniswap/v4-core/test/utils/Constants.sol";
 
 contract DeployAutoWrapperAndInitPool is Script {
     INetwork private _env;
-    address private autoWrapperHookAddress; // this is auto
+    address private hookAddress; // this is autoWrapperHookAddress
     ISimpleV4Router private swapRouter;
     int24 private tickSpacing;
 
     function _init() internal {
         bool networkExists = vm.envExists("NETWORK");
-        bool autoWrapperHookAddressExists = vm.envExists("AUTO_WRAPPER_HOOK_ADDRESS");
+        bool hookAddressExists = vm.envExists("HOOK_ADDRESS");
         bool swapRouterExists = vm.envExists("SWAP_ROUTER_ADDRESS");
         require(
-            networkExists && autoWrapperHookAddressExists && swapRouterExists,
+            networkExists && hookAddressExists && swapRouterExists,
             "All environment variables must be set if any are specified"
         );
         string memory _network = vm.envString("NETWORK");
         _env = new NetworkSelector().select(_network);
-        autoWrapperHookAddress = vm.envAddress("AUTO_WRAPPER_HOOK_ADDRESS");
+        hookAddress = vm.envAddress("HOOK_ADDRESS");
         swapRouter = ISimpleV4Router(vm.envAddress("SWAP_ROUTER_ADDRESS"));
     }
 
     function run() public {
         _init();
         INetwork.Config memory config = _env.config();
+        INetwork.LiquidityPoolConfig memory poolConfig = _env.liquidityPoolConfig();
         INetwork.TokenConfig memory tokenConfig = _env.tokenConfig();
 
         IPoolManager manager = config.poolManager;
         IERC20 wUSDL = IERC20(Currency.unwrap(tokenConfig.wUSDL));
         IERC20 USDC = IERC20(Currency.unwrap(tokenConfig.USDC));
         IERC20 USDL = IERC20(Currency.unwrap(tokenConfig.USDL));
-        IHooks hook = IHooks(autoWrapperHookAddress);
-        tickSpacing = 60;
+        IHooks hook = IHooks(hookAddress);
+        int24 tickSpacing = poolConfig.tickSpacing;
         PoolKey memory predicatePoolKey = PoolKey(
-            tokenConfig.USDL,
-            tokenConfig.USDC,
-            0, // fee
-            tickSpacing,
+            Currency.wrap(poolConfig.token0),
+            Currency.wrap(poolConfig.token1),
+            poolConfig.fee, // fee
+            poolConfig.tickSpacing,
             hook
         );
 

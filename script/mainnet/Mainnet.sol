@@ -34,13 +34,13 @@ contract Mainnet is INetwork {
         return LiquidityPoolConfig({
             token0: WUSDL,
             token1: USDC,
-            fee: 3000,
+            fee: 0,
             tickSpacing: 60,
             tickLower: -600,
             tickUpper: 600,
             startingPrice: 79_228_162_514_264_337_593_543_950_336,
             token0Amount: 50e18,
-            token1Amount: 50e18
+            token1Amount: 50e6
         });
     }
 

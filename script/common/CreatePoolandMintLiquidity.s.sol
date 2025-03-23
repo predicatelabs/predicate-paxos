@@ -58,8 +58,8 @@ contract CreatePoolAndAddLiquidityScript is Script {
 
         // tokens should be sorted
         PoolKey memory pool = PoolKey({
-            currency0: Currency.wrap(poolConfig.token0),
-            currency1: Currency.wrap(poolConfig.token1),
+            currency0: currency0,
+            currency1: currency1,
             fee: poolConfig.fee,
             tickSpacing: poolConfig.tickSpacing,
             hooks: IHooks(hookAddress)

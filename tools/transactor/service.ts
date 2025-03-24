@@ -11,6 +11,8 @@ import {
     SwapParams,
 } from "./types";
 
+const SQRT_PRICE_LIMIT_X96 = BigNumber.from("4295128740");
+
 export class TransactorService {
     environment: string;
     predicateAPIURL: string;
@@ -60,10 +62,10 @@ export class TransactorService {
         const params: SwapParams = {
             zeroForOne: true,
             amountSpecified: oneEther,
-            sqrtPriceLimitX96: BigNumber.from("4295128740"),
+            sqrtPriceLimitX96: SQRT_PRICE_LIMIT_X96,
         };
 
-        const hookData = await this.getHookData(params);
+        const hookData = await this.getAutoWrapperHookData(params);
         console.log("Hook Data:", hookData);
 
         const tx = await this.swapRouter.swap(this.poolKey, params, hookData);
@@ -75,7 +77,7 @@ export class TransactorService {
         console.log("Transaction successful:", receipt.transactionHash);
     }
 
-    async getHookData(params: SwapParams): Promise<string> {
+    async getAutoWrapperHookData(params: SwapParams): Promise<string> {
         const dataBeforeSwap = this.encodeBeforeSwap(
             this.wallet.address,
             this.poolKey,

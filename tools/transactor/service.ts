@@ -100,7 +100,7 @@ export class TransactorService {
         };
         console.log("Predicate Request:", predicateRequest);
 
-        const predicateResponse = await this.predicateClient.verify(predicateRequest);
+        const predicateResponse = await this.predicateClient.evaluatePolicy(predicateRequest);
         
         if (!predicateResponse.is_compliant) {
             throw new Error("Predicate Response is not compliant");

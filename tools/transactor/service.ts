@@ -1,15 +1,14 @@
-// src/service.ts
 import { ethers, BigNumber } from "ethers";
-import fetch from "node-fetch"; // If using Node.js <18; otherwise, use the global fetch
-import { Config } from "./config";
+import type { Config } from "./config";
 import { SwapRouterABI } from "./swapRouter";
-import {
+import type {
     PredicateRequest,
-    PredicateResponse,
     PredicateMessage,
     PoolKey,
     SwapParams,
 } from "./types";
+import * as sdk from '@predicate/predicate-sdk'
+
 
 const SQRT_PRICE_LIMIT_X96 = BigNumber.from("4295128740");
 
@@ -22,6 +21,7 @@ export class TransactorService {
     poolKey: PoolKey;
     provider: ethers.providers.Provider;
     wallet: ethers.Wallet;
+    predicateClient: sdk.PredicateClient;
 
     constructor(private config: Config) {
         this.environment = config.environment;
@@ -35,6 +35,11 @@ export class TransactorService {
             SwapRouterABI,
             this.wallet,
         );
+
+        this.predicateClient = new sdk.PredicateClient({
+            apiUrl: this.predicateAPIURL,
+            apiKey: this.apiKey,
+        });
 
         this.poolKey = {
             currency0: config.currency0Address,
@@ -95,31 +100,8 @@ export class TransactorService {
         };
         console.log("Predicate Request:", predicateRequest);
 
-        const response = await fetch(this.predicateAPIURL, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "x-api-key": this.apiKey,
-            },
-            body: JSON.stringify(predicateRequest),
-        });
-
-        const responseText = await response.text();
-        if (!response.ok) {
-            throw new Error(
-                `Failed to fetch hook data: ${response.status} ${response.statusText}\nResponse: ${responseText}`,
-            );
-        }
-
-        let predicateResponse: PredicateResponse;
-        try {
-            predicateResponse = JSON.parse(responseText) as PredicateResponse;
-        } catch (error) {
-            throw new Error(
-                `Failed to parse API response as JSON: ${error}\nResponse: ${responseText}`,
-            );
-        }
-
+        const predicateResponse = await this.predicateClient.verify(predicateRequest);
+        
         if (!predicateResponse.is_compliant) {
             throw new Error("Predicate Response is not compliant");
         }

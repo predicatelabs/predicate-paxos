@@ -1,5 +1,5 @@
 // src/types.ts
-import { BigNumber } from "ethers";
+import type { BigNumber } from "ethers";
 
 export interface PredicateResponse {
     is_compliant: boolean;
@@ -23,7 +23,6 @@ export interface PredicateMessage {
     signatures: string[];
 }
 
-// Additional types used in service.ts:
 export interface PoolKey {
     currency0: string;
     currency1: string;

@@ -14,6 +14,7 @@ export interface Config {
     tickSpacing: number;
     currency0Address: string;
     currency1Address: string;
+    amount?: string; 
 }
 
 export function validateConfig(cfg: Config): void {

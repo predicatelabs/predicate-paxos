@@ -17,7 +17,7 @@ contract Mainnet is INetwork {
     address public constant CREATE2_DEPLOYER = address(0x4e59b44847b379578588920cA78FbF26c0B4956C);
     address public constant USDL = address(0xbdC7c08592Ee4aa51D06C27Ee23D5087D65aDbcD);
     address public constant WUSDL = address(0x7751E2F4b8ae93EF6B79d86419d42FE3295A4559);
-    address public constant USDC = address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
+    address public constant USDC = address(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
 
     function config() external pure override returns (Config memory) {
         return Config({
@@ -39,16 +39,12 @@ contract Mainnet is INetwork {
             tickLower: -600,
             tickUpper: 600,
             startingPrice: 79_228_162_514_264_337_593_543_950_336,
-            token0Amount: 50e18,
-            token1Amount: 50e6
+            token0Amount: 5e18,
+            token1Amount: 5e6
         });
     }
 
     function tokenConfig() external pure override returns (TokenConfig memory) {
-        return TokenConfig({
-            USDL: Currency.wrap(address(0xbdC7c08592Ee4aa51D06C27Ee23D5087D65aDbcD)),
-            wUSDL: Currency.wrap(address(0x7751E2F4b8ae93EF6B79d86419d42FE3295A4559)),
-            USDC: Currency.wrap(address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2))
-        });
+        return TokenConfig({USDL: Currency.wrap(USDL), wUSDL: Currency.wrap(WUSDL), USDC: Currency.wrap(USDC)});
     }
 }

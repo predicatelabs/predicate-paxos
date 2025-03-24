@@ -8,7 +8,7 @@ import {CurrencyLibrary, Currency} from "@uniswap/v4-core/src/types/Currency.sol
 import {Actions} from "@uniswap/v4-periphery/src/libraries/Actions.sol";
 import {LiquidityAmounts} from "@uniswap/v4-core/test/utils/LiquidityAmounts.sol";
 import {TickMath} from "@uniswap/v4-core/src/libraries/TickMath.sol";
-import {IERC20} from "forge-std/interfaces/IERC20.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {INetwork} from "./INetwork.sol";
 import {NetworkSelector} from "./NetworkSelector.sol";
 import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
@@ -101,13 +101,9 @@ contract CreatePoolAndAddLiquidityScript is Script {
         authorizedLps[0] = address(posm);
         PredicateHook predicateHook = PredicateHook(hookAddress);
 
-        // add authorized LPs
-        vm.startBroadcast();
-        predicateHook.addAuthorizedLPs(authorizedLps);
-        vm.stopBroadcast();
-
         // approve tokens and mint liquidity
         vm.startBroadcast();
+        predicateHook.addAuthorizedLPs(authorizedLps);
         _tokenApprovals();
         posm.multicall(params);
         vm.stopBroadcast();

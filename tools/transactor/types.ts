@@ -1,15 +1,15 @@
 // src/types.ts
 import { BigNumber } from "ethers";
 
-export interface STMResponse {
+export interface PredicateResponse {
     is_compliant: boolean;
     signers: string[];
-    signature: string[]; // array of signature hex strings
+    signature: string[]; 
     expiry_block: number;
     task_id: string;
 }
 
-export interface STMRequest {
+export interface PredicateRequest {
     to: string;
     from: string;
     data: string;

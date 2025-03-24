@@ -4,8 +4,8 @@ import fetch from "node-fetch"; // If using Node.js <18; otherwise, use the glob
 import { Config } from "./config";
 import { SwapRouterABI } from "./swapRouter";
 import {
-    STMRequest,
-    STMResponse,
+    PredicateRequest,
+    PredicateResponse,
     PredicateMessage,
     PoolKey,
     SwapParams,
@@ -25,7 +25,6 @@ export class TransactorService {
         this.environment = config.environment;
         this.predicateAPIURL = config.predicateAPIURL;
         this.apiKey = config.apiKey;
-        // Create provider and wallet
         this.provider = new ethers.providers.JsonRpcProvider(config.ethRPCURL);
         this.wallet = new ethers.Wallet(config.privateKey, this.provider);
         this.routerAddress = config.routerAddress;
@@ -83,13 +82,13 @@ export class TransactorService {
             params,
         );
 
-        const stmRequest: STMRequest = {
+        const predicateRequest: PredicateRequest = {
             to: this.config.predicateHookAddress,
             from: this.wallet.address,
             data: dataBeforeSwap,
             msg_value: "0",
         };
-        console.log("STM Request:", stmRequest);
+        console.log("Predicate Request:", predicateRequest);
 
         const response = await fetch(this.predicateAPIURL, {
             method: "POST",
@@ -97,7 +96,7 @@ export class TransactorService {
                 "Content-Type": "application/json",
                 "x-api-key": this.apiKey,
             },
-            body: JSON.stringify(stmRequest),
+            body: JSON.stringify(predicateRequest),
         });
 
         const responseText = await response.text();
@@ -107,25 +106,25 @@ export class TransactorService {
             );
         }
 
-        let stmResponse: STMResponse;
+        let predicateResponse: PredicateResponse;
         try {
-            stmResponse = JSON.parse(responseText) as STMResponse;
+            predicateResponse = JSON.parse(responseText) as PredicateResponse;
         } catch (error) {
             throw new Error(
                 `Failed to parse API response as JSON: ${error}\nResponse: ${responseText}`,
             );
         }
 
-        if (!stmResponse.is_compliant) {
-            throw new Error("STM Response is not compliant");
+        if (!predicateResponse.is_compliant) {
+            throw new Error("Predicate Response is not compliant");
         }
-        console.log("STM Response:", stmResponse);
+        console.log("Predicate Response:", predicateResponse);
 
         const pm: PredicateMessage = {
-            taskId: stmResponse.task_id,
-            expireByBlockNumber: BigNumber.from(stmResponse.expiry_block),
-            signerAddresses: stmResponse.signers,
-            signatures: stmResponse.signature,
+            taskId: predicateResponse.task_id,
+            expireByBlockNumber: BigNumber.from(predicateResponse.expiry_block),
+            signerAddresses: predicateResponse.signers,
+            signatures: predicateResponse.signature,
         };
 
         const hookDataEncoded = this.encodeHookData(

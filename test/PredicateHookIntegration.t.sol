@@ -206,9 +206,6 @@ contract PredicateHookIntegrationTest is PredicateHookSetup, OperatorTestPrep {
         signatures[0] = hex"abcdef";
         signatures[1] = hex"123456";
 
-        address msgSender = 0x0000000000000000000000000000000000000789; // replace
-        uint256 msgValue = 42;
-
         PredicateMessage memory predicateMessage = PredicateMessage({
             taskId: taskId,
             expireByBlockNumber: expireByBlockNumber,
@@ -216,17 +213,14 @@ contract PredicateHookIntegrationTest is PredicateHookSetup, OperatorTestPrep {
             signatures: signatures
         });
 
-        bytes memory hookData = abi.encode(predicateMessage, msgSender, msgValue);
+        bytes memory hookData = abi.encode(predicateMessage);
 
-        (PredicateMessage memory decodedMsg, address decodedMsgSender, uint256 decodedMsgValue) =
-            hook.decodeHookData(hookData);
+        PredicateMessage memory decodedMsg = hook.decodeHookData(hookData);
 
         require(keccak256(bytes(decodedMsg.taskId)) == keccak256(bytes(taskId)), "TaskId mismatch");
         require(decodedMsg.expireByBlockNumber == expireByBlockNumber, "Expire block number mismatch");
         require(decodedMsg.signerAddresses.length == signerAddresses.length, "Signer addresses length mismatch");
         require(decodedMsg.signatures.length == signatures.length, "Signatures length mismatch");
-        require(decodedMsgSender == msgSender, "Message sender mismatch");
-        require(decodedMsgValue == msgValue, "Message value mismatch");
 
         for (uint256 i = 0; i < signerAddresses.length; i++) {
             require(decodedMsg.signerAddresses[i] == signerAddresses[i], "Signer address mismatch");

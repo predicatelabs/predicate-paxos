@@ -62,9 +62,9 @@ contract AutoWrapper is BaseHook, DeltaResolver {
     ERC4626 public immutable wUSDL;
 
     /**
-    * @notice The wUSDL/baseCurrency pool key
-    * @dev This is the pool key for the liquid pool
-    */
+     * @notice The wUSDL/baseCurrency pool key
+     * @dev This is the pool key for the liquid pool
+     */
     PoolKey public baseCurrencyPoolKey;
 
     /**
@@ -229,7 +229,7 @@ contract AutoWrapper is BaseHook, DeltaResolver {
         if (params.zeroForOne == baseCurrencyIsToken0) {
             return isExactInput ? params.amountSpecified : getUnwrapInputRequired(uint256(params.amountSpecified));
         } else {
-            return isExactInput ? - getUnwrapInputRequired(uint256(- params.amountSpecified)) : params.amountSpecified;
+            return isExactInput ? -getUnwrapInputRequired(uint256(-params.amountSpecified)) : params.amountSpecified;
         }
     }
 
@@ -287,7 +287,7 @@ contract AutoWrapper is BaseHook, DeltaResolver {
             // baseCurrency -> USDL swap path
             require(baseCurrencyDelta < 0, "baseCurrency delta is not negative for baseCurrency -> wUSDL swap");
             IERC20(Currency.unwrap(baseCurrency)).transferFrom(
-                router.msgSender(), address(this), uint256(- baseCurrencyDelta)
+                router.msgSender(), address(this), uint256(-baseCurrencyDelta)
             );
         } else {
             // USDL -> baseCurrency swap path
@@ -296,10 +296,10 @@ contract AutoWrapper is BaseHook, DeltaResolver {
 
             if (isExactInput) {
                 // For exact input: User specifies exact USDL amount
-                USDLAmount = uint256(- params.amountSpecified);
+                USDLAmount = uint256(-params.amountSpecified);
             } else {
                 // For exact output: underlyingAmount is the amount of USDL required to wrap delta1 amount of WUSDL
-                USDLAmount = uint256(getWrapInputRequired(uint256(- wUSDLDelta)));
+                USDLAmount = uint256(getWrapInputRequired(uint256(-wUSDLDelta)));
             }
 
             // transfer the USDL to the auto wrapper
@@ -372,13 +372,13 @@ contract AutoWrapper is BaseHook, DeltaResolver {
         int256 delta1 = BalanceDeltaLibrary.amount1(delta);
 
         if (delta0 < 0) {
-            _settle(baseCurrencyPoolKey.currency0, address(this), uint256(- delta0));
+            _settle(baseCurrencyPoolKey.currency0, address(this), uint256(-delta0));
         } else {
             _take(baseCurrencyPoolKey.currency0, address(this), uint256(delta0));
         }
 
         if (delta1 < 0) {
-            _settle(baseCurrencyPoolKey.currency1, address(this), uint256(- delta1));
+            _settle(baseCurrencyPoolKey.currency1, address(this), uint256(-delta1));
         } else {
             _take(baseCurrencyPoolKey.currency1, address(this), uint256(delta1));
         }

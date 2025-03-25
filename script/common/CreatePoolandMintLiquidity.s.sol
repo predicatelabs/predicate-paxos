@@ -82,7 +82,7 @@ contract CreatePoolAndAddLiquidityScript is Script {
         uint256 amount1Max = poolConfig.token1Amount + 1 wei;
 
         (bytes memory actions, bytes[] memory mintParams) = _mintLiquidityParams(
-            pool, poolConfig.tickLower, poolConfig.tickUpper, liquidity, amount0Max, amount1Max, address(this), hookData
+            pool, poolConfig.tickLower, poolConfig.tickUpper, liquidity, amount0Max, amount1Max, msg.sender, hookData
         );
 
         // multicall parameters
@@ -97,14 +97,14 @@ contract CreatePoolAndAddLiquidityScript is Script {
         );
 
         // add authorized LPs
-        address[] memory authorizedLps = new address[](1);
-        authorizedLps[0] = address(posm);
-        PredicateHook predicateHook = PredicateHook(hookAddress);
+        // address[] memory authorizedLps = new address[](1);
+        // authorizedLps[0] = address(posm);
+        // PredicateHook predicateHook = PredicateHook(hookAddress);
 
         // approve tokens and mint liquidity
         vm.startBroadcast();
-        predicateHook.addAuthorizedLPs(authorizedLps);
-        _tokenApprovals();
+        // predicateHook.addAuthorizedLPs(authorizedLps);
+        // _tokenApprovals();
         posm.multicall(params);
         vm.stopBroadcast();
     }

@@ -38,7 +38,7 @@ contract Mainnet is INetwork {
             tickSpacing: 60,
             tickLower: -600,
             tickUpper: 600,
-            startingPrice: 79_228_162_514_264_337_593_543_950_336,
+            startingPrice: 79_228_162_514_264_337_593_543_950,
             token0Amount: 5e18,
             token1Amount: 5e6
         });

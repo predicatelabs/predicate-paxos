@@ -50,7 +50,7 @@ make update-policy --policy-id {policy-id}
 ## Deployment
 
 ### Prerequisites
-- Node.js >=16
+- Node.js >=18
 - Foundry 1.0.0
 - An Ethereum node provider (e.g. Alchemy, Infura, etc.)
 

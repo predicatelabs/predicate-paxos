@@ -71,12 +71,14 @@ contract CreatePoolAndAddLiquidityScript is Script {
         // Get tick at current price
         int24 currentTick = TickMath.getTickAtSqrtPrice(poolConfig.startingPrice);
         console.log("Current tick: %s", currentTick);
-        int24 tickLower = currentTick - 600;
-        int24 tickUpper = currentTick + 600;
+        // Ensure ticks are aligned with tick spacing
+        int24 tickSpacing = poolConfig.tickSpacing;
+        int24 tickLower = (currentTick - 600) - ((currentTick - 600) % tickSpacing);
+        int24 tickUpper = (currentTick + 600) - ((currentTick + 600) % tickSpacing);
 
         // Converts token amounts to liquidity units
         uint128 liquidity = LiquidityAmounts.getLiquidityForAmounts(
-            poolConfig.startingPrice,  // sqrtPriceX96
+            poolConfig.startingPrice, // sqrtPriceX96
             TickMath.getSqrtPriceAtTick(tickLower),
             TickMath.getSqrtPriceAtTick(tickUpper),
             poolConfig.token0Amount,
@@ -87,9 +89,8 @@ contract CreatePoolAndAddLiquidityScript is Script {
         uint256 amount0Max = poolConfig.token0Amount + 1 wei;
         uint256 amount1Max = poolConfig.token1Amount + 1 wei;
 
-        (bytes memory actions, bytes[] memory mintParams) = _mintLiquidityParams(
-            pool, tickLower, tickUpper, liquidity, amount0Max, amount1Max, msg.sender, hookData
-        );
+        (bytes memory actions, bytes[] memory mintParams) =
+            _mintLiquidityParams(pool, tickLower, tickUpper, liquidity, amount0Max, amount1Max, msg.sender, hookData);
 
         // multicall parameters
         bytes[] memory params = new bytes[](2);

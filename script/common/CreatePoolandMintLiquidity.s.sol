@@ -68,11 +68,17 @@ contract CreatePoolAndAddLiquidityScript is Script {
 
         // --------------------------------- //
 
+        // Get tick at current price
+        int24 currentTick = TickMath.getTickAtSqrtPrice(poolConfig.startingPrice);
+        console.log("Current tick: %s", currentTick);
+        int24 tickLower = currentTick - 600;
+        int24 tickUpper = currentTick + 600;
+
         // Converts token amounts to liquidity units
         uint128 liquidity = LiquidityAmounts.getLiquidityForAmounts(
-            poolConfig.startingPrice,
-            TickMath.getSqrtPriceAtTick(poolConfig.tickLower),
-            TickMath.getSqrtPriceAtTick(poolConfig.tickUpper),
+            poolConfig.startingPrice,  // sqrtPriceX96
+            TickMath.getSqrtPriceAtTick(tickLower),
+            TickMath.getSqrtPriceAtTick(tickUpper),
             poolConfig.token0Amount,
             poolConfig.token1Amount
         );
@@ -82,7 +88,7 @@ contract CreatePoolAndAddLiquidityScript is Script {
         uint256 amount1Max = poolConfig.token1Amount + 1 wei;
 
         (bytes memory actions, bytes[] memory mintParams) = _mintLiquidityParams(
-            pool, poolConfig.tickLower, poolConfig.tickUpper, liquidity, amount0Max, amount1Max, msg.sender, hookData
+            pool, tickLower, tickUpper, liquidity, amount0Max, amount1Max, msg.sender, hookData
         );
 
         // multicall parameters
@@ -97,13 +103,13 @@ contract CreatePoolAndAddLiquidityScript is Script {
         );
 
         // add authorized LPs
-        // address[] memory authorizedLps = new address[](1);
-        // authorizedLps[0] = address(posm);
-        // PredicateHook predicateHook = PredicateHook(hookAddress);
+        address[] memory authorizedLps = new address[](1);
+        authorizedLps[0] = address(posm);
+        PredicateHook predicateHook = PredicateHook(hookAddress);
 
         // approve tokens and mint liquidity
         vm.startBroadcast();
-        // predicateHook.addAuthorizedLPs(authorizedLps);
+        predicateHook.addAuthorizedLPs(authorizedLps);
         // _tokenApprovals();
         posm.multicall(params);
         vm.stopBroadcast();

@@ -63,9 +63,10 @@ export class TransactorService {
         console.log(
             `Running transactor service in ${this.environment} environment`,
         );
+        const ONE_UNIT = ethers.BigNumber.from("1000000000000000000");
         const amount = this.config.amount 
-            ? ethers.BigNumber.from(this.config.amount) 
-            : ethers.BigNumber.from("1000000000000000000"); 
+            ? ethers.BigNumber.from(this.config.amount)
+            : ONE_UNIT;
 
         const params: SwapParams = {
             zeroForOne: true,

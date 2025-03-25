@@ -1,7 +1,8 @@
 // src/main.ts
 import { Command } from "commander";
 import { TransactorService } from "./service";
-import { validateConfig, Config } from "./config";
+import { validateConfig } from "./config";
+import type { Config } from "./config";
 
 const program = new Command();
 
@@ -19,6 +20,7 @@ let config: Config = {
     autoWrapperAddress: "0x787Ae5950b1F2665bE9D9e6F9cE03a27A19da888",
     lpFees: 0,
     tickSpacing: 60,
+    amount: "",
 };
 
 program
@@ -59,14 +61,19 @@ program
     .option(
         "--lp-fees <number>",
         "LP fees",
-        (val) => parseInt(val),
+        (val) => Number.parseInt(val),
         config.lpFees,
     )
     .option(
         "--tick-spacing <number>",
         "Tick spacing",
-        (val) => parseInt(val),
+        (val) => Number.parseInt(val),
         config.tickSpacing,
+    )
+    .option(
+        "--amount <string>",
+        "Swap amount in wei",
+        config.amount,
     );
 
 program.parse(process.argv);
@@ -86,12 +93,13 @@ config = {
     autoWrapperAddress: options.autoWrapperAddress,
     lpFees: options.lpFees,
     tickSpacing: options.tickSpacing,
+    amount: options.amount,
 };
 
 try {
     validateConfig(config);
-} catch (err: any) {
-    console.error("Configuration error:", err.message);
+} catch (err: unknown) {
+    console.error("Configuration error:", err instanceof Error ? err.message : String(err));
     process.exit(1);
 }
 

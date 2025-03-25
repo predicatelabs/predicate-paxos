@@ -1,15 +1,16 @@
-// src/service.ts
 import { ethers, BigNumber } from "ethers";
-import fetch from "node-fetch"; // If using Node.js <18; otherwise, use the global fetch
-import { Config } from "./config";
+import type { Config } from "./config";
 import { SwapRouterABI } from "./swapRouter";
-import {
-    STMRequest,
-    STMResponse,
+import type {
+    PredicateRequest,
     PredicateMessage,
     PoolKey,
     SwapParams,
 } from "./types";
+import * as sdk from '@predicate/predicate-sdk'
+
+
+const SQRT_PRICE_LIMIT_X96 = BigNumber.from("4295128740");
 
 export class TransactorService {
     environment: string;
@@ -20,12 +21,12 @@ export class TransactorService {
     poolKey: PoolKey;
     provider: ethers.providers.Provider;
     wallet: ethers.Wallet;
+    predicateClient: sdk.PredicateClient;
 
     constructor(private config: Config) {
         this.environment = config.environment;
         this.predicateAPIURL = config.predicateAPIURL;
         this.apiKey = config.apiKey;
-        // Create provider and wallet
         this.provider = new ethers.providers.JsonRpcProvider(config.ethRPCURL);
         this.wallet = new ethers.Wallet(config.privateKey, this.provider);
         this.routerAddress = config.routerAddress;
@@ -34,6 +35,11 @@ export class TransactorService {
             SwapRouterABI,
             this.wallet,
         );
+
+        this.predicateClient = new sdk.PredicateClient({
+            apiUrl: this.predicateAPIURL,
+            apiKey: this.apiKey,
+        });
 
         this.poolKey = {
             currency0: config.currency0Address,
@@ -57,14 +63,18 @@ export class TransactorService {
         console.log(
             `Running transactor service in ${this.environment} environment`,
         );
-        const oneEther = ethers.BigNumber.from("1000000000000000000");
+        const ONE_UNIT = ethers.BigNumber.from("1000000000000000000");
+        const amount = this.config.amount 
+            ? ethers.BigNumber.from(this.config.amount)
+            : ONE_UNIT;
+
         const params: SwapParams = {
             zeroForOne: true,
-            amountSpecified: oneEther,
-            sqrtPriceLimitX96: BigNumber.from("4295128740"),
+            amountSpecified: amount,
+            sqrtPriceLimitX96: SQRT_PRICE_LIMIT_X96,
         };
 
-        const hookData = await this.getHookData(params);
+        const hookData = await this.getAutoWrapperHookData(params);
         console.log("Hook Data:", hookData);
 
         const tx = await this.swapRouter.swap(this.poolKey, params, hookData);
@@ -76,56 +86,33 @@ export class TransactorService {
         console.log("Transaction successful:", receipt.transactionHash);
     }
 
-    async getHookData(params: SwapParams): Promise<string> {
+    async getAutoWrapperHookData(params: SwapParams): Promise<string> {
         const dataBeforeSwap = this.encodeBeforeSwap(
             this.wallet.address,
             this.poolKey,
             params,
         );
 
-        const stmRequest: STMRequest = {
+        const predicateRequest: PredicateRequest = {
             to: this.config.predicateHookAddress,
             from: this.wallet.address,
             data: dataBeforeSwap,
             msg_value: "0",
         };
-        console.log("STM Request:", stmRequest);
+        console.log("Predicate Request:", predicateRequest);
 
-        const response = await fetch(this.predicateAPIURL, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "x-api-key": this.apiKey,
-            },
-            body: JSON.stringify(stmRequest),
-        });
-
-        const responseText = await response.text();
-        if (!response.ok) {
-            throw new Error(
-                `Failed to fetch hook data: ${response.status} ${response.statusText}\nResponse: ${responseText}`,
-            );
+        const predicateResponse = await this.predicateClient.evaluatePolicy(predicateRequest);
+        
+        if (!predicateResponse.is_compliant) {
+            throw new Error("Predicate Response is not compliant");
         }
-
-        let stmResponse: STMResponse;
-        try {
-            stmResponse = JSON.parse(responseText) as STMResponse;
-        } catch (error) {
-            throw new Error(
-                `Failed to parse API response as JSON: ${error}\nResponse: ${responseText}`,
-            );
-        }
-
-        if (!stmResponse.is_compliant) {
-            throw new Error("STM Response is not compliant");
-        }
-        console.log("STM Response:", stmResponse);
+        console.log("Predicate Response:", predicateResponse);
 
         const pm: PredicateMessage = {
-            taskId: stmResponse.task_id,
-            expireByBlockNumber: BigNumber.from(stmResponse.expiry_block),
-            signerAddresses: stmResponse.signers,
-            signatures: stmResponse.signature,
+            taskId: predicateResponse.task_id,
+            expireByBlockNumber: BigNumber.from(predicateResponse.expiry_block),
+            signerAddresses: predicateResponse.signers,
+            signatures: predicateResponse.signature,
         };
 
         const hookDataEncoded = this.encodeHookData(

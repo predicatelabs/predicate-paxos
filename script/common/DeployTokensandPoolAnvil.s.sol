@@ -31,7 +31,7 @@ import {ISimpleV4Router} from "../../src/interfaces/ISimpleV4Router.sol";
 import {PredicateHook} from "../../src/PredicateHook.sol";
 
 /// @notice Forge script for deploying v4 & hooks
-contract DeployTokensAndPool is Script, DeployPermit2 {
+contract DeployTokensAndPoolAnvil is Script, DeployPermit2 {
     using EasyPosm for IPositionManager;
 
     INetwork private _env;

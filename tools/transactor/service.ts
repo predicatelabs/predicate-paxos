@@ -57,11 +57,11 @@ export class TransactorService {
         console.log(
             `Running transactor service in ${this.environment} environment`,
         );
-        const oneEther = ethers.BigNumber.from("1000000000000000000");
+        const oneEther = ethers.BigNumber.from("100");
         const params: SwapParams = {
             zeroForOne: true,
             amountSpecified: oneEther,
-            sqrtPriceLimitX96: BigNumber.from("4295128740"),
+            sqrtPriceLimitX96: BigNumber.from("429512874000000000000000000"),
         };
 
         const hookData = await this.getHookData(params);

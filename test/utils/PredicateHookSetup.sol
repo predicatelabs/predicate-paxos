@@ -47,15 +47,10 @@ contract PredicateHookSetup is MetaCoinTestSetup, PoolSetup {
         manager.initialize(poolKey, Constants.SQRT_PRICE_1_1);
 
         address[] memory authorizedLps = new address[](3);
-        authorizedLps[0] = address(lpRouter);
-        authorizedLps[1] = address(posm);
-        authorizedLps[2] = _liquidityProvider;
+        authorizedLps[0] = _liquidityProvider;
         vm.prank(_owner);
         hook.addAuthorizedLPs(authorizedLps);
 
-        require(hook.isAuthorizedLP(_owner), "LP not authorized");
-        require(hook.isAuthorizedLP(address(lpRouter)), "LP Router not authorized");
-        require(hook.isAuthorizedLP(address(posm)), "POSM not authorized");
         require(hook.isAuthorizedLP(_liquidityProvider), "Liquidity Provider not authorized");
 
         vm.startPrank(_liquidityProvider);

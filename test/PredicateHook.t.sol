@@ -21,9 +21,9 @@ contract PredicateHookTest is PredicateHookSetup {
         assertEq(hook.getPolicy(), newPolicy);
     }
 
-    function testSetPolicyUnauthorized() public {
+    function testSetPolicyNotOwner() public {
         string memory newPolicy = "new-policy";
-        vm.prank(makeAddr("unauthorized"));
+        vm.prank(makeAddr("not-owner"));
         vm.expectRevert();
         hook.setPolicy(newPolicy);
     }
@@ -35,9 +35,9 @@ contract PredicateHookTest is PredicateHookSetup {
         assertEq(hook.getPredicateManager(), newManager);
     }
 
-    function testSetPredicateManagerUnauthorized() public {
+    function testSetPredicateManagerNotOwner() public {
         address newManager = makeAddr("new-manager");
-        vm.prank(makeAddr("unauthorized"));
+        vm.prank(makeAddr("not-owner"));
         vm.expectRevert();
         hook.setPredicateManager(newManager);
     }
@@ -69,48 +69,48 @@ contract PredicateHookTest is PredicateHookSetup {
         assertEq(hook.isAuthorizedLP(liquidityProvider), false);
     }
 
-    function testAddAuthorizedLPUnauthorized() public {
+    function testAddAuthorizedLPNotOwner() public {
         address[] memory lps = new address[](1);
         lps[0] = liquidityProvider;
-        vm.prank(makeAddr("unauthorized"));
+        vm.prank(makeAddr("not-owner"));
         vm.expectRevert();
         hook.addAuthorizedLPs(lps);
     }
 
-    function testAddAuthorizedUser() public {
-        address[] memory users = new address[](1);
-        users[0] = makeAddr("user");
+    function testAddAuthorizedSwapper() public {
+        address[] memory swappers = new address[](1);
+        swappers[0] = makeAddr("swapper");
         vm.prank(hook.owner());
-        hook.addAuthorizedUsers(users);
-        assertEq(hook.isAuthorizedUser(users[0]), true);
+        hook.addAuthorizedSwapper(swappers);
+        assertEq(hook.isAuthorizedSwapper(swappers[0]), true);
     }
 
-    function testRemoveAuthorizedUser() public {
-        address[] memory users = new address[](1);
-        users[0] = makeAddr("user");
+    function testRemoveAuthorizedSwapper() public {
+        address[] memory swappers = new address[](1);
+        swappers[0] = makeAddr("swapper");
         vm.prank(hook.owner());
-        hook.addAuthorizedUsers(users);
-        assertEq(hook.isAuthorizedUser(users[0]), true);
+        hook.addAuthorizedSwapper(swappers);
+        assertEq(hook.isAuthorizedSwapper(swappers[0]), true);
 
         vm.prank(hook.owner());
-        hook.removeAuthorizedUsers(users);
-        assertEq(hook.isAuthorizedUser(users[0]), false);
+        hook.removeAuthorizedSwapper(swappers);
+        assertEq(hook.isAuthorizedSwapper(swappers[0]), false);
     }
 
-    function testAddAuthorizedUserUnauthorized() public {
-        address[] memory users = new address[](1);
-        users[0] = makeAddr("user");
-        vm.prank(makeAddr("unauthorized"));
+    function testAddUnauthorizedSwapperNotOwner() public {
+        address[] memory swappers = new address[](1);
+        swappers[0] = makeAddr("swapper");
+        vm.prank(makeAddr("not-owner"));
         vm.expectRevert();
-        hook.addAuthorizedUsers(users);
+        hook.addAuthorizedSwapper(swappers);
     }
 
-    function testRemoveAuthorizedUserUnauthorized() public {
-        address[] memory users = new address[](1);
-        users[0] = makeAddr("user");
-        vm.prank(makeAddr("unauthorized"));
+    function testRemoveAuthorizedSwapperNotOwner() public {
+        address[] memory swappers = new address[](1);
+        swappers[0] = makeAddr("swapper");
+        vm.prank(makeAddr("not-owner"));
         vm.expectRevert();
-        hook.removeAuthorizedUsers(users);
+        hook.removeAuthorizedSwapper(swappers);
     }
 
     function testSetRouter() public {
@@ -120,9 +120,9 @@ contract PredicateHookTest is PredicateHookSetup {
         assertEq(address(hook.router()), newRouter);
     }
 
-    function testSetRouterUnauthorized() public {
+    function testSetRouterNotOwner() public {
         address newRouter = makeAddr("new-router");
-        vm.prank(makeAddr("unauthorized"));
+        vm.prank(makeAddr("not-owner"));
         vm.expectRevert();
         hook.setRouter(ISimpleV4Router(newRouter));
     }

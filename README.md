@@ -1,84 +1,99 @@
-# Paxos USDL V4 Hooks
+# USDL V4 Hook Suite
 
-This repository contains the Uniswap V4 hook implementation for USDL (Lift Dollar), enabling policy-enforced swapping via the Predicate Network.
+A Uniswap V4 hook implementation that enables policy-controlled trading of USDL (Lift Dollar) with automated token wrapping. 
+Using [Predicate](https://predicate.io), the wUSDL/ERC20 V4 hook enforces configurable compliance requirements at the smart contract level. 
+
+Ownership of the hooks is initially set to the deployer but can be transferred to any Ethereum address. 
+The owner can update onchain allowlists and policies, which may include constraints such as transaction limits, geo-restrictions, 
+and other compliance controls. An example policy is provided in this repository.
+
+## Overview
+
+This repository contains two custom Uniswap V4 hooks that work in tandem to enable policy-compliant trading of USDL:
+
+1. **PredicateHook**: Enforces compliance policies on the liquid ERC20/wUSDL pool through the Predicate Network
+
+2. **AutoWrapper**: Manages automatic wrapping/unwrapping of USDL ↔ wUSDL during swaps
+
+*note*: the predicated pool is liquid and can be swapped against individually. 
+The AutoWrapper hook is used to wrap/unwrap USDL ↔ wUSDL during swaps against the predicated pool; making it easier to swap USDL.
 
 ## Architecture
 
-![Architecture Diagram](assets/PaxosV4Hook.png)
+![Architecture Diagram](assets/architecture.png)
 
-This design consists of a router (necessary for swapping against the PoolManager), configuration for initializing two pools on the PoolManager, and the two associated hooks.
+### Components
 
-#### Predicate Message 
-- A struct unique to the Predicate Network
-- Contains the necessary Predicate Operator-signed parameters for a transaction
+- **SimpleV4Router**: Handles swap routing and settlement with the Uniswap V4 PoolManager
+- **Pools (configured with scripts)**:
+   - Ghost Pool (USDL/ERC20)
+   - Liquid Pool (wUSDL/ERC20)
+- **Hook System**:
+   - PredicateHook: Validates compliance through signed Predicate messages
+   - AutoWrapper: Manages USDL conversion and routing between pools
 
-#### Predicate Hook
-- Requires a valid Predicate message on the liquid ERC20/wUSDL pool
+## Policy
 
-#### AutoWrapper Hook
-- Makes it possible to swap the rebasing asset (USDL) with one transaction
-- Wraps and unwraps USDL ↔ wUSDL
-- Swaps against the configured ERC20/wUSDL pool 
+Policies are JSON objects stored onchain and evaluated by Predicate Operators offchain. Each policy contains a set of 
+rules—such as AML checks, geofencing, or other criteria—which must be satisfied for a transaction to be authorized.
 
-## User Experience    
-### Swapping 
+Contracts requiring policy validation must inherit from PredicateClient, which stores the policyId and interfaces with 
+the PredicateManager to verify authorization at execution time.
 
-To swap assets, users must first be screened against the Paxos policy by registered Predicate Operators. This is done by fetching respective signatures for each transaction from the Predicate API before submitting it on-chain. 
+Under script/ you will find an UpdatePolicy.s.sol-you can run it as follows:
 
-Each task requests can be as fast as ~200ms and returns the following response (example);
+```bash
+# 🔔 You must have your .env file setup to run this script.
+make update-policy --policy-id {policy-id}
+```
 
-```json
-{
-  "is_compliant": true | false,
-  "signers": [
-    "0xab..cd" 
-  ],
-  "signature": [
-    "0xabe..e1cc1c"
-  ],
-  "expiry_block": 22033977,
-  "task_id": "fedd253f-2317-48c2-b521-42828f40374c"
-}
- ```
+## Deployment
 
- These signatures must be nested into the HookData (see the integration section below) before the user's wallet is invoked. 
+### Prerequisites
+- Node.js >=18
+- Foundry 1.0.0
+- An Ethereum node provider (e.g. Alchemy, Infura, etc.)
 
+### Setup
 
-## Integration 
+```bash
+# Install dependencies
+make install
 
-#### Frontend
-TODO
+# Build contracts
+make build
 
-#### Proxy Backend 
-TODO
+# Run tests
+make tests
+```
 
-## Manual Test
+### Local Deployment
 
-Under /transactor, you will find well documented script which leverages the `predicate-sdk` to fetch signatures and swap against a mainnet USDL/USDC pool. Below are the instructions for running it!
+```bash
+# Deploy full suite
+make deploy-contracts
 
-1. Install and set variables
-    ```bash
-    # Navigate to the transactor directory
-    cd transactor
+# Or deploy individual components
+make deploy-pool-manager
+make deploy-router
+make deploy-predicate-hook
+make deploy-tokens-and-liquidity-pool
+make deploy-auto-wrapper
+```
 
-    # Install dependencies
-    npm install
+## Testing
 
-    # Copy and configure environment variables
-    cp .env.example .env
-    ```
+### Unit Tests
+```bash
+forge test
+```
 
-2. Deploy & Fund the Pool
-    
-    ⚠️ Use a private key which holds USDL and USDC
-    ```bash 
-    forge script script/DeployPaxosUSDLPools.sol:DeployPaxosUSDLPools --rpc-url {ethereum_rpc_url} --usdl 5 --usdc 5 --broadcast
-    ```
+### Integration Tests
+```bash
+# Deploy test environment
+make deploy-contracts
 
-3. Run the Transactor
-    
-    ```bash
-        npm run swap --usdl 5
-    ```
+# Run integration test suite
+forge test --match-path test/integration/*
+```
 
-You should notice that your USDL balance has decreased by 5 USDL and USDC balance increased by the same amount.

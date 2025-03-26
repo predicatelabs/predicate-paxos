@@ -45,7 +45,7 @@ contract AutoWrapperSetup is MetaCoinTestSetup, PoolSetup {
     int24 tickSpacing = 60;
 
     function setUpHooksAndPools(
-        address liquidityProvider
+        address _liquidityProvider
     ) internal {
         // deploy pool manager, routers and posm
 
@@ -63,10 +63,10 @@ contract AutoWrapperSetup is MetaCoinTestSetup, PoolSetup {
 
         // deploy tokens
         setupUSDLandVault();
-        USDC = deployAndMintToken(liquidityProvider, 100_000_000 ether);
+        USDC = deployAndMintToken(_liquidityProvider, 100_000_000 ether);
 
         // set approvals
-        vm.startPrank(liquidityProvider);
+        vm.startPrank(_liquidityProvider);
         setTokenApprovalForRouters(USDC);
         setTokenApprovalForRouters(Currency.wrap(address(USDL)));
         setTokenApprovalForRouters(Currency.wrap(address(wUSDL)));
@@ -106,29 +106,29 @@ contract AutoWrapperSetup is MetaCoinTestSetup, PoolSetup {
         // Create initial supply of USDL
         vm.startPrank(supplyController);
         USDL.increaseSupply(initialSupply * 7);
-        USDL.transfer(liquidityProvider, initialSupply * 6);
+        USDL.transfer(_liquidityProvider, initialSupply * 6);
         vm.stopPrank();
 
         // Approve and deposit USDL for wUSDL
-        vm.startPrank(liquidityProvider);
+        vm.startPrank(_liquidityProvider);
         IERC20Upgradeable(address(USDL)).approve(address(wUSDL), type(uint256).max);
         IERC20(address(USDL)).approve(address(autoWrapper), type(uint256).max);
         IERC20(Currency.unwrap(USDC)).approve(address(autoWrapper), type(uint256).max);
         IERC20Upgradeable(address(wUSDL)).approve(address(autoWrapper), type(uint256).max);
-        wUSDL.deposit(3 * initialSupply, liquidityProvider);
+        wUSDL.deposit(3 * initialSupply, _liquidityProvider);
         vm.stopPrank();
 
         // provision liquidity
         vm.startPrank(admin);
         address[] memory authorizedLps = new address[](3);
-        authorizedLps[0] = address(lpRouter);
-        authorizedLps[1] = address(posm);
-        authorizedLps[2] = liquidityProvider;
+        authorizedLps[0] = _liquidityProvider;
         predicateHook.addAuthorizedLPs(authorizedLps);
+
+        require(predicateHook.isAuthorizedLP(_liquidityProvider), "Liquidity Provider not authorized");
         vm.stopPrank();
 
-        vm.startPrank(liquidityProvider);
-        provisionLiquidity(tickSpacing, predicatePoolKey, 100 ether, liquidityProvider, 100_000 ether, 100_000 ether);
+        vm.startPrank(_liquidityProvider);
+        provisionLiquidity(tickSpacing, predicatePoolKey, 100 ether, _liquidityProvider, 100_000 ether, 100_000 ether);
         vm.stopPrank();
     }
 

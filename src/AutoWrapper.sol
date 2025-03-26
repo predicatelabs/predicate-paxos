@@ -24,10 +24,9 @@ import {DeltaResolver} from "@uniswap/v4-periphery/src/base/DeltaResolver.sol";
 /**
  * @title AutoWrapper Swap Hook for USDL
  * @author Predicate Labs
- * @notice A V4 hook for swapping USDL against a liquid ERC20/wUSDL pool in a single transaction
- * @dev This hook is intended to be used with a "ghost pool"—a placeholder pool with no actual liquidity,
- *      allowing users to interact with USDL as if it's a liquid asset by routing all actual swaps through
- *      a wUSDL/ERC20 pool that contains liquidity.
+ * @notice A V4 hook for swapping USDL, a rebasing asset, against some base currency (e.g. USDC)
+ * @dev This hook is intended to be used with a "ghost pool"-a non-liquid pool that acts as an interface
+ *      for swapping USDL against wUSDL/baseCurrency pool.
  */
 contract AutoWrapper is BaseHook, DeltaResolver {
     using SafeCast for uint256;

@@ -164,9 +164,8 @@ contract PredicateHook is BaseHook, PredicateClient, Ownable {
             return (IHooks.beforeSwap.selector, delta, 0);
         }
 
-        PredicateMessage memory predicateMessage = this.decodeHookData(hookData);
-        address msgSender = router.msgSender();
-        uint256 msgValue = 0;
+        (PredicateMessage memory predicateMessage, address msgSender, uint256 msgValue) =
+            (this.decodeHookData(hookData), router.msgSender(), 0);
 
         bytes memory encodeSigAndArgs = abi.encodeWithSignature(
             "_beforeSwap(address,address,address,uint24,int24,address,bool,int256,uint160)",

@@ -164,12 +164,11 @@ contract PredicateHook is BaseHook, PredicateClient, Ownable {
             return (IHooks.beforeSwap.selector, delta, 0);
         }
 
-        (PredicateMessage memory predicateMessage, address msgSender, uint256 msgValue) =
-            (this.decodeHookData(hookData), router.msgSender(), 0);
+        PredicateMessage memory predicateMessage = abi.decode(hookData, (PredicateMessage));
 
         bytes memory encodeSigAndArgs = abi.encodeWithSignature(
             "_beforeSwap(address,address,address,uint24,int24,address,bool,int256,uint160)",
-            msgSender,
+            router.msgSender(),
             key.currency0,
             key.currency1,
             key.fee,
@@ -180,7 +179,7 @@ contract PredicateHook is BaseHook, PredicateClient, Ownable {
             params.sqrtPriceLimitX96
         );
 
-        if (!_authorizeTransaction(predicateMessage, encodeSigAndArgs, msgSender, msgValue)) {
+        if (!_authorizeTransaction(predicateMessage, encodeSigAndArgs, router.msgSender(), 0)) {
             revert PredicateAuthorizationFailed();
         }
 
@@ -214,19 +213,6 @@ contract PredicateHook is BaseHook, PredicateClient, Ownable {
 
         // If the sender is not an authorized liquidity provider, the transaction will revert
         revert UnauthorizedLiquidityProvider();
-    }
-
-    /**
-     * @notice Utility to decode hook data into its components
-     * @dev Extracts the authorization message from encoded hook data
-     * @param hookData The encoded hook data from the swap call
-     * @return predicateMessage The Predicate authorization message with signatures
-     */
-    function decodeHookData(
-        bytes calldata hookData
-    ) external pure returns (PredicateMessage memory) {
-        PredicateMessage memory predicateMessage = abi.decode(hookData, (PredicateMessage));
-        return predicateMessage;
     }
 
     /**

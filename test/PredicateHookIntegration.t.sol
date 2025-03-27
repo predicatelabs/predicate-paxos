@@ -215,7 +215,7 @@ contract PredicateHookIntegrationTest is PredicateHookSetup, OperatorTestPrep {
 
         bytes memory hookData = abi.encode(predicateMessage);
 
-        PredicateMessage memory decodedMsg = hook.decodeHookData(hookData);
+        PredicateMessage memory decodedMsg = abi.decode(hookData, (PredicateMessage));
 
         require(keccak256(bytes(decodedMsg.taskId)) == keccak256(bytes(taskId)), "TaskId mismatch");
         require(decodedMsg.expireByBlockNumber == expireByBlockNumber, "Expire block number mismatch");

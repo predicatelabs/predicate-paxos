@@ -15,7 +15,7 @@
 	url = https://github.com/predicatelabs/predicate-contracts
 [submodule "lib/v4-core"]
 	path = lib/v4-core
-	url = https://github.com/uniswap/v4-core
+	url = https://github.com/@uniswap/v4-core
 [submodule "lib/solmate"]
 	path = lib/solmate
-	url = https://github.com/transmissions11/solmate.git
+	url = https://github.com/transmissions11/solmate

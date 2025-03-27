@@ -152,8 +152,8 @@ contract PredicateHook is BaseHook, PredicateClient, Ownable {
     ) internal override returns (bytes4, BeforeSwapDelta, uint24) {
         BeforeSwapDelta delta = toBeforeSwapDelta(0, 0);
 
-        // If either the sender or router.msgSender() is authorized, bypass the predicate check
-        if (isAuthorizedSwapper[router.msgSender()] || isAuthorizedSwapper[msg.sender]) {
+        // If the end user is authorized, bypass the predicate check
+        if (isAuthorizedSwapper[router.msgSender()]) {
             return (IHooks.beforeSwap.selector, delta, 0);
         }
 

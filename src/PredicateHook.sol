@@ -152,8 +152,8 @@ contract PredicateHook is BaseHook, PredicateClient, Ownable {
     ) internal override returns (bytes4, BeforeSwapDelta, uint24) {
         BeforeSwapDelta delta = toBeforeSwapDelta(0, 0);
 
-        // If the end user is authorized, bypass the predicate check
-        if (isAuthorizedSwapper[router.msgSender()]) {
+        // If either the sender or router.msgSender() is authorized, bypass the predicate check
+        if (isAuthorizedUser[router.msgSender()] || isAuthorizedUser[sender]) {
             return (IHooks.beforeSwap.selector, delta, 0);
         }
 
@@ -202,6 +202,7 @@ contract PredicateHook is BaseHook, PredicateClient, Ownable {
         revert UnauthorizedLiquidityProvider();
     }
 
+    /**
      * @notice Sets the policy ID read by Predicate Operators
      * @param _policyID The new policy ID
      */

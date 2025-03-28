@@ -115,8 +115,7 @@ export class TransactorService {
             signatures: predicateResponse.signature,
         };
 
-        const hookDataEncoded = this.encodeHookData(pm);
-        return hookDataEncoded;
+        return this.encodeHookData(pm);
     }
 
     encodeBeforeSwap(sender: string, key: PoolKey, params: SwapParams): string {

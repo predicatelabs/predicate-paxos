@@ -110,14 +110,14 @@ contract AutoWrapper is BaseHook, DeltaResolver {
             require(
                 address(_wUSDL) == Currency.unwrap(_wUSDLPoolKey.currency0), "currency mismatch; currency0 is not wUSDL"
             );
-            baseCurrencyIsToken0ForPredicatePool = false;
+            baseCurrencyIsToken0ForPredicatePool = false; // false for mainnet
         }
 
         baseCurrency = _baseCurrency;
         wUSDL = _wUSDL;
         wUSDLPoolKey = _wUSDLPoolKey; // predicate pool key
         router = _router;
-        baseCurrencyIsToken0 = baseCurrency < Currency.wrap(wUSDL.asset());
+        baseCurrencyIsToken0 = baseCurrency < Currency.wrap(wUSDL.asset()); // true for mainnet
         IERC20(wUSDL.asset()).approve(address(wUSDL), type(uint256).max);
     }
 
@@ -225,8 +225,11 @@ contract AutoWrapper is BaseHook, DeltaResolver {
         // todo: verify this works for all cases
         bool isExactInput = params.amountSpecified < 0;
         if (params.zeroForOne == baseCurrencyIsToken0) {
+            // USDC -> USDL pool
             return isExactInput ? params.amountSpecified : getUnwrapInputRequired(uint256(params.amountSpecified));
         } else {
+            // USDL -> USDC ex. 5 USDL as output
+            // WUSDL/USDC pool
             return isExactInput ? -getUnwrapInputRequired(uint256(-params.amountSpecified)) : params.amountSpecified;
         }
     }

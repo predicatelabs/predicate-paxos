@@ -21,6 +21,10 @@ contract AutoWrapperTest is Test, AutoWrapperSetup, OperatorTestPrep {
         liquidityProvider = makeAddr("liquidityProvider");
         super.setUp();
         setUpHooksAndPools(liquidityProvider);
+        require(autoWrapper.baseCurrencyIsToken0() == true, "baseCurrency is token0");
+        require(
+            autoWrapper.baseCurrencyIsToken0ForPredicatePool() == false, "baseCurrency is not token0 for predicate pool"
+        );
     }
 
     modifier permissionedOperators() {
@@ -80,9 +84,10 @@ contract AutoWrapperTest is Test, AutoWrapperSetup, OperatorTestPrep {
         IPoolManager.SwapParams memory params = IPoolManager.SwapParams({
             zeroForOne: true,
             amountSpecified: 1e18, // for exact output
-            sqrtPriceLimitX96: uint160(4_295_128_740)
+            sqrtPriceLimitX96: uint160(429_512_874_000_000_000_000_000_000_000)
         });
 
+        // WUSDL -> USDC
         IPoolManager.SwapParams memory paramsToSign = IPoolManager.SwapParams({
             zeroForOne: false,
             amountSpecified: autoWrapper.getUnwrapInputRequired(uint256(params.amountSpecified)), // for exact output
@@ -118,11 +123,14 @@ contract AutoWrapperTest is Test, AutoWrapperSetup, OperatorTestPrep {
         IPoolManager.SwapParams memory params = IPoolManager.SwapParams({
             zeroForOne: false,
             amountSpecified: -1e18, // for exact input
-            sqrtPriceLimitX96: uint160(TickMath.MAX_SQRT_PRICE - 1)
+            sqrtPriceLimitX96: TickMath.MIN_SQRT_PRICE - 1
         });
 
-        IPoolManager.SwapParams memory paramsToSign = params;
-        paramsToSign.amountSpecified = -autoWrapper.getUnwrapInputRequired(uint256(-params.amountSpecified));
+        IPoolManager.SwapParams memory paramsToSign = IPoolManager.SwapParams({
+            zeroForOne: true,
+            amountSpecified: -autoWrapper.getUnwrapInputRequired(uint256(-params.amountSpecified)),
+            sqrtPriceLimitX96: TickMath.MIN_SQRT_PRICE - 1
+        });
 
         PredicateMessage memory message = getPredicateMessage(taskId, paramsToSign);
 
@@ -153,11 +161,14 @@ contract AutoWrapperTest is Test, AutoWrapperSetup, OperatorTestPrep {
         IPoolManager.SwapParams memory params = IPoolManager.SwapParams({
             zeroForOne: false,
             amountSpecified: 1e18, // for exact output
-            sqrtPriceLimitX96: uint160(TickMath.MAX_SQRT_PRICE - 1)
+            sqrtPriceLimitX96: uint160(79_228_162_514_264_337_593_540)
         });
 
-        IPoolManager.SwapParams memory paramsToSign = params;
-        paramsToSign.amountSpecified = params.amountSpecified;
+        IPoolManager.SwapParams memory paramsToSign = IPoolManager.SwapParams({
+            zeroForOne: true,
+            amountSpecified: params.amountSpecified,
+            sqrtPriceLimitX96: uint160(79_228_162_514_264_337_593_540)
+        });
 
         PredicateMessage memory message = getPredicateMessage(taskId, paramsToSign);
 

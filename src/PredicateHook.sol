@@ -152,10 +152,8 @@ contract PredicateHook is BaseHook, PredicateClient, Ownable {
     ) internal override returns (bytes4, BeforeSwapDelta, uint24) {
         BeforeSwapDelta delta = toBeforeSwapDelta(0, 0);
 
-        address msgSender = router.msgSender();
-
         // If the end user is authorized, bypass the predicate check
-        if (isAuthorizedSwapper[msgSender]) {
+        if (isAuthorizedSwapper[router.msgSender()]) {
             return (IHooks.beforeSwap.selector, delta, 0);
         }
 
@@ -163,7 +161,7 @@ contract PredicateHook is BaseHook, PredicateClient, Ownable {
 
         bytes memory encodeSigAndArgs = abi.encodeWithSignature(
             "_beforeSwap(address,address,address,uint24,int24,address,bool,int256,uint160)",
-            msgSender,
+            router.msgSender(),
             key.currency0,
             key.currency1,
             key.fee,
@@ -174,7 +172,7 @@ contract PredicateHook is BaseHook, PredicateClient, Ownable {
             params.sqrtPriceLimitX96
         );
 
-        if (!_authorizeTransaction(predicateMessage, encodeSigAndArgs, msgSender, 0)) {
+        if (!_authorizeTransaction(predicateMessage, encodeSigAndArgs, router.msgSender(), 0)) {
             revert PredicateAuthorizationFailed();
         }
 

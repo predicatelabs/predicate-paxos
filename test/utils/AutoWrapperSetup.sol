@@ -21,7 +21,10 @@ import {Constants} from "@uniswap/v4-core/src/../test/utils/Constants.sol";
 import {MetaCoinTestSetup} from "@predicate-test/helpers/utility/MetaCoinTestSetup.sol";
 import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
 import {HookMiner} from "test/utils/HookMiner.sol";
+import {console} from "forge-std/console.sol";
 import {PoolSetup} from "./PoolSetup.sol";
+import {LiquidityAmounts} from "@uniswap/v4-core/test/utils/LiquidityAmounts.sol";
+import {TickMath} from "@uniswap/v4-core/src/libraries/TickMath.sol";
 
 contract AutoWrapperSetup is MetaCoinTestSetup, PoolSetup {
     PredicateHook public predicateHook;
@@ -44,6 +47,9 @@ contract AutoWrapperSetup is MetaCoinTestSetup, PoolSetup {
     uint256 public initialSupply = 1000 * 10 ** 18; // 1000 token
     int24 tickSpacing = 60;
 
+    uint160 predicatePoolStartingPrice = 79_228_162_514_264_337_593_543;
+    uint160 ghostPoolStartingPrice = 79_228_162_514_264_337_593_543_950_336_000_000;
+
     function setUpHooksAndPools(
         address liquidityProvider
     ) internal {
@@ -62,8 +68,29 @@ contract AutoWrapperSetup is MetaCoinTestSetup, PoolSetup {
         deployPosm();
 
         // deploy tokens
-        setupUSDLandVault();
-        USDC = deployAndMintToken(liquidityProvider, 100_000_000 ether);
+        for (uint256 i = 0; i < 100; i++) {
+            _setUpUSDL();
+            if (_addressStartsWithB(address(USDL))) {
+                break;
+            }
+        }
+        require(_addressStartsWithB(address(USDL)), "USDL address does not start with B");
+
+        for (uint256 i = 0; i < 100; i++) {
+            _setUpVault();
+            if (_addressStartsWith7(address(wUSDL))) {
+                break;
+            }
+        }
+        require(_addressStartsWith7(address(wUSDL)), "wUSDL address does not start with 7");
+
+        for (uint256 i = 0; i < 10; i++) {
+            USDC = deployAndMintToken(liquidityProvider, 100_000_000_000_000);
+            if (_addressStartsWithA(Currency.unwrap(USDC))) {
+                break;
+            }
+        }
+        require(_addressStartsWithA(Currency.unwrap(USDC)), "USDC address does not start with A");
 
         // set approvals
         vm.startPrank(liquidityProvider);
@@ -83,8 +110,8 @@ contract AutoWrapperSetup is MetaCoinTestSetup, PoolSetup {
         require(address(predicateHook) == hookAddress, "Hook deployment failed");
 
         // initialize the pool
-        predicatePoolKey = PoolKey(USDC, Currency.wrap(address(wUSDL)), 0, tickSpacing, IHooks(predicateHook));
-        manager.initialize(predicatePoolKey, Constants.SQRT_PRICE_1_1);
+        predicatePoolKey = PoolKey(Currency.wrap(address(wUSDL)), USDC, 0, tickSpacing, IHooks(predicateHook));
+        manager.initialize(predicatePoolKey, predicatePoolStartingPrice);
 
         // initialize the auto wrapper
         uint160 autoWrapperFlags = uint160(
@@ -101,7 +128,7 @@ contract AutoWrapperSetup is MetaCoinTestSetup, PoolSetup {
 
         // initialize the ghost pool
         ghostPoolKey = PoolKey(USDC, Currency.wrap(address(USDL)), 0, tickSpacing, IHooks(autoWrapper));
-        manager.initialize(ghostPoolKey, Constants.SQRT_PRICE_1_1);
+        manager.initialize(ghostPoolKey, ghostPoolStartingPrice);
 
         // Create initial supply of USDL
         vm.startPrank(supplyController);
@@ -127,14 +154,21 @@ contract AutoWrapperSetup is MetaCoinTestSetup, PoolSetup {
         predicateHook.addAuthorizedLPs(authorizedLps);
         vm.stopPrank();
 
+        uint128 liquidity = LiquidityAmounts.getLiquidityForAmounts(
+            predicatePoolStartingPrice, // sqrtPriceX96
+            TickMath.getSqrtPriceAtTick(TickMath.minUsableTick(tickSpacing)),
+            TickMath.getSqrtPriceAtTick(TickMath.maxUsableTick(tickSpacing)),
+            100e18,
+            100e6
+        );
+
         vm.startPrank(liquidityProvider);
-        provisionLiquidity(tickSpacing, predicatePoolKey, 100 ether, liquidityProvider, 100_000 ether, 100_000 ether);
+        _provisionLiquidity(tickSpacing, predicatePoolKey, liquidity, liquidityProvider, 100e18, 100e6);
         vm.stopPrank();
     }
 
-    function setupUSDLandVault() internal {
+    function _setUpUSDL() internal {
         YBSV1_1 ybsImpl = new YBSV1_1();
-        wYBSV1 wYbsImpl = new wYBSV1();
 
         bytes memory ybsData = abi.encodeWithSelector(
             YBSV1_1.initialize.selector,
@@ -152,6 +186,14 @@ contract AutoWrapperSetup is MetaCoinTestSetup, PoolSetup {
         ERC1967Proxy ybsProxy = new ERC1967Proxy(address(ybsImpl), ybsData);
         USDL = YBSV1_1(address(ybsProxy));
 
+        vm.startPrank(rebaserAdmin);
+        USDL.setMaxRebaseRate(0.05 * 10 ** 18); // 5% max rate
+        USDL.setRebasePeriod(1 days);
+        vm.stopPrank();
+    }
+
+    function _setUpVault() internal {
+        wYBSV1 wYbsImpl = new wYBSV1();
         bytes memory wYbsData = abi.encodeWithSelector(
             wYBSV1.initialize.selector,
             "Wrapped YBS",
@@ -164,11 +206,6 @@ contract AutoWrapperSetup is MetaCoinTestSetup, PoolSetup {
 
         ERC1967Proxy wYbsProxy = new ERC1967Proxy(address(wYbsImpl), wYbsData);
         wUSDL = wYBSV1(address(wYbsProxy));
-
-        vm.startPrank(rebaserAdmin);
-        USDL.setMaxRebaseRate(0.05 * 10 ** 18); // 5% max rate
-        USDL.setRebasePeriod(1 days);
-        vm.stopPrank();
 
         vm.startPrank(admin);
         USDL.grantRole(USDL.WRAPPED_YBS_ROLE(), address(wUSDL));
@@ -185,5 +222,29 @@ contract AutoWrapperSetup is MetaCoinTestSetup, PoolSetup {
 
     function getTickSpacing() public view returns (int24) {
         return tickSpacing;
+    }
+
+    function _addressStartsWith7(
+        address _addr
+    ) internal pure returns (bool) {
+        uint256 addrValue = uint256(uint160(_addr));
+        uint256 topNibble = (addrValue >> 156) & 0xF; // isolate bits 159..156
+        return topNibble == 0x7;
+    }
+
+    function _addressStartsWithB(
+        address _addr
+    ) internal pure returns (bool) {
+        uint256 addrValue = uint256(uint160(_addr));
+        uint256 topNibble = (addrValue >> 156) & 0xF;
+        return topNibble == 0xB;
+    }
+
+    function _addressStartsWithA(
+        address _addr
+    ) internal pure returns (bool) {
+        uint256 addrValue = uint256(uint160(_addr));
+        uint256 topNibble = (addrValue >> 156) & 0xF;
+        return topNibble == 0xA;
     }
 }

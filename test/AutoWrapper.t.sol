@@ -34,6 +34,7 @@ contract AutoWrapperTest is Test, AutoWrapperSetup, OperatorTestPrep {
     }
 
     function testSwapZeroForOneExactInput() public permissionedOperators prepOperatorRegistration(false) {
+        // USDC -> USDL
         vm.prank(operatorOne);
         serviceManager.registerOperatorToAVS(operatorOneAlias, operatorSignature);
 
@@ -41,11 +42,15 @@ contract AutoWrapperTest is Test, AutoWrapperSetup, OperatorTestPrep {
         string memory taskId = "unique-identifier";
         IPoolManager.SwapParams memory params = IPoolManager.SwapParams({
             zeroForOne: true,
-            amountSpecified: -1e18, // for exact input
-            sqrtPriceLimitX96: uint160(4_295_128_740)
+            amountSpecified: -1e6, // for exact input
+            sqrtPriceLimitX96: uint160(429_512_874_000_000_000_000_000_000_000)
         });
 
-        IPoolManager.SwapParams memory paramsToSign = params;
+        IPoolManager.SwapParams memory paramsToSign = IPoolManager.SwapParams({
+            zeroForOne: false,
+            amountSpecified: -1e6, // for exact input
+            sqrtPriceLimitX96: uint160(429_512_874_000_000_000_000_000_000_000)
+        });
         PredicateMessage memory message = getPredicateMessage(taskId, paramsToSign);
 
         IERC20 token0 = IERC20(Currency.unwrap(key.currency0));
@@ -66,6 +71,7 @@ contract AutoWrapperTest is Test, AutoWrapperSetup, OperatorTestPrep {
     }
 
     function testSwapZeroForOneExactOutput() public permissionedOperators prepOperatorRegistration(false) {
+        // USDC -> USDL
         vm.prank(operatorOne);
         serviceManager.registerOperatorToAVS(operatorOneAlias, operatorSignature);
 
@@ -77,8 +83,11 @@ contract AutoWrapperTest is Test, AutoWrapperSetup, OperatorTestPrep {
             sqrtPriceLimitX96: uint160(4_295_128_740)
         });
 
-        IPoolManager.SwapParams memory paramsToSign = params;
-        paramsToSign.amountSpecified = autoWrapper.getUnwrapInputRequired(uint256(params.amountSpecified));
+        IPoolManager.SwapParams memory paramsToSign = IPoolManager.SwapParams({
+            zeroForOne: false,
+            amountSpecified: autoWrapper.getUnwrapInputRequired(uint256(params.amountSpecified)), // for exact output
+            sqrtPriceLimitX96: uint160(429_512_874_000_000_000_000_000_000_000)
+        });
 
         PredicateMessage memory message = getPredicateMessage(taskId, paramsToSign);
 
@@ -100,6 +109,7 @@ contract AutoWrapperTest is Test, AutoWrapperSetup, OperatorTestPrep {
     }
 
     function testSwapOneForZeroExactInput() public permissionedOperators prepOperatorRegistration(false) {
+        // USDL -> USDC
         vm.prank(operatorOne);
         serviceManager.registerOperatorToAVS(operatorOneAlias, operatorSignature);
 
@@ -134,6 +144,7 @@ contract AutoWrapperTest is Test, AutoWrapperSetup, OperatorTestPrep {
     }
 
     function testSwapOneForZeroExactOutput() public permissionedOperators prepOperatorRegistration(false) {
+        // USDL -> USDC
         vm.prank(operatorOne);
         serviceManager.registerOperatorToAVS(operatorOneAlias, operatorSignature);
 

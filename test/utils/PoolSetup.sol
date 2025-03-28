@@ -79,8 +79,8 @@ contract PoolSetup is DeployPermit2 {
     }
 
     function deployTokens() internal returns (MockERC20 token0, MockERC20 token1) {
-        MockERC20 tokenA = new MockERC20("MockA", "A", 18);
-        MockERC20 tokenB = new MockERC20("MockB", "B", 18);
+        MockERC20 tokenA = new MockERC20("MockA", "A", 6);
+        MockERC20 tokenB = new MockERC20("MockB", "B", 6);
         if (uint160(address(tokenA)) < uint160(address(tokenB))) {
             token0 = tokenA;
             token1 = tokenB;
@@ -111,7 +111,7 @@ contract PoolSetup is DeployPermit2 {
         token = new MockERC20("MockToken", "MT", 18);
     }
 
-    function provisionLiquidity(
+    function _provisionLiquidity(
         int24 tickSpacing,
         PoolKey memory poolKey,
         uint256 liquidity,

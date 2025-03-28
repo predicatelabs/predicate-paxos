@@ -37,7 +37,7 @@ contract PredicateHookIntegrationTest is PredicateHookSetup, OperatorTestPrep {
         string memory taskId = "unique-identifier";
         IPoolManager.SwapParams memory params = IPoolManager.SwapParams({
             zeroForOne: true,
-            amountSpecified: 1e18,
+            amountSpecified: 1e6,
             sqrtPriceLimitX96: TickMath.MIN_SQRT_PRICE + 1
         });
 
@@ -69,7 +69,7 @@ contract PredicateHookIntegrationTest is PredicateHookSetup, OperatorTestPrep {
         vm.stopPrank();
 
         vm.startPrank(liquidityProvider);
-        token0.transfer(authorizedUsers[0], 1e18);
+        token0.transfer(authorizedUsers[0], 1e6);
         vm.stopPrank();
 
         uint256 balance0 = token0.balanceOf(authorizedUsers[0]);
@@ -77,7 +77,7 @@ contract PredicateHookIntegrationTest is PredicateHookSetup, OperatorTestPrep {
 
         IPoolManager.SwapParams memory params = IPoolManager.SwapParams({
             zeroForOne: true,
-            amountSpecified: -1e18,
+            amountSpecified: -1e6,
             sqrtPriceLimitX96: TickMath.MIN_SQRT_PRICE + 1
         });
 
@@ -97,7 +97,7 @@ contract PredicateHookIntegrationTest is PredicateHookSetup, OperatorTestPrep {
 
         IPoolManager.SwapParams memory params = IPoolManager.SwapParams({
             zeroForOne: true,
-            amountSpecified: -1e18,
+            amountSpecified: -1e6,
             sqrtPriceLimitX96: TickMath.MIN_SQRT_PRICE + 1
         });
 
@@ -118,7 +118,7 @@ contract PredicateHookIntegrationTest is PredicateHookSetup, OperatorTestPrep {
         string memory taskId = "unique-identifier";
         IPoolManager.SwapParams memory params = IPoolManager.SwapParams({
             zeroForOne: false,
-            amountSpecified: 1e18,
+            amountSpecified: 1e6,
             sqrtPriceLimitX96: TickMath.MAX_SQRT_PRICE - 1
         });
 
@@ -138,11 +138,8 @@ contract PredicateHookIntegrationTest is PredicateHookSetup, OperatorTestPrep {
     function testSwapWithInvalidMessage() public permissionedOperators prepOperatorRegistration(true) {
         PoolKey memory key = getPoolKey();
         string memory taskId = "unique-identifier";
-        IPoolManager.SwapParams memory params = IPoolManager.SwapParams({
-            zeroForOne: true,
-            amountSpecified: 1e18,
-            sqrtPriceLimitX96: uint160(4_295_128_740)
-        });
+        IPoolManager.SwapParams memory params =
+            IPoolManager.SwapParams({zeroForOne: true, amountSpecified: 1e6, sqrtPriceLimitX96: uint160(4_295_128_740)});
 
         PredicateMessage memory message = getPredicateMessage(taskId, params);
         message.taskId = "invalid-task-id";
@@ -157,7 +154,7 @@ contract PredicateHookIntegrationTest is PredicateHookSetup, OperatorTestPrep {
         string memory taskId = "unique-identifier";
         IPoolManager.SwapParams memory params = IPoolManager.SwapParams({
             zeroForOne: true,
-            amountSpecified: 1e18,
+            amountSpecified: 1e6,
             sqrtPriceLimitX96: TickMath.MIN_SQRT_PRICE + 1
         });
 
@@ -242,7 +239,7 @@ contract PredicateHookIntegrationTest is PredicateHookSetup, OperatorTestPrep {
         string memory taskId = "unique-identifier";
         IPoolManager.SwapParams memory params = IPoolManager.SwapParams({
             zeroForOne: true,
-            amountSpecified: 1e18,
+            amountSpecified: 1e6,
             sqrtPriceLimitX96: TickMath.MIN_SQRT_PRICE + 1
         });
 

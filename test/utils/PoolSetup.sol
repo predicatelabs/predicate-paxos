@@ -109,7 +109,7 @@ contract PoolSetup is DeployPermit2 {
     }
 
     function deployToken() internal returns (MockERC20 token) {
-        token = new MockERC20("MockToken", "MT", 18);
+        token = new MockERC20("MockToken", "MT", 6);
     }
 
     function _provisionLiquidity(

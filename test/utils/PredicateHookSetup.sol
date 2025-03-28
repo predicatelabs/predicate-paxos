@@ -29,7 +29,7 @@ contract PredicateHookSetup is MetaCoinTestSetup, PoolSetup {
         deployPoolManager();
         deployRouters();
         deployPosm();
-        (currency0, currency1) = deployAndMintTokens(_liquidityProvider, 100_000 ether);
+        (currency0, currency1) = deployAndMintTokens(_liquidityProvider, 100_000e6);
         vm.startPrank(_liquidityProvider);
         setTokenApprovalForRouters(currency0);
         setTokenApprovalForRouters(currency1);
@@ -59,9 +59,7 @@ contract PredicateHookSetup is MetaCoinTestSetup, PoolSetup {
         require(hook.isAuthorizedLP(_liquidityProvider), "Liquidity Provider not authorized");
 
         vm.startPrank(_liquidityProvider);
-        _provisionLiquidity(
-            Constants.SQRT_PRICE_1_1, tickSpacing, poolKey, _liquidityProvider, 100_000 ether, 100_000 ether
-        );
+        _provisionLiquidity(Constants.SQRT_PRICE_1_1, tickSpacing, poolKey, _liquidityProvider, 100e6, 100e6);
         vm.stopPrank();
     }
 

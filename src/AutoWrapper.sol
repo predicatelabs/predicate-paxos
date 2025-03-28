@@ -338,7 +338,7 @@ contract AutoWrapper is BaseHook, DeltaResolver {
             IERC20(wUSDL.asset()).transfer(router.msgSender(), redeemAmount);
         } else {
             // USDL -> baseCurrency swap path
-            require(baseCurrencyDelta > 0, "baseCurrency delta is not positive for USDL -> ERC20 swap");
+            require(baseCurrencyDelta >= 0, "baseCurrency delta is not positive for USDL -> ERC20 swap");
             // transfer the baseCurrency to the user directly
             IERC20(Currency.unwrap(baseCurrency)).transfer(router.msgSender(), uint256(baseCurrencyDelta));
         }

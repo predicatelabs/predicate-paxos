@@ -59,7 +59,9 @@ contract PredicateHookSetup is MetaCoinTestSetup, PoolSetup {
         require(hook.isAuthorizedLP(_liquidityProvider), "Liquidity Provider not authorized");
 
         vm.startPrank(_liquidityProvider);
-        _provisionLiquidity(tickSpacing, poolKey, 100 ether, _liquidityProvider, 100_000 ether, 100_000 ether);
+        _provisionLiquidity(
+            Constants.SQRT_PRICE_1_1, tickSpacing, poolKey, _liquidityProvider, 100_000 ether, 100_000 ether
+        );
         vm.stopPrank();
     }
 

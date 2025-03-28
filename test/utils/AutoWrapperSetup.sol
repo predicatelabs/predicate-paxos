@@ -23,8 +23,6 @@ import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
 import {HookMiner} from "test/utils/HookMiner.sol";
 import {console} from "forge-std/console.sol";
 import {PoolSetup} from "./PoolSetup.sol";
-import {LiquidityAmounts} from "@uniswap/v4-core/test/utils/LiquidityAmounts.sol";
-import {TickMath} from "@uniswap/v4-core/src/libraries/TickMath.sol";
 
 contract AutoWrapperSetup is MetaCoinTestSetup, PoolSetup {
     PredicateHook public predicateHook;
@@ -44,7 +42,7 @@ contract AutoWrapperSetup is MetaCoinTestSetup, PoolSetup {
     address rebaser;
     address alice;
 
-    uint256 public initialSupply = 1000 * 10 ** 18; // 1000 token
+    uint256 public initialSupply = 1000e18; // 1000 token
     int24 tickSpacing = 60;
 
     uint160 predicatePoolStartingPrice = 79_228_162_514_264_337_593_543;
@@ -142,28 +140,18 @@ contract AutoWrapperSetup is MetaCoinTestSetup, PoolSetup {
         IERC20(address(USDL)).approve(address(autoWrapper), type(uint256).max);
         IERC20(Currency.unwrap(USDC)).approve(address(autoWrapper), type(uint256).max);
         IERC20Upgradeable(address(wUSDL)).approve(address(autoWrapper), type(uint256).max);
-        wUSDL.deposit(3 * initialSupply, liquidityProvider);
+        wUSDL.deposit(4 * initialSupply, liquidityProvider);
         vm.stopPrank();
 
         // provision liquidity
         vm.startPrank(admin);
-        address[] memory authorizedLps = new address[](3);
-        authorizedLps[0] = address(lpRouter);
-        authorizedLps[1] = address(posm);
-        authorizedLps[2] = liquidityProvider;
+        address[] memory authorizedLps = new address[](1);
+        authorizedLps[0] = address(posm);
         predicateHook.addAuthorizedLPs(authorizedLps);
         vm.stopPrank();
 
-        uint128 liquidity = LiquidityAmounts.getLiquidityForAmounts(
-            predicatePoolStartingPrice, // sqrtPriceX96
-            TickMath.getSqrtPriceAtTick(TickMath.minUsableTick(tickSpacing)),
-            TickMath.getSqrtPriceAtTick(TickMath.maxUsableTick(tickSpacing)),
-            100e18,
-            100e6
-        );
-
         vm.startPrank(liquidityProvider);
-        _provisionLiquidity(tickSpacing, predicatePoolKey, liquidity, liquidityProvider, 100e18, 100e6);
+        _provisionLiquidity(predicatePoolStartingPrice, tickSpacing, predicatePoolKey, liquidityProvider, 100e18, 100e6);
         vm.stopPrank();
     }
 

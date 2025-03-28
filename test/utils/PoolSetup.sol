@@ -22,6 +22,7 @@ import {MockERC20} from "solmate/src/test/utils/mocks/MockERC20.sol";
 import {PoolManager} from "@uniswap/v4-core/src/PoolManager.sol";
 import {Constants} from "@uniswap/v4-core/src/../test/utils/Constants.sol";
 import {TickMath} from "@uniswap/v4-core/src/libraries/TickMath.sol";
+import {LiquidityAmounts} from "@uniswap/v4-core/test/utils/LiquidityAmounts.sol";
 
 contract PoolSetup is DeployPermit2 {
     using EasyPosm for IPositionManager;
@@ -112,33 +113,29 @@ contract PoolSetup is DeployPermit2 {
     }
 
     function _provisionLiquidity(
+        uint160 sqrtPriceX96,
         int24 tickSpacing,
         PoolKey memory poolKey,
-        uint256 liquidity,
         address sender,
         uint256 amount0Max,
         uint256 amount1Max
     ) internal {
         bytes memory ZERO_BYTES = new bytes(0);
-        // add full range liquidity to the pool
-        lpRouter.modifyLiquidity(
-            poolKey,
-            IPoolManager.ModifyLiquidityParams(
-                TickMath.minUsableTick(tickSpacing), TickMath.maxUsableTick(tickSpacing), int256(liquidity), 0
-            ),
-            ZERO_BYTES
+
+        int24 currentTick = TickMath.getTickAtSqrtPrice(sqrtPriceX96);
+        int24 tickLower = (currentTick - 600) - ((currentTick - 600) % tickSpacing);
+        int24 tickUpper = (currentTick + 600) - ((currentTick + 600) % tickSpacing);
+
+        uint128 liquidity = LiquidityAmounts.getLiquidityForAmounts(
+            sqrtPriceX96,
+            TickMath.getSqrtPriceAtTick(tickLower),
+            TickMath.getSqrtPriceAtTick(tickUpper),
+            amount0Max,
+            amount1Max
         );
 
         posm.mint(
-            poolKey,
-            TickMath.minUsableTick(tickSpacing),
-            TickMath.maxUsableTick(tickSpacing),
-            liquidity,
-            amount0Max,
-            amount1Max,
-            sender,
-            block.timestamp + 300,
-            ZERO_BYTES
+            poolKey, tickLower, tickUpper, liquidity, amount0Max, amount1Max, sender, block.timestamp + 300, ZERO_BYTES
         );
     }
 

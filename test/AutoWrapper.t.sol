@@ -123,13 +123,13 @@ contract AutoWrapperTest is Test, AutoWrapperSetup, OperatorTestPrep {
         IPoolManager.SwapParams memory params = IPoolManager.SwapParams({
             zeroForOne: false,
             amountSpecified: -1e18, // for exact input
-            sqrtPriceLimitX96: TickMath.MIN_SQRT_PRICE - 1
+            sqrtPriceLimitX96: TickMath.MIN_SQRT_PRICE + 1
         });
 
         IPoolManager.SwapParams memory paramsToSign = IPoolManager.SwapParams({
             zeroForOne: true,
             amountSpecified: -autoWrapper.getUnwrapInputRequired(uint256(-params.amountSpecified)),
-            sqrtPriceLimitX96: TickMath.MIN_SQRT_PRICE - 1
+            sqrtPriceLimitX96: TickMath.MIN_SQRT_PRICE + 1
         });
 
         PredicateMessage memory message = getPredicateMessage(taskId, paramsToSign);
@@ -160,14 +160,14 @@ contract AutoWrapperTest is Test, AutoWrapperSetup, OperatorTestPrep {
         string memory taskId = "unique-identifier";
         IPoolManager.SwapParams memory params = IPoolManager.SwapParams({
             zeroForOne: false,
-            amountSpecified: 1, // for exact output
-            sqrtPriceLimitX96: uint160(79_228_162_514_264_337_593_540)
+            amountSpecified: 1e6, // for exact output
+            sqrtPriceLimitX96: TickMath.MIN_SQRT_PRICE + 1
         });
 
         IPoolManager.SwapParams memory paramsToSign = IPoolManager.SwapParams({
             zeroForOne: true,
-            amountSpecified: 1,
-            sqrtPriceLimitX96: uint160(79_228_162_514_264_337_593_540)
+            amountSpecified: 1e6,
+            sqrtPriceLimitX96: TickMath.MIN_SQRT_PRICE + 1
         });
 
         PredicateMessage memory message = getPredicateMessage(taskId, paramsToSign);

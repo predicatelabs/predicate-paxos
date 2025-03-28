@@ -5,12 +5,12 @@ import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
 import {
     toBeforeSwapDelta, BeforeSwapDelta, BeforeSwapDeltaLibrary
 } from "@uniswap/v4-core/src/types/BeforeSwapDelta.sol";
+import {toBalanceDelta, BalanceDelta, BalanceDeltaLibrary} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
 import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
 import {SafeCast} from "@uniswap/v4-core/src/libraries/SafeCast.sol";
 import {BaseHook} from "@uniswap/v4-periphery/src/utils/BaseHook.sol";
 import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
 import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
-import {BalanceDelta, BalanceDeltaLibrary} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
 import {ISimpleV4Router} from "./interfaces/ISimpleV4Router.sol";
 import {Currency, CurrencyLibrary} from "@uniswap/v4-core/src/types/Currency.sol";
 import {CurrencySettler} from "@uniswap/v4-core/test/utils/CurrencySettler.sol";
@@ -132,14 +132,14 @@ contract AutoWrapper is BaseHook, DeltaResolver {
             beforeAddLiquidity: true,
             beforeSwap: true,
             beforeSwapReturnDelta: true,
-            afterSwap: false,
+            afterSwap: true,
+            afterSwapReturnDelta: false,
             afterInitialize: false,
             beforeRemoveLiquidity: false,
             afterAddLiquidity: false,
             afterRemoveLiquidity: false,
             beforeDonate: false,
             afterDonate: false,
-            afterSwapReturnDelta: false,
             afterAddLiquidityReturnDelta: false,
             afterRemoveLiquidityReturnDelta: false
         });
@@ -154,6 +154,27 @@ contract AutoWrapper is BaseHook, DeltaResolver {
     function _beforeInitialize(address, PoolKey calldata poolKey, uint160) internal view override returns (bytes4) {
         if (poolKey.fee != 0) revert InvalidPoolFee();
         return IHooks.beforeInitialize.selector;
+    }
+
+    /**
+     * @notice Validates the balance delta for the ghost pool
+     * @dev This ensures no swap occurred on the ghost pool
+     * @param delta The balance delta
+     * @return The function selector and delta
+     */
+    function _afterSwap(
+        address,
+        PoolKey calldata,
+        IPoolManager.SwapParams calldata,
+        BalanceDelta delta,
+        bytes calldata
+    ) internal view override returns (bytes4, int128) {
+        // this ensures no swap occurred on the ghost pool
+        require(
+            BalanceDeltaLibrary.amount0(delta) == 0 && BalanceDeltaLibrary.amount1(delta) == 0,
+            "Balance Delta for ghost pool is not zero"
+        );
+        return (IHooks.afterSwap.selector, 0);
     }
 
     /**
@@ -208,6 +229,9 @@ contract AutoWrapper is BaseHook, DeltaResolver {
 
         // Step 5: transfer the swapped tokens to the user
         _transferTokensToUser(params, delta);
+
+        // Step 6: calculate swap delta for the ghost pool
+        swapDelta = toBeforeSwapDelta(-params.amountSpecified.toInt128(), 0);
 
         // Return function selector, empty delta for ghost pool, and zero fee override
         // The actual swap occurs on the liquid pool where fees are charged

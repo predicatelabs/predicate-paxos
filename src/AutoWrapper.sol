@@ -250,7 +250,7 @@ contract AutoWrapper is BaseHook, DeltaResolver {
             // USDL -> baseCurrency swap path
             // take the USDL from the user
             uint256 inputAmount =
-                isExactInput ? uint256(-params.amountSpecified) : getWrapInputRequired(uint256(-wUSDLDelta));
+                isExactInput ? uint256(-params.amountSpecified) : uint256(getWrapInputRequired(uint256(-wUSDLDelta)));
             IERC20(wUSDL.asset()).transferFrom(router.msgSender(), address(this), inputAmount);
 
             uint256 wUSDLAmount = _deposit(inputAmount);
@@ -258,7 +258,8 @@ contract AutoWrapper is BaseHook, DeltaResolver {
 
             _settle(Currency.wrap(address(wUSDL)), address(this), wUSDLAmount);
 
-            swapDelta = toBeforeSwapDelta(-params.amountSpecified.toInt128(), 0);
+            int128 amountUnspecified = isExactInput ? int128(0) : -baseCurrencyDelta.toInt128();
+            swapDelta = toBeforeSwapDelta(-params.amountSpecified.toInt128(), amountUnspecified);
         }
 
         return (IHooks.beforeSwap.selector, swapDelta, 0);

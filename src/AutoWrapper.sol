@@ -257,9 +257,12 @@ contract AutoWrapper is BaseHook, DeltaResolver {
             require(wUSDLAmount == uint256(-wUSDLDelta), "wUSDLAmount mismatch");
 
             _settle(Currency.wrap(address(wUSDL)), address(this), wUSDLAmount);
+            _take(baseCurrency, address(this), uint256(baseCurrencyDelta));
+
+            IERC20(Currency.unwrap(baseCurrency)).transfer(router.msgSender(), uint256(baseCurrencyDelta));
 
             int128 amountUnspecified = isExactInput ? int128(0) : -baseCurrencyDelta.toInt128();
-            swapDelta = toBeforeSwapDelta(-params.amountSpecified.toInt128(), amountUnspecified);
+            swapDelta = toBeforeSwapDelta(-params.amountSpecified.toInt128(), 0);
         }
 
         return (IHooks.beforeSwap.selector, swapDelta, 0);

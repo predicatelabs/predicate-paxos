@@ -221,17 +221,30 @@ contract AutoWrapper is BaseHook, DeltaResolver {
 
         // Step 2: swap through the liquidity pool
         BalanceDelta delta = _swap(swapParams, hookData);
+        int256 baseCurrencyDelta; // delta of the baseCurrency
+        int256 wUSDLDelta; // delta of the wUSDL
 
-        int256 delta0 = BalanceDeltaLibrary.amount0(delta); // delta of the wUSDL
-        int256 delta1 = BalanceDeltaLibrary.amount1(delta); // delta of USDC
+        if (baseCurrencyIsToken0ForPredicatePool) {
+            baseCurrencyDelta = BalanceDeltaLibrary.amount0(delta);
+            wUSDLDelta = BalanceDeltaLibrary.amount1(delta);
+        } else {
+            baseCurrencyDelta = BalanceDeltaLibrary.amount1(delta);
+            wUSDLDelta = BalanceDeltaLibrary.amount0(delta);
+        }
 
-        _take(wUSDLPoolKey.currency0, address(this), uint256(delta0));
+        if (params.zeroForOne == baseCurrencyIsToken0) {
+            // baseCurrency -> USDL swap path
+            _take(wUSDLPoolKey.currency0, address(this), uint256(wUSDLDelta));
 
-        uint256 wUSDLDelta = _withdraw(uint256(delta0));
+            uint256 usdlDelta = _withdraw(uint256(wUSDLDelta));
 
-        _settle(poolKey.currency1, address(this), uint256(wUSDLDelta));
+            _settle(poolKey.currency1, address(this), uint256(usdlDelta));
 
-        swapDelta = toBeforeSwapDelta(-params.amountSpecified.toInt128(), -wUSDLDelta.toInt128());
+            swapDelta = toBeforeSwapDelta(-params.amountSpecified.toInt128(), -usdlDelta.toInt128());
+        } else {
+            // USDL -> baseCurrency swap path
+            _take(wUSDLPoolKey.currency1, address(this), uint256(wUSDLDelta));
+        }
 
         // // Step 3: transfer the tokens to the hook for settlement
         // _transferTokensToHook(params, delta);

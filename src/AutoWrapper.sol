@@ -20,6 +20,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {ERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import {DeltaResolver} from "@uniswap/v4-periphery/src/base/DeltaResolver.sol";
+import {console} from "forge-std/console.sol";
 
 /**
  * @title USDL Ghost Pool Swap & Wrap Hook
@@ -205,7 +206,7 @@ contract AutoWrapper is BaseHook, DeltaResolver {
      */
     function _beforeSwap(
         address sender,
-        PoolKey calldata,
+        PoolKey calldata poolKey,
         IPoolManager.SwapParams calldata params,
         bytes calldata hookData
     ) internal override returns (bytes4 selector, BeforeSwapDelta swapDelta, uint24 lpFeeOverride) {
@@ -221,17 +222,28 @@ contract AutoWrapper is BaseHook, DeltaResolver {
         // Step 2: swap through the liquidity pool
         BalanceDelta delta = _swap(swapParams, hookData);
 
-        // Step 3: transfer the tokens to the hook for settlement
-        _transferTokensToHook(params, delta);
+        int256 delta0 = BalanceDeltaLibrary.amount0(delta); // delta of the wUSDL
+        int256 delta1 = BalanceDeltaLibrary.amount1(delta); // delta of USDC
 
-        // Step 4: settle the delta for the swap with the pool manager
-        _settleDelta(delta);
+        _take(wUSDLPoolKey.currency0, address(this), uint256(delta0));
 
-        // Step 5: transfer the swapped tokens to the user
-        _transferTokensToUser(params, delta);
+        uint256 wUSDLDelta = _withdraw(uint256(delta0));
+
+        _settle(poolKey.currency1, address(this), uint256(wUSDLDelta));
+
+        swapDelta = toBeforeSwapDelta(-params.amountSpecified.toInt128(), -wUSDLDelta.toInt128());
+
+        // // Step 3: transfer the tokens to the hook for settlement
+        // _transferTokensToHook(params, delta);
+
+        // // Step 4: settle the delta for the swap with the pool manager
+        // _settleDelta(delta);
+
+        // // Step 5: transfer the swapped tokens to the user
+        // _transferTokensToUser(params, delta);
 
         // Step 6: calculate swap delta for the ghost pool
-        swapDelta = toBeforeSwapDelta(-params.amountSpecified.toInt128(), 0);
+        // swapDelta = toBeforeSwapDelta(-params.amountSpecified.toInt128(), 0);
 
         // Return function selector, empty delta for ghost pool, and zero fee override
         // The actual swap occurs on the liquid pool where fees are charged

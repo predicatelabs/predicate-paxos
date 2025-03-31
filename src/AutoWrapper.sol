@@ -251,15 +251,14 @@ contract AutoWrapper is BaseHook, DeltaResolver {
             // take the USDL from the user
             uint256 inputAmount =
                 isExactInput ? uint256(-params.amountSpecified) : uint256(getWrapInputRequired(uint256(-wUSDLDelta)));
-            IERC20(wUSDL.asset()).transferFrom(router.msgSender(), address(poolManager), inputAmount);
+            IERC20(wUSDL.asset()).transferFrom(router.msgSender(), address(this), inputAmount);
 
-            _take(Currency.wrap(wUSDL.asset()), address(this), uint256(inputAmount));
             uint256 wUSDLAmount = _deposit(inputAmount);
             require(wUSDLAmount == uint256(-wUSDLDelta), "wUSDLAmount mismatch");
 
             _settle(Currency.wrap(address(wUSDL)), address(this), wUSDLAmount);
 
-            int128 amountUnspecified = isExactInput ? -baseCurrencyDelta.toInt128() : -inputAmount.toInt256().toInt128();
+            int128 amountUnspecified = isExactInput ? -baseCurrencyDelta.toInt128() : int128(0);
             swapDelta = toBeforeSwapDelta(-params.amountSpecified.toInt128(), amountUnspecified);
         }
 

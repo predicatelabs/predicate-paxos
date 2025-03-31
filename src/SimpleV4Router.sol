@@ -75,11 +75,22 @@ contract SimpleV4Router is ISimpleV4Router, SafeCallback, Lock, DeltaResolver {
     ) internal override returns (bytes memory) {
         ISimpleV4Router.CallbackData memory data = abi.decode(rawData, (ISimpleV4Router.CallbackData));
 
-        BalanceDelta delta = poolManager.swap(data.key, data.params, data.hookData);
+        BalanceDelta delta = poolManager.swap(data.key, data.params, data.hookData); //
         int256 delta0 = delta.amount0();
         int256 delta1 = delta.amount1();
 
-        // settle the delta for the currency0 and currency1
+        if (!data.params.zeroForOne) {
+            // USDL -> USDC
+            if (delta0 < 0) {
+                _settle(data.key.currency0, data.sender, uint256(-delta0));
+            }
+            if (delta0 > 0) {
+                _take(data.key.currency0, data.sender, uint256(delta0));
+            }
+            return abi.encode(delta);
+        }
+
+        // settle the delta for the currency0 and currency1 for USDC -> USDL
         if (delta0 < 0) {
             _settle(data.key.currency0, data.sender, uint256(-delta0));
         }

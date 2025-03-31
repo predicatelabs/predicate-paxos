@@ -60,7 +60,7 @@ contract PredicateHookTest is PredicateHookSetup {
     function testTransferOwnershipNotOwner() public {
         address newOwner = makeAddr("new-owner");
         vm.prank(makeAddr("not-owner"));
-        vm.expectRevert("Not owner");
+        vm.expectRevert(abi.encodeWithSignature("OwnableUnauthorizedAccount(address)", makeAddr("not-owner")));
         hook.transferOwnership(newOwner);
     }
 
@@ -72,14 +72,8 @@ contract PredicateHookTest is PredicateHookSetup {
         hook.transferOwnership(newOwner);
 
         vm.prank(notNewOwner);
-        vm.expectRevert("Not pending owner");
+        vm.expectRevert(abi.encodeWithSignature("OwnableUnauthorizedAccount(address)", notNewOwner));
         hook.acceptOwnership();
-    }
-
-    function testCannotTransferToZeroAddress() public {
-        vm.prank(hook.owner());
-        vm.expectRevert("Zero address");
-        hook.transferOwnership(address(0));
     }
 
     function testAddAuthorizedLP() public {

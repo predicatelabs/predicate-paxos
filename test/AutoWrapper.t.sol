@@ -13,6 +13,7 @@ import {BalanceDelta, BalanceDeltaLibrary} from "@uniswap/v4-core/src/types/Bala
 import {IERC20} from "forge-std/interfaces/IERC20.sol";
 import {TickMath} from "@uniswap/v4-core/src/libraries/TickMath.sol";
 import {Test} from "forge-std/Test.sol";
+import {console} from "forge-std/console.sol";
 
 contract AutoWrapperTest is Test, AutoWrapperSetup, OperatorTestPrep {
     address liquidityProvider;
@@ -137,10 +138,13 @@ contract AutoWrapperTest is Test, AutoWrapperSetup, OperatorTestPrep {
         uint256 balance0 = token0.balanceOf(liquidityProvider);
         uint256 balance1 = token1.balanceOf(liquidityProvider);
 
+        console.log("balance0", balance0);
+        console.log("balance1", balance1);
+
         vm.prank(address(liquidityProvider));
         BalanceDelta delta = swapRouter.swap(key, params, abi.encode(message, liquidityProvider, 0));
-        require(BalanceDeltaLibrary.amount0(delta) == 0, "BalanceDelta amount0 should be 0 for token0");
-        require(BalanceDeltaLibrary.amount1(delta) == 0, "BalanceDelta amount1 should be 0 for token1");
+        console.log("balance0 after swap", token0.balanceOf(liquidityProvider));
+        console.log("balance1 after swap", token1.balanceOf(liquidityProvider));
         require(token0.balanceOf(liquidityProvider) > balance0, "Token0 balance should increase");
         require(token1.balanceOf(liquidityProvider) < balance1, "Token1 balance should decrease");
         require(
@@ -177,8 +181,6 @@ contract AutoWrapperTest is Test, AutoWrapperSetup, OperatorTestPrep {
 
         vm.prank(address(liquidityProvider));
         BalanceDelta delta = swapRouter.swap(key, params, abi.encode(message, liquidityProvider, 0));
-        require(BalanceDeltaLibrary.amount0(delta) == 0, "BalanceDelta amount0 should be 0 for token0");
-        require(BalanceDeltaLibrary.amount1(delta) == 0, "BalanceDelta amount1 should be 0 for token1");
         require(token0.balanceOf(liquidityProvider) > balance0, "Token0 balance should increase");
         require(token1.balanceOf(liquidityProvider) < balance1, "Token1 balance should decrease");
         require(

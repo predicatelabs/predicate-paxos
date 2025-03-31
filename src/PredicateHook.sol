@@ -11,7 +11,6 @@ import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
 import {BalanceDelta} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
 import {BeforeSwapDelta, toBeforeSwapDelta} from "@uniswap/v4-core/src/types/BeforeSwapDelta.sol";
 import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {PredicateClient} from "@predicate/mixins/PredicateClient.sol";
 import {PredicateMessage} from "@predicate/interfaces/IPredicateClient.sol";
 
@@ -21,7 +20,7 @@ import {PredicateMessage} from "@predicate/interfaces/IPredicateClient.sol";
  * @notice This contract requires an offchain integration with predicate.io to authorize transactions before they are submitted onchain
  * @dev Users of this hook are required to pass in a valid Predicate authorization message within the hookData field.
  */
-contract PredicateHook is BaseHook, PredicateClient, Ownable {
+contract PredicateHook is BaseHook, PredicateClient {
     /**
      * @notice An error emitted when a liquidity provider is not authorized
      */
@@ -79,25 +78,61 @@ contract PredicateHook is BaseHook, PredicateClient, Ownable {
      */
     event AuthorizedUserRemoved(address indexed user);
 
+    address private _owner;
+    address private _pendingOwner;
+
+    event OwnershipTransferStarted(address indexed previousOwner, address indexed newOwner);
+    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+
+    modifier onlyOwner() {
+        require(msg.sender == _owner, "Not owner");
+        _;
+    }
+
+    function owner() public view returns (address) {
+        return _owner;
+    }
+
+    function pendingOwner() public view returns (address) {
+        return _pendingOwner;
+    }
+
+    function transferOwnership(
+        address newOwner
+    ) external onlyOwner {
+        require(newOwner != address(0), "Zero address");
+        _pendingOwner = newOwner;
+        emit OwnershipTransferStarted(_owner, newOwner);
+    }
+
+    function acceptOwnership() external {
+        require(msg.sender == _pendingOwner, "Not pending owner");
+        address oldOwner = _owner;
+        _owner = _pendingOwner;
+        _pendingOwner = address(0);
+        emit OwnershipTransferred(oldOwner, _owner);
+    }
+
     /**
      * @notice Constructor for the PredicateHook
      * @param _poolManager The pool manager contract
      * @param _router The router contract
      * @param _serviceManager The service manager contract
      * @param _policyID The policy ID
-     * @param _owner The owner of the contract
+     * @param _ownerAddress The owner of the contract
      */
     constructor(
         IPoolManager _poolManager,
         ISimpleV4Router _router,
         address _serviceManager,
         string memory _policyID,
-        address _owner
-    ) BaseHook(_poolManager) Ownable(_owner) {
+        address _ownerAddress
+    ) BaseHook(_poolManager) {
+        _owner = _ownerAddress;
         _initPredicateClient(_serviceManager, _policyID);
         router = _router;
-        isAuthorizedLP[_owner] = true;
-        isAuthorizedSwapper[_owner] = true;
+        isAuthorizedLP[_ownerAddress] = true;
+        isAuthorizedSwapper[_ownerAddress] = true;
     }
 
     /**

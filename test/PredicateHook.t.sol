@@ -44,9 +44,42 @@ contract PredicateHookTest is PredicateHookSetup {
 
     function testTransferOwnership() public {
         address newOwner = makeAddr("new-owner");
+        address currentOwner = hook.owner();
+
+        vm.prank(currentOwner);
+        hook.transferOwnership(newOwner);
+        assertEq(hook.pendingOwner(), newOwner);
+        assertEq(hook.owner(), currentOwner);
+
+        vm.prank(newOwner);
+        hook.acceptOwnership();
+        assertEq(hook.owner(), newOwner);
+        assertEq(hook.pendingOwner(), address(0));
+    }
+
+    function testTransferOwnershipNotOwner() public {
+        address newOwner = makeAddr("new-owner");
+        vm.prank(makeAddr("not-owner"));
+        vm.expectRevert("Not owner");
+        hook.transferOwnership(newOwner);
+    }
+
+    function testAcceptOwnershipNotPendingOwner() public {
+        address newOwner = makeAddr("new-owner");
+        address notNewOwner = makeAddr("not-new-owner");
+
         vm.prank(hook.owner());
         hook.transferOwnership(newOwner);
-        assertEq(hook.owner(), newOwner);
+
+        vm.prank(notNewOwner);
+        vm.expectRevert("Not pending owner");
+        hook.acceptOwnership();
+    }
+
+    function testCannotTransferToZeroAddress() public {
+        vm.prank(hook.owner());
+        vm.expectRevert("Zero address");
+        hook.transferOwnership(address(0));
     }
 
     function testAddAuthorizedLP() public {

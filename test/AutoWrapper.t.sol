@@ -64,7 +64,7 @@ contract AutoWrapperTest is Test, AutoWrapperSetup, OperatorTestPrep {
         uint256 balance1 = token1.balanceOf(liquidityProvider);
 
         vm.prank(address(liquidityProvider));
-        BalanceDelta delta = swapRouter.swap(key, params, abi.encode(message, liquidityProvider, 0));
+        BalanceDelta delta = swapRouter.swap(key, params, abi.encode(message, liquidityProvider, 0), int256(0));
         // require(BalanceDeltaLibrary.amount0(delta) == 0, "BalanceDelta amount0 should be 0 for token0");
         // require(BalanceDeltaLibrary.amount1(delta) == 0, "BalanceDelta amount1 should be 0 for token1");
         require(token0.balanceOf(liquidityProvider) < balance0, "Token0 balance should decrease");
@@ -103,7 +103,7 @@ contract AutoWrapperTest is Test, AutoWrapperSetup, OperatorTestPrep {
         uint256 balance1 = token1.balanceOf(liquidityProvider);
 
         vm.prank(address(liquidityProvider));
-        BalanceDelta delta = swapRouter.swap(key, params, abi.encode(message, liquidityProvider, 0));
+        BalanceDelta delta = swapRouter.swap(key, params, abi.encode(message, liquidityProvider, 0), int256(0));
         require(token0.balanceOf(liquidityProvider) < balance0, "Token0 balance should decrease");
         require(token1.balanceOf(liquidityProvider) > balance1, "Token1 balance should increase");
         require(
@@ -142,7 +142,7 @@ contract AutoWrapperTest is Test, AutoWrapperSetup, OperatorTestPrep {
         console.log("balance1", balance1);
 
         vm.prank(address(liquidityProvider));
-        BalanceDelta delta = swapRouter.swap(key, params, abi.encode(message, liquidityProvider, 0));
+        BalanceDelta delta = swapRouter.swap(key, params, abi.encode(message, liquidityProvider, 0), int256(1e18));
         console.log("balance0 after swap", token0.balanceOf(liquidityProvider));
         console.log("balance1 after swap", token1.balanceOf(liquidityProvider));
         require(token0.balanceOf(liquidityProvider) > balance0, "Token0 balance should increase");
@@ -180,7 +180,8 @@ contract AutoWrapperTest is Test, AutoWrapperSetup, OperatorTestPrep {
         uint256 balance1 = token1.balanceOf(liquidityProvider);
 
         vm.prank(address(liquidityProvider));
-        BalanceDelta delta = swapRouter.swap(key, params, abi.encode(message, liquidityProvider, 0));
+        BalanceDelta delta =
+            swapRouter.swap(key, params, abi.encode(message, liquidityProvider, 0), int256(1_000_307_275_108_773_833));
         require(token0.balanceOf(liquidityProvider) > balance0, "Token0 balance should increase");
         require(token1.balanceOf(liquidityProvider) < balance1, "Token1 balance should decrease");
         require(
@@ -206,7 +207,7 @@ contract AutoWrapperTest is Test, AutoWrapperSetup, OperatorTestPrep {
 
         vm.prank(address(liquidityProvider));
         vm.expectRevert();
-        swapRouter.swap(key, params, abi.encode(message, liquidityProvider, 0));
+        swapRouter.swap(key, params, abi.encode(message, liquidityProvider, 0), int256(0));
     }
 
     function getPredicateMessage(

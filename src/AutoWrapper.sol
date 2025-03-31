@@ -249,16 +249,16 @@ contract AutoWrapper is BaseHook, DeltaResolver {
         } else {
             // USDL -> baseCurrency swap path
             // take the USDL from the user
-            uint256 inputAmount =
-                isExactInput ? uint256(-params.amountSpecified) : uint256(getWrapInputRequired(uint256(-wUSDLDelta)));
-            IERC20(wUSDL.asset()).transferFrom(router.msgSender(), address(this), inputAmount);
+            // todo: update based on the exactinput etc
+            uint256 inputAmount = uint256(getWrapInputRequired(uint256(-wUSDLDelta)));
 
+            _take(Currency.wrap(wUSDL.asset()), address(this), inputAmount);
             uint256 wUSDLAmount = _deposit(inputAmount);
             require(wUSDLAmount == uint256(-wUSDLDelta), "wUSDLAmount mismatch");
 
             _settle(Currency.wrap(address(wUSDL)), address(this), wUSDLAmount);
 
-            int128 amountUnspecified = isExactInput ? -baseCurrencyDelta.toInt128() : int128(0);
+            int128 amountUnspecified = isExactInput ? -baseCurrencyDelta.toInt128() : 0;
             swapDelta = toBeforeSwapDelta(-params.amountSpecified.toInt128(), amountUnspecified);
         }
 
@@ -273,7 +273,6 @@ contract AutoWrapper is BaseHook, DeltaResolver {
     function _getAmountSpecifiedForLiquidityPool(
         IPoolManager.SwapParams memory params
     ) internal view returns (int256) {
-        // todo: verify this works for all cases
         bool isExactInput = params.amountSpecified < 0;
         if (params.zeroForOne == baseCurrencyIsToken0) {
             // USDC -> USDL pool

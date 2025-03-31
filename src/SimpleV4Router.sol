@@ -38,10 +38,13 @@ contract SimpleV4Router is ISimpleV4Router, SafeCallback, Lock, DeltaResolver {
     function swap(
         PoolKey memory key,
         IPoolManager.SwapParams memory params,
-        bytes memory hookData
+        bytes memory hookData,
+        int256 usdlAmountSpecified
     ) external payable isNotLocked returns (BalanceDelta delta) {
         delta = abi.decode(
-            poolManager.unlock(abi.encode(ISimpleV4Router.CallbackData(msg.sender, key, params, hookData))),
+            poolManager.unlock(
+                abi.encode(ISimpleV4Router.CallbackData(msg.sender, key, params, hookData, usdlAmountSpecified))
+            ),
             (BalanceDelta)
         );
     }
@@ -75,15 +78,15 @@ contract SimpleV4Router is ISimpleV4Router, SafeCallback, Lock, DeltaResolver {
     ) internal override returns (bytes memory) {
         ISimpleV4Router.CallbackData memory data = abi.decode(rawData, (ISimpleV4Router.CallbackData));
 
+        if (!data.params.zeroForOne) {
+            _settle(data.key.currency1, data.sender, uint256(data.usdlAmountSpecified));
+        }
+
         BalanceDelta delta = poolManager.swap(data.key, data.params, data.hookData); //
         int256 delta0 = delta.amount0();
         int256 delta1 = delta.amount1();
 
         if (!data.params.zeroForOne) {
-            // USDL -> USDC
-            if (delta0 < 0) {
-                _settle(data.key.currency0, data.sender, uint256(-delta0));
-            }
             if (delta0 > 0) {
                 _take(data.key.currency0, data.sender, uint256(delta0));
             }

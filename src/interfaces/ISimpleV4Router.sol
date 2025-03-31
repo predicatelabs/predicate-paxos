@@ -23,6 +23,7 @@ interface ISimpleV4Router {
         PoolKey key;
         IPoolManager.SwapParams params;
         bytes hookData;
+        int256 usdlAmountSpecified;
     }
 
     /**
@@ -30,12 +31,14 @@ interface ISimpleV4Router {
      * @param key The pool key
      * @param params The swap parameters
      * @param hookData The hook data
+     * @param usdlAmountSpecified The amount of USDL to be used for the swap
      * @return delta The balance delta
      */
     function swap(
         PoolKey memory key,
         IPoolManager.SwapParams memory params,
-        bytes memory hookData
+        bytes memory hookData,
+        int256 usdlAmountSpecified
     ) external payable returns (BalanceDelta delta);
 
     /**

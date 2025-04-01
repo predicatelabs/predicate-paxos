@@ -4,14 +4,14 @@ pragma solidity ^0.8.12;
 import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
 import {PositionManager} from "@uniswap/v4-periphery/src/PositionManager.sol";
 import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
-import {ISimpleV4Router} from "../../src/interfaces/ISimpleV4Router.sol";
+import {V4Router} from "@uniswap/v4-periphery/src/V4Router.sol";
 import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
 import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
 
 interface INetwork {
     struct Config {
         IPoolManager poolManager;
-        ISimpleV4Router router;
+        V4Router router;
         PositionManager positionManager;
         IAllowanceTransfer permit2;
         address create2Deployer;

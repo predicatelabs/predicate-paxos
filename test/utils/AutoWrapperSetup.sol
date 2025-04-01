@@ -3,8 +3,6 @@ pragma solidity ^0.8.12;
 
 import {PredicateHook} from "../../src/PredicateHook.sol";
 import {AutoWrapper} from "../../src/AutoWrapper.sol";
-import {SimpleV4Router} from "../../src/SimpleV4Router.sol";
-import {ISimpleV4Router} from "../../src/interfaces/ISimpleV4Router.sol";
 import {YBSV1_1} from "../../src/paxos/YBSV1_1.sol";
 import {wYBSV1} from "../../src/paxos/wYBSV1.sol";
 import {TransparentUpgradeableProxy} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";

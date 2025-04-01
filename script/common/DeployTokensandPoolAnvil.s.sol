@@ -27,7 +27,7 @@ import {wYBSV1} from "../../src/paxos/wYBSV1.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {INetwork} from "./INetwork.sol";
 import {NetworkSelector} from "./NetworkSelector.sol";
-import {ISimpleV4Router} from "../../src/interfaces/ISimpleV4Router.sol";
+import {V4Router} from "@uniswap/v4-periphery/src/V4Router.sol";
 import {PredicateHook} from "../../src/PredicateHook.sol";
 
 /// @notice Forge script for deploying v4 & hooks
@@ -52,7 +52,7 @@ contract DeployTokensAndPoolAnvil is Script, DeployPermit2 {
 
         vm.startBroadcast();
         IPoolManager manager = config.poolManager;
-        ISimpleV4Router swapRouter = config.router;
+        V4Router swapRouter = config.router;
         IPositionManager posm = deployPosm(manager);
         PoolModifyLiquidityTest lpRouter = deployRouters(manager);
         console.log("Deployed POSM: %s", address(posm));
@@ -98,7 +98,7 @@ contract DeployTokensAndPoolAnvil is Script, DeployPermit2 {
         address hook,
         IPositionManager posm,
         PoolModifyLiquidityTest lpRouter,
-        ISimpleV4Router swapRouter
+        V4Router swapRouter
     ) internal {
         (YBSV1_1 USDL, wYBSV1 wUSDL, MockERC20 baseToken) = setupTokens();
         logTokens(address(USDL), address(wUSDL), address(baseToken));

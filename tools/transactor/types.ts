@@ -31,8 +31,18 @@ export interface PoolKey {
     hooks: string;
 }
 
-export interface SwapParams {
+export interface ExactInputSingleParams {
+    poolKey: PoolKey;
     zeroForOne: boolean;
-    amountSpecified: BigNumber;
-    sqrtPriceLimitX96: BigNumber;
+    amountIn: BigNumber;
+    amountOutMinimum: BigNumber;
+    hookData: string;
+}
+
+export interface ExactOutputSingleParams {
+    poolKey: PoolKey;
+    zeroForOne: boolean;
+    amountOut: BigNumber;
+    amountInMaximum: BigNumber;
+    hookData: string;
 }

@@ -5,12 +5,18 @@ import type {
     PredicateRequest,
     PredicateMessage,
     PoolKey,
-    SwapParams,
+    ExactInputSingleParams,
+    ExactOutputSingleParams,
 } from "./types";
 import * as sdk from '@predicate/predicate-sdk'
 
 
 const SQRT_PRICE_LIMIT_X96 = BigNumber.from("4295128740");
+const SWAP_EXACT_IN_SINGLE_ACTION = 0x06;
+const SWAP_EXACT_OUT_SINGLE_ACTION = 0x08;
+const TAKE_ALL_ACTION = 0x0f;
+const SETTLE_ALL_ACTION = 0x0c;
+const SETTLE_ACTION = 0x0b;
 
 export class TransactorService {
     environment: string;
@@ -63,21 +69,27 @@ export class TransactorService {
         console.log(
             `Running transactor service in ${this.environment} environment`,
         );
-        const ONE_UNIT = ethers.BigNumber.from("1000000000000000000");
-        const amount = this.config.amount 
-            ? ethers.BigNumber.from(this.config.amount)
-            : ONE_UNIT;
 
-        const params: SwapParams = {
-            zeroForOne: true,
-            amountSpecified: amount,
-            sqrtPriceLimitX96: SQRT_PRICE_LIMIT_X96,
-        };
-
-        const hookData = await this.getAutoWrapperHookData(params);
+        const zeroForOne = true;
+        const amountIn = BigNumber.from("1000000");
+        const hookData = await this.getAutoWrapperHookData(!zeroForOne, amountIn.mul(-1));
         console.log("Hook Data:", hookData);
 
-        const tx = await this.swapRouter.swap(this.poolKey, params, hookData);
+        // Exact input USDC -> USDL swap
+        const params: ExactInputSingleParams = {
+            poolKey: this.poolKey,
+            zeroForOne: zeroForOne,
+            amountIn: amountIn,
+            amountOutMinimum: BigNumber.from("1"),
+            hookData: hookData,
+        };
+
+        const actions = [SWAP_EXACT_IN_SINGLE_ACTION, SETTLE_ALL_ACTION, TAKE_ALL_ACTION];
+        const encodedSwap = this.encodeSwapExactInputSingle(actions, params);
+        console.log("Encoded Swap:", encodedSwap);
+
+
+        const tx = await this.swapRouter.execute(encodedSwap);
         console.log("Transaction submitted, hash:", tx.hash);
         const receipt = await tx.wait();
         if (receipt.status !== 1) {
@@ -86,11 +98,12 @@ export class TransactorService {
         console.log("Transaction successful:", receipt.transactionHash);
     }
 
-    async getAutoWrapperHookData(params: SwapParams): Promise<string> {
+    async getAutoWrapperHookData(zeroForOne: boolean, amountSpecified: BigNumber): Promise<string> {
         const dataBeforeSwap = this.encodeBeforeSwap(
             this.wallet.address,
             this.poolKey,
-            params,
+            zeroForOne,
+            amountSpecified,
         );
 
         const predicateRequest: PredicateRequest = {
@@ -123,9 +136,9 @@ export class TransactorService {
         return hookDataEncoded;
     }
 
-    encodeBeforeSwap(sender: string, key: PoolKey, params: SwapParams): string {
+    encodeBeforeSwap(sender: string, key: PoolKey, zeroForOne: boolean, amountSpecified: BigNumber): string {
         const functionSignature =
-            "_beforeSwap(address,address,address,uint24,int24,address,bool,int256,uint160)";
+            "_beforeSwap(address,address,address,uint24,int24,address,bool,int256)";
         const selector = ethers.utils
             .keccak256(ethers.utils.toUtf8Bytes(functionSignature))
             .substring(0, 10);
@@ -140,7 +153,6 @@ export class TransactorService {
                 "address",
                 "bool",
                 "int256",
-                "uint160",
             ],
             [
                 sender,
@@ -149,9 +161,8 @@ export class TransactorService {
                 key.fee,
                 key.tickSpacing,
                 key.hooks,
-                params.zeroForOne,
-                params.amountSpecified,
-                params.sqrtPriceLimitX96,
+                zeroForOne,
+                amountSpecified,
             ],
         );
         return selector + encodedArgs.substring(2);
@@ -175,6 +186,66 @@ export class TransactorService {
                 msgSender,
                 msgValue.toString(),
             ],
+        );
+        return encoded;
+    }
+
+    encodeSwapExactInputSingle(actions: number[], params: ExactInputSingleParams): string {
+        var paramsArray = new Array<string>();
+        const abiCoder = ethers.utils.defaultAbiCoder;
+        const encodedParams = this.encodeExactInputSingleParams(params);
+        paramsArray.push(encodedParams);
+        paramsArray.push(this.encodeSettleAll(params.poolKey.currency0, params.amountIn));
+        paramsArray.push(this.encodeTakeAll(params.poolKey.currency1, params.amountOutMinimum));
+        const encodedActions = abiCoder.encode(["uint8[]"], [actions]);
+        const encoded = abiCoder.encode(
+            ["tuple(uint8[],bytes)"],
+            [encodedActions, paramsArray],
+        );
+        return encoded;
+    }
+
+    encodeExactInputSingleParams(params: ExactInputSingleParams): string {
+        const abiCoder = ethers.utils.defaultAbiCoder;
+        const encoded = abiCoder.encode(
+            ["tuple(tuple(address,address,uint24,int24,address),bool,uint128,uint128,bytes)"],
+            [params.poolKey, params.zeroForOne, params.amountIn, params.amountOutMinimum, params.hookData],
+        );
+        return encoded;
+    }
+
+    encodeExactOutputSingleParams(params: ExactOutputSingleParams): string {
+        const abiCoder = ethers.utils.defaultAbiCoder;
+        const encoded = abiCoder.encode(
+            ["tuple(tuple(address,address,uint24,int24,address),bool,uint128,uint128,bytes)"],
+            [params.poolKey, params.zeroForOne, params.amountOut, params.amountInMaximum, params.hookData],
+        );
+        return encoded;
+    }
+
+    encodeSettle(currency: string, amount: BigNumber, isPayer: boolean): string {
+        const abiCoder = ethers.utils.defaultAbiCoder;
+        const encoded = abiCoder.encode(
+            ["tuple(address,uint256,bool)"],
+            [currency, amount, isPayer],
+        );
+        return encoded;
+    }
+
+    encodeTakeAll(currency: string, amount: BigNumber): string {
+        const abiCoder = ethers.utils.defaultAbiCoder;
+        const encoded = abiCoder.encode(
+            ["tuple(address,uint256)"],
+            [currency, amount],
+        );
+        return encoded;
+    }
+
+    encodeSettleAll(currency: string, amount: BigNumber): string {
+        const abiCoder = ethers.utils.defaultAbiCoder;
+        const encoded = abiCoder.encode(
+            ["tuple(address,uint256)"],
+            [currency, amount],
         );
         return encoded;
     }

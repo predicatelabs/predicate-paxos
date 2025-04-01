@@ -35,15 +35,21 @@ contract DeployTokensAndPoolAnvil is Script, DeployPermit2 {
     using EasyPosm for IPositionManager;
 
     INetwork private _env;
-    address private hookAddress;
+    address private _hookAddress;
+    V4Router private _swapRouter;
 
     function _init() internal {
         bool networkExists = vm.envExists("NETWORK");
         bool hookAddressExists = vm.envExists("HOOK_ADDRESS");
-        require(networkExists && hookAddressExists, "All environment variables must be set if any are specified");
+        bool swapRouterExists = vm.envExists("SWAP_ROUTER_ADDRESS");
+        require(
+            networkExists && hookAddressExists && swapRouterExists,
+            "All environment variables must be set if any are specified"
+        );
         string memory _network = vm.envString("NETWORK");
         _env = new NetworkSelector().select(_network);
-        hookAddress = vm.envAddress("HOOK_ADDRESS");
+        _hookAddress = vm.envAddress("HOOK_ADDRESS");
+        _swapRouter = V4Router(vm.envAddress("SWAP_ROUTER_ADDRESS"));
     }
 
     function run() public {
@@ -52,20 +58,19 @@ contract DeployTokensAndPoolAnvil is Script, DeployPermit2 {
 
         vm.startBroadcast();
         IPoolManager manager = config.poolManager;
-        V4Router swapRouter = config.router;
-        IPositionManager posm = deployPosm(manager);
-        PoolModifyLiquidityTest lpRouter = deployRouters(manager);
+        IPositionManager posm = _deployPosm(manager);
+        PoolModifyLiquidityTest lpRouter = _deployRouters(manager);
         console.log("Deployed POSM: %s", address(posm));
         console.log("Deployed LP Router: %s", address(lpRouter));
         vm.stopBroadcast();
 
         vm.startBroadcast();
-        PredicateHook predicateHook = PredicateHook(hookAddress);
+        PredicateHook predicateHook = PredicateHook(_hookAddress);
         address[] memory _lps = new address[](2);
         _lps[0] = address(posm);
         _lps[1] = address(lpRouter);
         predicateHook.addAuthorizedLPs(_lps);
-        initializePool(manager, hookAddress, posm, lpRouter, swapRouter);
+        _initializePool(manager, posm, lpRouter);
         vm.stopBroadcast();
     }
 
@@ -73,35 +78,29 @@ contract DeployTokensAndPoolAnvil is Script, DeployPermit2 {
     // Helpers
     // -----------------------------------------------------------
 
-    function deployRouters(
+    function _deployRouters(
         IPoolManager manager
     ) internal returns (PoolModifyLiquidityTest lpRouter) {
         lpRouter = new PoolModifyLiquidityTest(manager);
     }
 
-    function deployPosm(
+    function _deployPosm(
         IPoolManager poolManager
-    ) public returns (IPositionManager) {
+    ) internal returns (IPositionManager) {
         anvilPermit2();
         return IPositionManager(
             new PositionManager(poolManager, permit2, 300_000, IPositionDescriptor(address(0)), IWETH9(address(0)))
         );
     }
 
-    function approvePosmCurrency(IPositionManager posm, Currency currency) internal {
+    function _approvePosmCurrency(IPositionManager posm, Currency currency) internal {
         IERC20(Currency.unwrap(currency)).approve(address(permit2), type(uint256).max);
         permit2.approve(Currency.unwrap(currency), address(posm), type(uint160).max, type(uint48).max);
     }
 
-    function initializePool(
-        IPoolManager manager,
-        address hook,
-        IPositionManager posm,
-        PoolModifyLiquidityTest lpRouter,
-        V4Router swapRouter
-    ) internal {
-        (YBSV1_1 USDL, wYBSV1 wUSDL, MockERC20 baseToken) = setupTokens();
-        logTokens(address(USDL), address(wUSDL), address(baseToken));
+    function _initializePool(IPoolManager manager, IPositionManager posm, PoolModifyLiquidityTest lpRouter) internal {
+        (YBSV1_1 USDL, wYBSV1 wUSDL, MockERC20 baseToken) = _setupTokens();
+        _logTokens(address(USDL), address(wUSDL), address(baseToken));
 
         Currency token0;
         Currency token1;
@@ -120,17 +119,17 @@ contract DeployTokensAndPoolAnvil is Script, DeployPermit2 {
         // Deploy liquidity pool with predicate hook
         bytes memory ZERO_BYTES = new bytes(0);
         int24 tickSpacing = 60;
-        PoolKey memory poolKey = PoolKey(token0, token1, 0, tickSpacing, IHooks(hook));
+        PoolKey memory poolKey = PoolKey(token0, token1, 0, tickSpacing, IHooks(_hookAddress));
         manager.initialize(poolKey, Constants.SQRT_PRICE_1_1);
 
         // Approve tokens for liquidity router and swap router
         IERC20(Currency.unwrap(token0)).approve(address(lpRouter), type(uint256).max);
         IERC20(Currency.unwrap(token1)).approve(address(lpRouter), type(uint256).max);
-        IERC20(Currency.unwrap(token0)).approve(address(swapRouter), type(uint256).max);
-        IERC20(Currency.unwrap(token1)).approve(address(swapRouter), type(uint256).max);
+        IERC20(Currency.unwrap(token0)).approve(address(_swapRouter), type(uint256).max);
+        IERC20(Currency.unwrap(token1)).approve(address(_swapRouter), type(uint256).max);
 
-        approvePosmCurrency(posm, token0);
-        approvePosmCurrency(posm, token1);
+        _approvePosmCurrency(posm, token0);
+        _approvePosmCurrency(posm, token1);
 
         lpRouter.modifyLiquidity(
             poolKey,
@@ -160,7 +159,7 @@ contract DeployTokensAndPoolAnvil is Script, DeployPermit2 {
     * @dev sets defaults and ensures token is ready for use in a pool
     * @dev also sets approvals for autoWrapper, wUSDL and baseToken
     */
-    function setupTokens() internal returns (YBSV1_1 USDL, wYBSV1 wUSDL, MockERC20 baseToken) {
+    function _setupTokens() internal returns (YBSV1_1 USDL, wYBSV1 wUSDL, MockERC20 baseToken) {
         address admin = msg.sender;
         address supplyController = msg.sender;
         address pauser = msg.sender;
@@ -220,15 +219,13 @@ contract DeployTokensAndPoolAnvil is Script, DeployPermit2 {
         USDL.increaseSupply(initialSupply * 7);
         // Transfer 6 * initialSupply of USDL to msg.sender
         USDL.transfer(msg.sender, initialSupply * 6);
-        // Approve wUSDL to deposit USDL from msg.sender
-        IERC20Upgradeable(address(USDL)).approve(address(wUSDL), type(uint256).max);
         // Deposit 3 * initialSupply of USDL from msg.sender to wUSDL
         wUSDL.deposit(3 * initialSupply, msg.sender);
 
         return (USDL, wUSDL, baseToken);
     }
 
-    function logTokens(address USDL, address wUSDL, address baseToken) internal {
+    function _logTokens(address USDL, address wUSDL, address baseToken) internal {
         console.log("Deployed YBSV1_1: %s", address(USDL));
         console.log("Deployed wYBSV1: %s", address(wUSDL));
         console.log("Deployed baseToken: %s", address(baseToken));

@@ -14,28 +14,32 @@ import {NetworkSelector} from "./NetworkSelector.sol";
 import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
 import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
 import {V4Router} from "@uniswap/v4-periphery/src/V4Router.sol";
+import {PredicateHook} from "../../src/PredicateHook.sol";
 
 contract CreatePoolAndAddLiquidityScript is Script {
     using CurrencyLibrary for Currency;
 
-    Currency private currency0;
-    Currency private currency1;
-    IERC20 private token0;
-    IERC20 private token1;
-    PositionManager private posm;
-    IAllowanceTransfer private permit2;
-    V4Router private swapRouter;
+    Currency private _currency0;
+    Currency private _currency1;
+    PositionManager private _posm;
+    IAllowanceTransfer private _permit2;
 
     INetwork private _env;
-    address private hookAddress;
+    address private _hookAddress;
+    V4Router private _swapRouter;
 
     function _init() internal {
         bool networkExists = vm.envExists("NETWORK");
         bool hookAddressExists = vm.envExists("HOOK_ADDRESS");
-        require(networkExists && hookAddressExists, "All environment variables must be set if any are specified");
+        bool swapRouterAddressExists = vm.envExists("SWAP_ROUTER_ADDRESS");
+        require(
+            networkExists && hookAddressExists && swapRouterAddressExists,
+            "All environment variables must be set if any are specified"
+        );
         string memory _network = vm.envString("NETWORK");
         _env = new NetworkSelector().select(_network);
-        hookAddress = vm.envAddress("HOOK_ADDRESS");
+        _hookAddress = vm.envAddress("HOOK_ADDRESS");
+        _swapRouter = V4Router(vm.envAddress("SWAP_ROUTER_ADDRESS"));
     }
 
     /////////////////////////////////////
@@ -46,31 +50,36 @@ contract CreatePoolAndAddLiquidityScript is Script {
         INetwork.LiquidityPoolConfig memory poolConfig = _env.liquidityPoolConfig();
 
         // --------------------------------- //
-        posm = config.positionManager;
-        permit2 = config.permit2;
-        currency0 = Currency.wrap(poolConfig.token0);
-        currency1 = Currency.wrap(poolConfig.token1);
-        token0 = IERC20(poolConfig.token0);
-        token1 = IERC20(poolConfig.token1);
-        swapRouter = config.router;
+        _posm = config.positionManager;
+        _permit2 = config.permit2;
+        _currency0 = Currency.wrap(poolConfig.token0);
+        _currency1 = Currency.wrap(poolConfig.token1);
 
         // tokens should be sorted
         PoolKey memory pool = PoolKey({
-            currency0: Currency.wrap(poolConfig.token0),
-            currency1: Currency.wrap(poolConfig.token1),
+            currency0: _currency0,
+            currency1: _currency1,
             fee: poolConfig.fee,
             tickSpacing: poolConfig.tickSpacing,
-            hooks: IHooks(hookAddress)
+            hooks: IHooks(_hookAddress)
         });
         bytes memory hookData = new bytes(0);
 
         // --------------------------------- //
 
+        // Get tick at current price
+        int24 currentTick = TickMath.getTickAtSqrtPrice(poolConfig.startingPrice);
+        console.log("Current tick: %s", currentTick);
+        // Ensure ticks are aligned with tick spacing
+        int24 tickSpacing = poolConfig.tickSpacing;
+        int24 tickLower = (currentTick - 600) - ((currentTick - 600) % tickSpacing);
+        int24 tickUpper = (currentTick + 600) - ((currentTick + 600) % tickSpacing);
+
         // Converts token amounts to liquidity units
         uint128 liquidity = LiquidityAmounts.getLiquidityForAmounts(
             poolConfig.startingPrice,
-            TickMath.getSqrtPriceAtTick(poolConfig.tickLower),
-            TickMath.getSqrtPriceAtTick(poolConfig.tickUpper),
+            TickMath.getSqrtPriceAtTick(tickLower),
+            TickMath.getSqrtPriceAtTick(tickUpper),
             poolConfig.token0Amount,
             poolConfig.token1Amount
         );
@@ -79,35 +88,36 @@ contract CreatePoolAndAddLiquidityScript is Script {
         uint256 amount0Max = poolConfig.token0Amount + 1 wei;
         uint256 amount1Max = poolConfig.token1Amount + 1 wei;
 
-        (bytes memory actions, bytes[] memory mintParams) = _mintLiquidityParams(
-            pool, poolConfig.tickLower, poolConfig.tickUpper, liquidity, amount0Max, amount1Max, address(this), hookData
-        );
+        (bytes memory actions, bytes[] memory mintParams) =
+            _mintLiquidityParams(pool, tickLower, tickUpper, liquidity, amount0Max, amount1Max, msg.sender, hookData);
 
         // multicall parameters
         bytes[] memory params = new bytes[](2);
 
         // initialize pool
-        params[0] = abi.encodeWithSelector(posm.initializePool.selector, pool, poolConfig.startingPrice, hookData);
+        params[0] = abi.encodeWithSelector(_posm.initializePool.selector, pool, poolConfig.startingPrice, hookData);
 
         // mint liquidity
         params[1] = abi.encodeWithSelector(
-            posm.modifyLiquidities.selector, abi.encode(actions, mintParams), block.timestamp + 60
+            _posm.modifyLiquidities.selector, abi.encode(actions, mintParams), block.timestamp + 60
         );
 
-        // if the pool is an ETH pair, native tokens are to be transferred
-        // uint256 valueToPass = currency0.isAddressZero() ? amount0Max : 0;
+        // add authorized LPs
+        address[] memory authorizedLps = new address[](1);
+        authorizedLps[0] = address(_posm);
+        PredicateHook predicateHook = PredicateHook(_hookAddress);
 
         vm.startBroadcast();
-        tokenApprovals();
+        predicateHook.addAuthorizedLPs(authorizedLps);
+        _tokenApprovals();
+        _posm.multicall(params);
         vm.stopBroadcast();
-
-        // vm.broadcast();
-        // multicall to atomically create pool & add liquidity
-        // posm.multicall{value: valueToPass}(params);
     }
 
-    /// @dev helper function for encoding mint liquidity operation
-    /// @dev does NOT encode SWEEP, developers should take care when minting liquidity on an ETH pair
+    /**
+     * @dev Helper function for encoding mint liquidity operation.
+     * @dev Does NOT encode SWEEP, developers should take care when minting liquidity on an ETH pair.
+     */
     function _mintLiquidityParams(
         PoolKey memory poolKey,
         int24 _tickLower,
@@ -126,16 +136,23 @@ contract CreatePoolAndAddLiquidityScript is Script {
         return (actions, params);
     }
 
-    function tokenApprovals() public {
-        if (!currency0.isAddressZero()) {
-            token0.approve(address(permit2), type(uint256).max);
-            permit2.approve(address(token0), address(posm), type(uint160).max, type(uint48).max);
-            token0.approve(address(swapRouter), type(uint256).max);
-        }
-        if (!currency1.isAddressZero()) {
-            token1.approve(address(permit2), type(uint256).max);
-            permit2.approve(address(token1), address(posm), type(uint160).max, type(uint48).max);
-            token1.approve(address(swapRouter), type(uint256).max);
-        }
+    /**
+     * @dev Approves the token0 and token1 for the posm, swapRouter and permit2
+     */
+    function _tokenApprovals() internal {
+        require(!_currency0.isAddressZero() && !_currency1.isAddressZero(), "Currency must not be zero");
+
+        IERC20 token0 = IERC20(Currency.unwrap(_currency0));
+        IERC20 token1 = IERC20(Currency.unwrap(_currency1));
+
+        // approve token0
+        token0.approve(address(_permit2), type(uint256).max);
+        _permit2.approve(address(token0), address(_posm), type(uint160).max, type(uint48).max);
+        token0.approve(address(_swapRouter), type(uint256).max);
+
+        // approve token1
+        token1.approve(address(_permit2), type(uint256).max);
+        _permit2.approve(address(token1), address(_posm), type(uint160).max, type(uint48).max);
+        token1.approve(address(_swapRouter), type(uint256).max);
     }
 }

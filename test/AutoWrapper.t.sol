@@ -160,7 +160,7 @@ contract AutoWrapperTest is Test, AutoWrapperSetup, OperatorTestPrep {
         string memory taskId = "unique-identifier";
         PoolKey memory key = getPoolKey();
         uint256 amountSpecified = 1e6;
-        uint256 amountSpecifiedReq = 1_005_025; // this needs to be an amount >= what is required for the swap
+        uint256 amountSpecifiedReq = 1_000_307_275_108_773_833; // this needs to be an amount >= what is required for the swap
         PredicateMessage memory message = getPredicateMessage(taskId, true, amountSpecified.toInt128());
         IV4Router.ExactOutputSingleParams memory swapParams = IV4Router.ExactOutputSingleParams({
             poolKey: key,

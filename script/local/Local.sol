@@ -10,9 +10,9 @@ import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
 import {V4Router} from "@uniswap/v4-periphery/src/V4Router.sol";
 
 contract Local is INetwork {
-    address public constant USDL = address(0x959922bE3CAee4b8Cd9a407cc3ac1C251C2007B1);
-    address public constant WUSDL = address(0x9A9f2CCfdE556A7E9Ff0848998Aa4a0CFD8863AE);
-    address public constant USDC = address(0x68B1D87F95878fE05B998F19b66F4baba5De1aed);
+    address public constant USDL = address(0xb185E9f6531BA9877741022C92CE858cDCc5760E);
+    address public constant WUSDL = address(0x742489F22807ebB4C36ca6cD95c3e1C044B7B6c8);
+    address public constant USDC = address(0xA9e6Bfa2BF53dE88FEb19761D9b2eE2e821bF1Bf);
 
     function config() external pure override returns (Config memory) {
         return Config({

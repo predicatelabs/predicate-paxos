@@ -148,6 +148,10 @@ contract DeployTokensAndPool is Script, DeployPermit2 {
             }
         }
 
+        console.log("USDC address: %s", address(USDC));
+        console.log("wUSDL address: %s", address(wUSDL));
+        console.log("USDL address: %s", address(USDL));
+
         // Deploy liquidity pool with predicate hook
         int24 tickSpacing = 60;
         PoolKey memory poolKey =

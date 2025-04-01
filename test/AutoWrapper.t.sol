@@ -274,6 +274,4 @@ contract AutoWrapperTest is Test, AutoWrapperSetup, OperatorTestPrep {
             expireByBlockNumber: block.number + 100
         });
     }
-
-    // todo: add swap tests
 }

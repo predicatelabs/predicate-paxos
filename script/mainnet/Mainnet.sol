@@ -35,8 +35,8 @@ contract Mainnet is INetwork {
             token1: USDC,
             fee: 0,
             tickSpacing: 60,
-            tickLower: -600,
-            tickUpper: 600,
+            tickLower: -120,
+            tickUpper: 120,
             startingPrice: 79_228_162_514_264_337_593_543,
             token0Amount: 5e18,
             token1Amount: 5e6

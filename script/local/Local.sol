@@ -17,12 +17,10 @@ contract Local is INetwork {
     function config() external pure override returns (Config memory) {
         return Config({
             poolManager: IPoolManager(address(0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6)),
-            router: V4Router(address(0x8A791620dd6260079BF849Dc5567aDC3F2FdC318)),
             positionManager: PositionManager(payable(address(0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0))), // not used
             permit2: IAllowanceTransfer(address(0x1f98407aaB862CdDeF78Ed252D6f557aA5b0f00d)), // not used
             create2Deployer: address(0x4e59b44847b379578588920cA78FbF26c0B4956C),
-            serviceManager: address(0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0),
-            policyId: "local-test-policy"
+            serviceManager: address(0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0)
         });
     }
 
@@ -34,9 +32,9 @@ contract Local is INetwork {
             tickSpacing: 60,
             tickLower: -600,
             tickUpper: 600,
-            startingPrice: 79_228_162_514_264_337_593_543_950_336,
-            token0Amount: 1e18,
-            token1Amount: 1e18
+            startingPrice: 79_228_162_514_264_337_593_543,
+            token0Amount: 1e6,
+            token1Amount: 1e6
         });
     }
 

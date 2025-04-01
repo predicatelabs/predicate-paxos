@@ -11,24 +11,21 @@ import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol"
 
 contract Mainnet is INetwork {
     address public constant POOL_MANAGER = address(0x000000000004444c5dc75cB358380D2e3dE08A90);
-    address public constant SWAP_ROUTER = address(0x0cb9d2172864d965eF693915bee403a040b7410D); //todo: udpate this
     address public constant POSITION_MANAGER = address(0xbD216513d74C8cf14cf4747E6AaA6420FF64ee9e);
     address public constant PERMIT2 = address(0x000000000022D473030F116dDEE9F6B43aC78BA3);
     address public constant SERVICE_MANAGER = address(0xf6f4A30EeF7cf51Ed4Ee1415fB3bFDAf3694B0d2);
     address public constant CREATE2_DEPLOYER = address(0x4e59b44847b379578588920cA78FbF26c0B4956C);
     address public constant USDL = address(0xbdC7c08592Ee4aa51D06C27Ee23D5087D65aDbcD);
     address public constant WUSDL = address(0x7751E2F4b8ae93EF6B79d86419d42FE3295A4559);
-    address public constant USDC = address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
+    address public constant USDC = address(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
 
     function config() external pure override returns (Config memory) {
         return Config({
             poolManager: IPoolManager(POOL_MANAGER),
-            router: V4Router(SWAP_ROUTER),
             positionManager: PositionManager(payable(POSITION_MANAGER)),
             permit2: IAllowanceTransfer(PERMIT2),
             create2Deployer: CREATE2_DEPLOYER,
-            serviceManager: SERVICE_MANAGER,
-            policyId: "x-aleo-6a52de9724a6e8f2"
+            serviceManager: SERVICE_MANAGER
         });
     }
 
@@ -36,21 +33,17 @@ contract Mainnet is INetwork {
         return LiquidityPoolConfig({
             token0: WUSDL,
             token1: USDC,
-            fee: 3000,
+            fee: 0,
             tickSpacing: 60,
-            tickLower: -600,
-            tickUpper: 600,
-            startingPrice: 79_228_162_514_264_337_593_543_950_336,
-            token0Amount: 50e18,
-            token1Amount: 50e18
+            tickLower: -120,
+            tickUpper: 120,
+            startingPrice: 79_228_162_514_264_337_593_543,
+            token0Amount: 5e18,
+            token1Amount: 5e6
         });
     }
 
     function tokenConfig() external pure override returns (TokenConfig memory) {
-        return TokenConfig({
-            USDL: Currency.wrap(address(0xbdC7c08592Ee4aa51D06C27Ee23D5087D65aDbcD)),
-            wUSDL: Currency.wrap(address(0x7751E2F4b8ae93EF6B79d86419d42FE3295A4559)),
-            USDC: Currency.wrap(address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2))
-        });
+        return TokenConfig({USDL: Currency.wrap(USDL), wUSDL: Currency.wrap(WUSDL), USDC: Currency.wrap(USDC)});
     }
 }

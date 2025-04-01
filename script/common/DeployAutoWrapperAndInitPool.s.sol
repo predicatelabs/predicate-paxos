@@ -16,11 +16,11 @@ import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
 import {HookMiner} from "../../test/utils/HookMiner.sol";
 import {Constants} from "@uniswap/v4-core/test/utils/Constants.sol";
 
-contract DeployAutoWrapper is Script {
+contract DeployAutoWrapperAndInitPool is Script {
     INetwork private _env;
-    address private hookAddress;
-    V4Router private swapRouter;
-    int24 private tickSpacing;
+    address private _hookAddress;
+    V4Router private _swapRouter;
+    int24 private _tickSpacing;
 
     function _init() internal {
         bool networkExists = vm.envExists("NETWORK");
@@ -32,8 +32,8 @@ contract DeployAutoWrapper is Script {
         );
         string memory _network = vm.envString("NETWORK");
         _env = new NetworkSelector().select(_network);
-        hookAddress = vm.envAddress("HOOK_ADDRESS");
-        swapRouter = V4Router(vm.envAddress("SWAP_ROUTER_ADDRESS"));
+        _hookAddress = vm.envAddress("HOOK_ADDRESS");
+        _swapRouter = V4Router(vm.envAddress("SWAP_ROUTER_ADDRESS"));
     }
 
     function run() public {
@@ -46,14 +46,10 @@ contract DeployAutoWrapper is Script {
         IERC20 wUSDL = IERC20(Currency.unwrap(tokenConfig.wUSDL));
         IERC20 USDC = IERC20(Currency.unwrap(tokenConfig.USDC));
         IERC20 USDL = IERC20(Currency.unwrap(tokenConfig.USDL));
-        IHooks hook = IHooks(hookAddress);
-        tickSpacing = poolConfig.tickSpacing;
+        IHooks hook = IHooks(_hookAddress);
+        _tickSpacing = poolConfig.tickSpacing;
         PoolKey memory predicatePoolKey = PoolKey(
-            Currency.wrap(poolConfig.token0),
-            Currency.wrap(poolConfig.token1),
-            poolConfig.fee,
-            poolConfig.tickSpacing,
-            hook
+            Currency.wrap(poolConfig.token0), Currency.wrap(poolConfig.token1), poolConfig.fee, _tickSpacing, hook
         );
 
         // initialize the auto wrapper
@@ -62,13 +58,13 @@ contract DeployAutoWrapper is Script {
                 | Hooks.BEFORE_SWAP_RETURNS_DELTA_FLAG
         );
         bytes memory autoWrapperConstructorArgs =
-            abi.encode(manager, ERC4626(address(wUSDL)), USDC, predicatePoolKey, swapRouter);
+            abi.encode(manager, ERC4626(address(wUSDL)), USDC, predicatePoolKey, _swapRouter);
         (address autoWrapperAddress, bytes32 autoWrapperSalt) = HookMiner.find(
             config.create2Deployer, autoWrapperFlags, type(AutoWrapper).creationCode, autoWrapperConstructorArgs
         );
         vm.startBroadcast();
         AutoWrapper autoWrapper = new AutoWrapper{salt: autoWrapperSalt}(
-            manager, ERC4626(address(wUSDL)), Currency.wrap(address(USDC)), predicatePoolKey, swapRouter
+            manager, ERC4626(address(wUSDL)), Currency.wrap(address(USDC)), predicatePoolKey, _swapRouter
         );
         require(address(autoWrapper) == autoWrapperAddress, "Hook deployment failed");
         console.log("Deployed AutoWrapper at address: ", address(autoWrapper));
@@ -76,23 +72,26 @@ contract DeployAutoWrapper is Script {
         // initialize the ghost pool
         PoolKey memory ghostPoolKey;
         if (uint160(address(USDL)) < uint160(address(USDC))) {
-            ghostPoolKey =
-                PoolKey(Currency.wrap(address(USDL)), Currency.wrap(address(USDC)), 0, tickSpacing, IHooks(autoWrapper));
+            ghostPoolKey = PoolKey(
+                Currency.wrap(address(USDL)), Currency.wrap(address(USDC)), 0, _tickSpacing, IHooks(autoWrapper)
+            );
             console.log(
                 "Deploying ghost pool with token0: %s and token1: %s",
                 Currency.unwrap(ghostPoolKey.currency0),
                 Currency.unwrap(ghostPoolKey.currency1)
             );
         } else {
-            ghostPoolKey =
-                PoolKey(Currency.wrap(address(USDC)), Currency.wrap(address(USDL)), 0, tickSpacing, IHooks(autoWrapper));
+            ghostPoolKey = PoolKey(
+                Currency.wrap(address(USDC)), Currency.wrap(address(USDL)), 0, _tickSpacing, IHooks(autoWrapper)
+            );
             console.log(
                 "Deploying ghost pool with token0: %s and token1: %s",
                 Currency.unwrap(ghostPoolKey.currency0),
                 Currency.unwrap(ghostPoolKey.currency1)
             );
         }
-        manager.initialize(ghostPoolKey, Constants.SQRT_PRICE_1_1);
+        uint160 ghostPoolStartingPrice = 79_228_162_514_264_337_593_543_950_336_000_000;
+        manager.initialize(ghostPoolKey, ghostPoolStartingPrice);
 
         // set approvals
         _setApprovals(wUSDL, USDC, USDL, autoWrapper);
@@ -100,11 +99,11 @@ contract DeployAutoWrapper is Script {
     }
 
     function _setApprovals(IERC20 wUSDL, IERC20 USDC, IERC20 USDL, AutoWrapper autoWrapper) internal {
-        // Approve autoWrapper to spend USDC from msg.sender
+        // Approve autoWrapper to spend USDL from msg.sender
         USDL.approve(address(autoWrapper), type(uint256).max);
-        // // Approve autoWrapper to spend USDC from msg.sender
+        // Approve autoWrapper to spend USDC from msg.sender
         USDC.approve(address(autoWrapper), type(uint256).max);
-        // // Approve autoWrapper to spend wUSDL from msg.sender
+        // Approve autoWrapper to spend wUSDL from msg.sender
         wUSDL.approve(address(autoWrapper), type(uint256).max);
     }
 }

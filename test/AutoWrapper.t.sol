@@ -45,12 +45,12 @@ contract AutoWrapperTest is Test, AutoWrapperSetup, OperatorTestPrep {
         // USDC -> USDL
         string memory taskId = "unique-identifier";
         PoolKey memory key = getPoolKey();
-        PredicateMessage memory message = getPredicateMessage(taskId, true, -1e18);
+        PredicateMessage memory message = getPredicateMessage(taskId, false, -1e6);
         IV4Router.ExactInputSingleParams memory swapParams = IV4Router.ExactInputSingleParams({
             poolKey: key,
             zeroForOne: true,
             amountIn: 1e6,
-            amountOutMinimum: 1e5,
+            amountOutMinimum: 1e17,
             hookData: abi.encode(message, liquidityProvider, 0)
         });
 
@@ -65,7 +65,7 @@ contract AutoWrapperTest is Test, AutoWrapperSetup, OperatorTestPrep {
         bytes[] memory params = new bytes[](3);
         params[0] = abi.encode(swapParams); // swap params
         params[1] = abi.encode(key.currency0, 1e6); // settle currency0
-        params[2] = abi.encode(key.currency1, 1e5); // settle currency1
+        params[2] = abi.encode(key.currency1, 1e17); // take currency1
 
         vm.prank(address(liquidityProvider));
         swapRouter.execute(abi.encode(actions, params));
@@ -79,12 +79,12 @@ contract AutoWrapperTest is Test, AutoWrapperSetup, OperatorTestPrep {
         string memory taskId = "unique-identifier";
         uint256 amountSpecified = 1e18;
         PredicateMessage memory message =
-            getPredicateMessage(taskId, true, autoWrapper.getUnwrapInputRequired(amountSpecified));
+            getPredicateMessage(taskId, false, autoWrapper.getUnwrapInputRequired(amountSpecified));
         IV4Router.ExactOutputSingleParams memory swapParams = IV4Router.ExactOutputSingleParams({
             poolKey: key,
             zeroForOne: true,
             amountOut: amountSpecified.toUint128(),
-            amountInMaximum: 1e19,
+            amountInMaximum: 1e8,
             hookData: abi.encode(message, liquidityProvider, 0)
         });
 
@@ -99,7 +99,7 @@ contract AutoWrapperTest is Test, AutoWrapperSetup, OperatorTestPrep {
         bytes[] memory params = new bytes[](3);
         params[0] = abi.encode(swapParams); // swap params
         params[1] = abi.encode(key.currency1, amountSpecified); // take currency1
-        params[2] = abi.encode(key.currency0, 1e19); // settle currency0
+        params[2] = abi.encode(key.currency0, 1e8); // settle currency0
 
         vm.prank(address(liquidityProvider));
         swapRouter.execute(abi.encode(actions, params));

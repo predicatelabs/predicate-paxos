@@ -11,7 +11,7 @@ contract PredicateHookTest is PredicateHookSetup {
     function setUp() public override {
         liquidityProvider = makeAddr("liquidityProvider");
         super.setUp();
-        setUpPredicateHook(liquidityProvider);
+        _setUpPredicateHook(liquidityProvider);
     }
 
     function testSetPolicy() public {

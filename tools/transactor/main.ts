@@ -8,13 +8,13 @@ const program = new Command();
 
 let config: Config = {
     predicateAPIURL: "http://0.0.0.0:80/task",
-    apiKey: "",
+    apiKey: "x",
     ethRPCURL: "http://localhost:8545",
     privateKey:
         "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
     environment: "local",
-    currency0Address: "0x68B1D87F95878fE05B998F19b66F4baba5De1aed",
-    currency1Address: "0x959922bE3CAee4b8Cd9a407cc3ac1C251C2007B1",
+    currency0Address: "0x742489F22807ebB4C36ca6cD95c3e1C044B7B6c8",
+    currency1Address: "0xA9e6Bfa2BF53dE88FEb19761D9b2eE2e821bF1Bf",
     routerAddress: "0x8A791620dd6260079BF849Dc5567aDC3F2FdC318",
     predicateHookAddress: "0x6578E2c3F87C3270282F7fe4E63Dfb684a496880",
     autoWrapperAddress: "0x787Ae5950b1F2665bE9D9e6F9cE03a27A19da888",

@@ -51,7 +51,7 @@ export class TransactorService {
             currency1: config.currency1Address,
             fee: config.lpFees,
             tickSpacing: config.tickSpacing,
-            hooks: config.autoWrapperAddress,
+            hooks: config.predicateHookAddress,
         };
 
         console.log("Config values:", {

@@ -23,10 +23,10 @@ contract CreatePoolAndAddLiquidityScript is Script {
     Currency private _currency1;
     PositionManager private _posm;
     IAllowanceTransfer private _permit2;
-    V4Router private _swapRouter;
 
     INetwork private _env;
     address private _hookAddress;
+    V4Router private _swapRouter;
 
     function _init() internal {
         bool networkExists = vm.envExists("NETWORK");
@@ -54,7 +54,6 @@ contract CreatePoolAndAddLiquidityScript is Script {
         _permit2 = config.permit2;
         _currency0 = Currency.wrap(poolConfig.token0);
         _currency1 = Currency.wrap(poolConfig.token1);
-        _swapRouter = config.router;
 
         // tokens should be sorted
         PoolKey memory pool = PoolKey({
@@ -96,22 +95,22 @@ contract CreatePoolAndAddLiquidityScript is Script {
         bytes[] memory params = new bytes[](2);
 
         // initialize pool
-        params[0] = abi.encodeWithSelector(posm.initializePool.selector, pool, poolConfig.startingPrice, hookData);
+        params[0] = abi.encodeWithSelector(_posm.initializePool.selector, pool, poolConfig.startingPrice, hookData);
 
         // mint liquidity
         params[1] = abi.encodeWithSelector(
-            posm.modifyLiquidities.selector, abi.encode(actions, mintParams), block.timestamp + 60
+            _posm.modifyLiquidities.selector, abi.encode(actions, mintParams), block.timestamp + 60
         );
 
         // add authorized LPs
         address[] memory authorizedLps = new address[](1);
-        authorizedLps[0] = address(posm);
-        PredicateHook predicateHook = PredicateHook(hookAddress);
+        authorizedLps[0] = address(_posm);
+        PredicateHook predicateHook = PredicateHook(_hookAddress);
 
         vm.startBroadcast();
         predicateHook.addAuthorizedLPs(authorizedLps);
         _tokenApprovals();
-        posm.multicall(params);
+        _posm.multicall(params);
         vm.stopBroadcast();
     }
 

@@ -178,7 +178,7 @@ contract PredicateHookIntegrationTest is Test, PredicateHookSetup, OperatorTestP
         bool zeroForOne,
         int256 amountSpecified
     ) public returns (PredicateMessage memory) {
-        Task memory task = getTask(taskId, zeroForOne, amountSpecified);
+        Task memory task = _getTask(taskId, zeroForOne, amountSpecified);
         bytes32 taskHash = serviceManager.hashTaskWithExpiry(task);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(operatorOneAliasPk, taskHash);
 
@@ -199,7 +199,11 @@ contract PredicateHookIntegrationTest is Test, PredicateHookSetup, OperatorTestP
         return message;
     }
 
-    function getTask(string memory taskId, bool zeroForOne, int256 amountSpecified) public returns (Task memory) {
+    function _getTask(
+        string memory taskId,
+        bool zeroForOne,
+        int256 amountSpecified
+    ) internal view returns (Task memory) {
         PoolKey memory key = getPoolKey();
         return Task({
             taskId: taskId,

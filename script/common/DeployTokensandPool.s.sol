@@ -51,6 +51,10 @@ contract DeployTokensAndPool is Script, DeployPermit2 {
     MockERC20 public USDC;
     IPositionManager public posm;
     PoolModifyLiquidityTest public lpRouter;
+    IPoolManager public manager;
+
+    uint256 public amount0Max = 100e18;
+    uint256 public amount1Max = 100e6;
 
     uint256 public initialSupply = 1000e18; // 1000 tokens
 
@@ -80,9 +84,9 @@ contract DeployTokensAndPool is Script, DeployPermit2 {
         INetwork.Config memory config = _env.config();
 
         vm.startBroadcast();
-        IPoolManager manager = config.poolManager;
-        _deployPosm(manager);
-        _deployRouters(manager);
+        manager = config.poolManager;
+        _deployPosm();
+        _deployRouters();
         console.log("Deployed POSM: %s", address(posm));
         console.log("Deployed LP Router: %s", address(lpRouter));
         vm.stopBroadcast();
@@ -93,7 +97,7 @@ contract DeployTokensAndPool is Script, DeployPermit2 {
         _lps[0] = address(posm);
         _lps[1] = address(lpRouter);
         predicateHook.addAuthorizedLPs(_lps);
-        _initializePool(manager, posm, lpRouter);
+        _initializePool();
         vm.stopBroadcast();
     }
 
@@ -101,27 +105,25 @@ contract DeployTokensAndPool is Script, DeployPermit2 {
     // Helpers
     // -----------------------------------------------------------
 
-    function _deployRouters(
-        IPoolManager manager
-    ) internal {
+    function _deployRouters() internal {
         lpRouter = new PoolModifyLiquidityTest(manager);
     }
 
-    function _deployPosm(
-        IPoolManager poolManager
-    ) internal {
+    function _deployPosm() internal {
         anvilPermit2();
         posm = IPositionManager(
-            new PositionManager(poolManager, permit2, 300_000, IPositionDescriptor(address(0)), IWETH9(address(0)))
+            new PositionManager(manager, permit2, 300_000, IPositionDescriptor(address(0)), IWETH9(address(0)))
         );
     }
 
-    function _approvePosmCurrency(IPositionManager posm, Currency currency) internal {
+    function _approvePosmCurrency(
+        Currency currency
+    ) internal {
         IERC20(Currency.unwrap(currency)).approve(address(permit2), type(uint256).max);
         permit2.approve(Currency.unwrap(currency), address(posm), type(uint160).max, type(uint48).max);
     }
 
-    function _initializePool(IPoolManager manager, IPositionManager posm, PoolModifyLiquidityTest lpRouter) internal {
+    function _initializePool() internal {
         // deploy tokens
         for (uint256 i = 0; i < 100; i++) {
             _setUpUSDL();
@@ -159,8 +161,8 @@ contract DeployTokensAndPool is Script, DeployPermit2 {
         IERC20(address(USDC)).approve(address(lpRouter), type(uint256).max);
         IERC20(address(wUSDL)).approve(address(_swapRouter), type(uint256).max);
         IERC20(address(USDC)).approve(address(_swapRouter), type(uint256).max);
-        _approvePosmCurrency(posm, Currency.wrap(address(wUSDL)));
-        _approvePosmCurrency(posm, Currency.wrap(address(USDC)));
+        _approvePosmCurrency(Currency.wrap(address(wUSDL)));
+        _approvePosmCurrency(Currency.wrap(address(USDC)));
 
         // increase supply of USDL
         USDL.increaseSupply(initialSupply * 7);
@@ -171,7 +173,7 @@ contract DeployTokensAndPool is Script, DeployPermit2 {
         wUSDL.deposit(4 * initialSupply, msg.sender);
 
         // Provision liquidity
-        _provisionLiquidity(predicatePoolStartingPrice, tickSpacing, poolKey, msg.sender, 100e18, 100e6);
+        _provisionLiquidity(predicatePoolStartingPrice, tickSpacing, poolKey, msg.sender);
     }
 
     function _setUpUSDL() internal {
@@ -226,9 +228,7 @@ contract DeployTokensAndPool is Script, DeployPermit2 {
         uint160 sqrtPriceX96,
         int24 tickSpacing,
         PoolKey memory poolKey,
-        address sender,
-        uint256 amount0Max,
-        uint256 amount1Max
+        address sender
     ) internal {
         bytes memory ZERO_BYTES = new bytes(0);
 

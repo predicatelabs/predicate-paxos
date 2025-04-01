@@ -184,16 +184,13 @@ contract PredicateHook is BaseHook, PredicateClient, Ownable2Step {
      * @dev If the sender or router.msgSender() is not an authorized liquidity provider, the transaction will revert
      * @dev This is to prevent unauthorized liquidity providers from adding liquidity to the pool
      * @param sender The address of the sender
-     * @param key Pool configuration information
-     * @param params Modify liquidity parameters
-     * @param hookData Encoded authorization data from the Predicate service
      * @return selector The function selector indicating success
      */
     function _beforeAddLiquidity(
         address sender,
-        PoolKey calldata key,
-        IPoolManager.ModifyLiquidityParams calldata params,
-        bytes calldata hookData
+        PoolKey calldata,
+        IPoolManager.ModifyLiquidityParams calldata,
+        bytes calldata
     ) internal override returns (bytes4) {
         // If the sender is an authorized liquidity provider, allow the transaction
         if (isAuthorizedLP[sender]) {

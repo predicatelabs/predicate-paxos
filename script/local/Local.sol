@@ -24,20 +24,6 @@ contract Local is INetwork {
         });
     }
 
-    function liquidityPoolConfig() external pure override returns (LiquidityPoolConfig memory) {
-        return LiquidityPoolConfig({
-            token0: USDC,
-            token1: WUSDL,
-            fee: 0,
-            tickSpacing: 60,
-            tickLower: -600,
-            tickUpper: 600,
-            startingPrice: 79_228_162_514_264_337_593_543,
-            token0Amount: 1e6,
-            token1Amount: 1e6
-        });
-    }
-
     function tokenConfig() external pure override returns (TokenConfig memory) {
         return TokenConfig({USDL: Currency.wrap(USDL), wUSDL: Currency.wrap(WUSDL), USDC: Currency.wrap(USDC)});
     }

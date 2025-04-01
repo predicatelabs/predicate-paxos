@@ -50,7 +50,7 @@ contract AutoWrapperTest is Test, AutoWrapperSetup, OperatorTestPrep {
             poolKey: key,
             zeroForOne: true,
             amountIn: 1e6,
-            amountOutMinimum: 1e17,
+            amountOutMinimum: 1e5,
             hookData: abi.encode(message, liquidityProvider, 0)
         });
 
@@ -65,7 +65,7 @@ contract AutoWrapperTest is Test, AutoWrapperSetup, OperatorTestPrep {
         bytes[] memory params = new bytes[](3);
         params[0] = abi.encode(swapParams); // swap params
         params[1] = abi.encode(key.currency0, 1e6); // settle currency0
-        params[2] = abi.encode(key.currency1, 1e17); // settle currency1
+        params[2] = abi.encode(key.currency1, 1e5); // settle currency1
 
         vm.prank(address(liquidityProvider));
         swapRouter.execute(abi.encode(actions, params));

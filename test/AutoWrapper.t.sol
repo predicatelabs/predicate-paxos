@@ -27,6 +27,10 @@ contract AutoWrapperTest is Test, AutoWrapperSetup, OperatorTestPrep {
         liquidityProvider = makeAddr("liquidityProvider");
         super.setUp();
         _setUpHooksAndPools(liquidityProvider);
+        require(autoWrapper.baseCurrencyIsToken0() == true, "baseCurrency is token0");
+        require(
+            autoWrapper.baseCurrencyIsToken0ForLiquidPool() == false, "baseCurrency is not token0 for liquid pool"
+        );
     }
 
     modifier permissionedOperators() {
@@ -40,13 +44,14 @@ contract AutoWrapperTest is Test, AutoWrapperSetup, OperatorTestPrep {
     }
 
     function testSwapZeroForOneExactInput() public permissionedOperators prepOperatorRegistration(true) {
+        // USDC -> USDL
         string memory taskId = "unique-identifier";
         PoolKey memory key = getPoolKey();
         PredicateMessage memory message = getPredicateMessage(taskId, true, -1e18);
         IV4Router.ExactInputSingleParams memory swapParams = IV4Router.ExactInputSingleParams({
             poolKey: key,
             zeroForOne: true,
-            amountIn: 1e18,
+            amountIn: 1e6,
             amountOutMinimum: 1e17,
             hookData: abi.encode(message, liquidityProvider, 0)
         });
@@ -61,13 +66,13 @@ contract AutoWrapperTest is Test, AutoWrapperSetup, OperatorTestPrep {
 
         bytes[] memory params = new bytes[](3);
         params[0] = abi.encode(swapParams); // swap params
-        params[1] = abi.encode(key.currency0, 1e18); // settle currency0
+        params[1] = abi.encode(key.currency0, 1e6); // settle currency0
         params[2] = abi.encode(key.currency1, 1e17); // settle currency1
 
         vm.prank(address(liquidityProvider));
         swapRouter.execute(abi.encode(actions, params));
 
-        assertEq(token0.balanceOf(liquidityProvider), balance0 - 1e18, "Token0 balance should decrease by 1e18");
+        assertEq(token0.balanceOf(liquidityProvider), balance0 - 1e6, "Token0 balance should decrease by 1e6");
         require(token1.balanceOf(liquidityProvider) > balance1, "Token1 balance should increase");
     }
 

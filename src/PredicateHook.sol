@@ -11,9 +11,10 @@ import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
 import {BalanceDelta} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
 import {BeforeSwapDelta, toBeforeSwapDelta} from "@uniswap/v4-core/src/types/BeforeSwapDelta.sol";
 import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {PredicateClient} from "@predicate/mixins/PredicateClient.sol";
 import {PredicateMessage} from "@predicate/interfaces/IPredicateClient.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 
 /**
  * @title Predicated v4 Hook
@@ -21,7 +22,7 @@ import {PredicateMessage} from "@predicate/interfaces/IPredicateClient.sol";
  * @notice This contract requires an offchain integration with predicate.io to authorize transactions before they are submitted onchain
  * @dev Users of this hook are required to pass in a valid Predicate authorization message within the hookData field.
  */
-contract PredicateHook is BaseHook, PredicateClient, Ownable {
+contract PredicateHook is BaseHook, PredicateClient, Ownable2Step {
     /**
      * @notice An error emitted when a liquidity provider is not authorized
      */

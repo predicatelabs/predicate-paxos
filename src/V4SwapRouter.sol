@@ -5,12 +5,13 @@ import {V4Router} from "@uniswap/v4-periphery/src/V4Router.sol";
 import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
 import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
 import {Lock} from "./base/Lock.sol";
+import {IERC20} from "forge-std/interfaces/IERC20.sol";
 
 /// @title Router for Uniswap v4 Trades
 contract V4SwapRouter is V4Router, Lock {
     constructor(
-        address _poolManager
-    ) V4Router(IPoolManager(_poolManager)) {}
+        IPoolManager _poolManager
+    ) V4Router(_poolManager) {}
 
     /**
      * @notice Implementation of DeltaResolver's payment method

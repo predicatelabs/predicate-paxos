@@ -14,8 +14,9 @@ import {TickMath} from "@uniswap/v4-core/src/libraries/TickMath.sol";
 import {IERC20} from "forge-std/interfaces/IERC20.sol";
 import {BalanceDelta} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
 import {Actions} from "@uniswap/v4-periphery/src/libraries/Actions.sol";
+import {Test} from "forge-std/Test.sol";
 
-contract PredicateHookIntegrationTest is PredicateHookSetup, OperatorTestPrep {
+contract PredicateHookIntegrationTest is Test, PredicateHookSetup, OperatorTestPrep {
     address public liquidityProvider;
 
     function setUp() public override {

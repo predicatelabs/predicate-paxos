@@ -4,9 +4,10 @@ pragma solidity ^0.8.0;
 import {PredicateHook} from "../src/PredicateHook.sol";
 import {PredicateHookSetup} from "./utils/PredicateHookSetup.sol";
 import {V4Router} from "@uniswap/v4-periphery/src/V4Router.sol";
+import {Test} from "forge-std/Test.sol";
 
-contract PredicateHookTest is PredicateHookSetup {
-    address liquidityProvider;
+contract PredicateHookTest is Test, PredicateHookSetup {
+    address public liquidityProvider;
 
     function setUp() public override {
         liquidityProvider = makeAddr("liquidityProvider");

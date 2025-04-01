@@ -31,4 +31,10 @@ contract V4SwapRouter is V4Router, Lock {
     function msgSender() public view override returns (address) {
         return _getLocker();
     }
+
+    function execute(
+        bytes calldata unlockData
+    ) external payable isNotLocked {
+        _executeActions(unlockData);
+    }
 }

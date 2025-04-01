@@ -27,20 +27,20 @@ contract AutoWrapperSetup is MetaCoinTestSetup, PoolSetup {
     YBSV1_1 public USDL;
     wYBSV1 public wUSDL;
     Currency public USDC;
-    PoolKey predicatePoolKey;
-    PoolKey ghostPoolKey;
-    uint160 initSqrtPriceX96;
+    PoolKey public predicatePoolKey;
+    PoolKey public ghostPoolKey;
+    uint160 public initSqrtPriceX96;
 
-    address admin;
-    address supplyController;
-    address pauser;
-    address assetProtector;
-    address rebaserAdmin;
-    address rebaser;
-    address alice;
+    address public admin;
+    address public supplyController;
+    address public pauser;
+    address public assetProtector;
+    address public rebaserAdmin;
+    address public rebaser;
+    address public alice;
 
-    uint256 public initialSupply = 1000 * 10 ** 18; // 1000 token
-    int24 tickSpacing = 60;
+    uint256 public initialSupply = 1000 * 10 ** 18; // 1000 tokens
+    int24 public tickSpacing = 60;
 
     function setUpHooksAndPools(
         address _liquidityProvider
@@ -55,19 +55,19 @@ contract AutoWrapperSetup is MetaCoinTestSetup, PoolSetup {
         rebaser = makeAddr("rebaser");
         alice = makeAddr("alice");
 
-        deployPoolManager();
-        deployRouters();
-        deployPosm();
+        _deployPoolManager();
+        _deployRouters();
+        _deployPosm();
 
         // deploy tokens
-        setupUSDLandVault();
-        USDC = deployAndMintToken(_liquidityProvider, 100_000_000 ether);
+        _setupUSDLandVault();
+        USDC = _deployAndMintToken(_liquidityProvider, 100_000_000 ether);
 
         // set approvals
         vm.startPrank(_liquidityProvider);
-        setTokenApprovalForRouters(USDC);
-        setTokenApprovalForRouters(Currency.wrap(address(USDL)));
-        setTokenApprovalForRouters(Currency.wrap(address(wUSDL)));
+        _setTokenApprovalForRouters(USDC);
+        _setTokenApprovalForRouters(Currency.wrap(address(USDL)));
+        _setTokenApprovalForRouters(Currency.wrap(address(wUSDL)));
         vm.stopPrank();
 
         // create hook here
@@ -87,7 +87,7 @@ contract AutoWrapperSetup is MetaCoinTestSetup, PoolSetup {
         // initialize the auto wrapper
         uint160 autoWrapperFlags = uint160(
             Hooks.BEFORE_INITIALIZE_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG | Hooks.BEFORE_SWAP_FLAG
-                | Hooks.BEFORE_SWAP_RETURNS_DELTA_FLAG
+                | Hooks.BEFORE_SWAP_RETURNS_DELTA_FLAG | Hooks.AFTER_SWAP_FLAG
         );
         bytes memory autoWrapperConstructorArgs =
             abi.encode(manager, ERC4626(address(wUSDL)), USDC, predicatePoolKey, swapRouter);
@@ -126,11 +126,11 @@ contract AutoWrapperSetup is MetaCoinTestSetup, PoolSetup {
         vm.stopPrank();
 
         vm.startPrank(_liquidityProvider);
-        provisionLiquidity(tickSpacing, predicatePoolKey, 100 ether, _liquidityProvider, 100_000 ether, 100_000 ether);
+        _provisionLiquidity(tickSpacing, predicatePoolKey, 100 ether, _liquidityProvider, 100_000 ether, 100_000 ether);
         vm.stopPrank();
     }
 
-    function setupUSDLandVault() internal {
+    function _setupUSDLandVault() internal {
         YBSV1_1 ybsImpl = new YBSV1_1();
         wYBSV1 wYbsImpl = new wYBSV1();
 

@@ -28,9 +28,7 @@ contract AutoWrapperTest is Test, AutoWrapperSetup, OperatorTestPrep {
         super.setUp();
         _setUpHooksAndPools(liquidityProvider);
         require(autoWrapper.baseCurrencyIsToken0() == true, "baseCurrency is token0");
-        require(
-            autoWrapper.baseCurrencyIsToken0ForLiquidPool() == false, "baseCurrency is not token0 for liquid pool"
-        );
+        require(autoWrapper.baseCurrencyIsToken0ForLiquidPool() == false, "baseCurrency is not token0 for liquid pool");
     }
 
     modifier permissionedOperators() {

@@ -150,10 +150,12 @@ contract AutoWrapperSetup is MetaCoinTestSetup, PoolSetup {
         vm.stopPrank();
 
         vm.startPrank(_liquidityProvider);
-        _provisionLiquidity(predicatePoolStartingPrice, tickSpacing, predicatePoolKey, _liquidityProvider, 100e18, 100e6);
+        _provisionLiquidity(
+            predicatePoolStartingPrice, tickSpacing, predicatePoolKey, _liquidityProvider, 100e18, 100e6
+        );
         vm.stopPrank();
     }
-  
+
     function _setUpUSDL() internal {
         YBSV1_1 ybsImpl = new YBSV1_1();
 
@@ -208,7 +210,7 @@ contract AutoWrapperSetup is MetaCoinTestSetup, PoolSetup {
     function getTickSpacing() public view returns (int24) {
         return tickSpacing;
     }
-        
+
     function _addressStartsWith7(
         address _addr
     ) internal pure returns (bool) {

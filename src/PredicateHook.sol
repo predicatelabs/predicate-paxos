@@ -194,7 +194,6 @@ contract PredicateHook is BaseHook, PredicateClient, Ownable {
         IPoolManager.ModifyLiquidityParams calldata params,
         bytes calldata hookData
     ) internal override returns (bytes4) {
-        
         // If the sender is an authorized liquidity provider, allow the transaction
         if (isAuthorizedLP[sender]) {
             return BaseHook.beforeAddLiquidity.selector;

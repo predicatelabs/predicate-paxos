@@ -19,6 +19,7 @@ import {PoolManager} from "@uniswap/v4-core/src/PoolManager.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {TickMath} from "@uniswap/v4-core/src/libraries/TickMath.sol";
 import {MockERC20} from "solmate/src/test/utils/mocks/MockERC20.sol";
+import {LiquidityAmounts} from "@uniswap/v4-core/test/utils/LiquidityAmounts.sol";
 
 contract PoolSetup is DeployPermit2 {
     using EasyPosm for IPositionManager;
@@ -75,8 +76,8 @@ contract PoolSetup is DeployPermit2 {
     }
 
     function _deployTokens() internal returns (MockERC20 token0, MockERC20 token1) {
-        MockERC20 tokenA = new MockERC20("MockA", "A", 18);
-        MockERC20 tokenB = new MockERC20("MockB", "B", 18);
+        MockERC20 tokenA = new MockERC20("MockA", "A", 6);
+        MockERC20 tokenB = new MockERC20("MockB", "B", 6);
         if (uint160(address(tokenA)) < uint160(address(tokenB))) {
             token0 = tokenA;
             token1 = tokenB;
@@ -104,37 +105,33 @@ contract PoolSetup is DeployPermit2 {
     }
 
     function _deployToken() internal returns (MockERC20 token) {
-        token = new MockERC20("MockToken", "MT", 18);
+        token = new MockERC20("MockToken", "MT", 6);
     }
 
     function _provisionLiquidity(
+        uint160 sqrtPriceX96,
         int24 tickSpacing,
         PoolKey memory poolKey,
-        uint256 liquidity,
         address sender,
         uint256 amount0Max,
         uint256 amount1Max
     ) internal {
         bytes memory ZERO_BYTES = new bytes(0);
-        // add full range liquidity to the pool
-        lpRouter.modifyLiquidity(
-            poolKey,
-            IPoolManager.ModifyLiquidityParams(
-                TickMath.minUsableTick(tickSpacing), TickMath.maxUsableTick(tickSpacing), int256(liquidity), 0
-            ),
-            ZERO_BYTES
+
+        int24 currentTick = TickMath.getTickAtSqrtPrice(sqrtPriceX96);
+        int24 tickLower = (currentTick - 600) - ((currentTick - 600) % tickSpacing);
+        int24 tickUpper = (currentTick + 600) - ((currentTick + 600) % tickSpacing);
+
+        uint128 liquidity = LiquidityAmounts.getLiquidityForAmounts(
+            sqrtPriceX96,
+            TickMath.getSqrtPriceAtTick(tickLower),
+            TickMath.getSqrtPriceAtTick(tickUpper),
+            amount0Max,
+            amount1Max
         );
 
         posm.mint(
-            poolKey,
-            TickMath.minUsableTick(tickSpacing),
-            TickMath.maxUsableTick(tickSpacing),
-            liquidity,
-            amount0Max,
-            amount1Max,
-            sender,
-            block.timestamp + 300,
-            ZERO_BYTES
+            poolKey, tickLower, tickUpper, liquidity, amount0Max, amount1Max, sender, block.timestamp + 300, ZERO_BYTES
         );
     }
 

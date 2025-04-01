@@ -39,12 +39,12 @@ contract PredicateHookIntegrationTest is Test, PredicateHookSetup, OperatorTestP
         PoolKey memory key = getPoolKey();
         string memory taskId = "unique-identifier";
 
-        PredicateMessage memory message = getPredicateMessage(taskId, true, -1e18);
+        PredicateMessage memory message = getPredicateMessage(taskId, true, -1e6);
         IV4Router.ExactInputSingleParams memory swapParams = IV4Router.ExactInputSingleParams({
             poolKey: key,
             zeroForOne: true,
-            amountIn: 1e18,
-            amountOutMinimum: 1e17,
+            amountIn: 1e6,
+            amountOutMinimum: 1e5,
             hookData: abi.encode(message, liquidityProvider, 0)
         });
 
@@ -58,13 +58,13 @@ contract PredicateHookIntegrationTest is Test, PredicateHookSetup, OperatorTestP
 
         bytes[] memory params = new bytes[](3);
         params[0] = abi.encode(swapParams); // swap params
-        params[1] = abi.encode(key.currency0, 1e18); // settle currency0
-        params[2] = abi.encode(key.currency1, 1e17); // settle currency1
+        params[1] = abi.encode(key.currency0, 1e6); // settle currency0
+        params[2] = abi.encode(key.currency1, 1e5); // settle currency1
 
         vm.prank(address(liquidityProvider));
         swapRouter.execute(abi.encode(actions, params));
 
-        assertEq(token0.balanceOf(liquidityProvider), balance0 - 1e18, "Token0 balance should decrease by 1e18");
+        assertEq(token0.balanceOf(liquidityProvider), balance0 - 1e6, "Token0 balance should decrease by 1e6");
         require(token1.balanceOf(liquidityProvider) > balance1, "Token1 balance should increase");
     }
 
@@ -83,7 +83,7 @@ contract PredicateHookIntegrationTest is Test, PredicateHookSetup, OperatorTestP
         vm.stopPrank();
 
         vm.startPrank(liquidityProvider);
-        token0.transfer(authorizedUsers[0], 1e18);
+        token0.transfer(authorizedUsers[0], 1e6);
         vm.stopPrank();
 
         uint256 balance0 = token0.balanceOf(authorizedUsers[0]);
@@ -92,8 +92,8 @@ contract PredicateHookIntegrationTest is Test, PredicateHookSetup, OperatorTestP
         IV4Router.ExactInputSingleParams memory swapParams = IV4Router.ExactInputSingleParams({
             poolKey: key,
             zeroForOne: true,
-            amountIn: 1e18,
-            amountOutMinimum: 1e17,
+            amountIn: 1e6,
+            amountOutMinimum: 1e5,
             hookData: abi.encode(0)
         });
 
@@ -102,13 +102,13 @@ contract PredicateHookIntegrationTest is Test, PredicateHookSetup, OperatorTestP
 
         bytes[] memory params = new bytes[](3);
         params[0] = abi.encode(swapParams); // swap params
-        params[1] = abi.encode(key.currency0, 1e18); // settle currency0
-        params[2] = abi.encode(key.currency1, 1e17); // settle currency1
+        params[1] = abi.encode(key.currency0, 1e6); // settle currency0
+        params[2] = abi.encode(key.currency1, 1e5); // settle currency1
 
         vm.prank(authorizedUsers[0]);
         swapRouter.execute(abi.encode(actions, params));
 
-        assertEq(token0.balanceOf(authorizedUsers[0]), balance0 - 1e18, "Token0 balance should decrease by 1e18");
+        assertEq(token0.balanceOf(authorizedUsers[0]), balance0 - 1e6, "Token0 balance should decrease by 1e6");
         require(token1.balanceOf(authorizedUsers[0]) > balance1, "Token1 balance should increase");
     }
 
@@ -116,12 +116,12 @@ contract PredicateHookIntegrationTest is Test, PredicateHookSetup, OperatorTestP
         PoolKey memory key = getPoolKey();
         string memory taskId = "unique-identifier";
 
-        PredicateMessage memory message = getPredicateMessage(taskId, false, 1e18);
+        PredicateMessage memory message = getPredicateMessage(taskId, false, 1e6);
         IV4Router.ExactOutputSingleParams memory swapParams = IV4Router.ExactOutputSingleParams({
             poolKey: key,
             zeroForOne: false,
-            amountOut: 1e18,
-            amountInMaximum: 1e19,
+            amountOut: 1e6,
+            amountInMaximum: 1e7,
             hookData: abi.encode(message, liquidityProvider, 0)
         });
 
@@ -135,13 +135,13 @@ contract PredicateHookIntegrationTest is Test, PredicateHookSetup, OperatorTestP
 
         bytes[] memory params = new bytes[](3);
         params[0] = abi.encode(swapParams); // swap params
-        params[1] = abi.encode(key.currency0, 1e18); // take currency0
-        params[2] = abi.encode(key.currency1, 1e19); // settle currency1
+        params[1] = abi.encode(key.currency0, 1e6); // take currency0
+        params[2] = abi.encode(key.currency1, 1e7); // settle currency1
 
         vm.prank(address(liquidityProvider));
         swapRouter.execute(abi.encode(actions, params));
 
-        assertEq(token0.balanceOf(liquidityProvider), balance0 + 1e18, "Token0 balance should increase by 1e18");
+        assertEq(token0.balanceOf(liquidityProvider), balance0 + 1e6, "Token0 balance should increase by 1e6");
         require(token1.balanceOf(liquidityProvider) < balance1, "Token1 balance should decrease");
     }
 
@@ -149,14 +149,14 @@ contract PredicateHookIntegrationTest is Test, PredicateHookSetup, OperatorTestP
         PoolKey memory key = getPoolKey();
         string memory taskId = "unique-identifier";
 
-        PredicateMessage memory message = getPredicateMessage(taskId, false, 1e18);
+        PredicateMessage memory message = getPredicateMessage(taskId, false, 1e6);
 
         message.taskId = "wrong-identifier";
         IV4Router.ExactOutputSingleParams memory swapParams = IV4Router.ExactOutputSingleParams({
             poolKey: key,
             zeroForOne: false,
-            amountOut: 1e18,
-            amountInMaximum: 1e17,
+            amountOut: 1e6,
+            amountInMaximum: 1e7,
             hookData: abi.encode(message, liquidityProvider, 0)
         });
 
@@ -165,8 +165,8 @@ contract PredicateHookIntegrationTest is Test, PredicateHookSetup, OperatorTestP
 
         bytes[] memory params = new bytes[](3);
         params[0] = abi.encode(swapParams); // swap params
-        params[1] = abi.encode(key.currency0, 1e17); // settle currency0
-        params[2] = abi.encode(key.currency1, 1e18); // settle currency1
+        params[1] = abi.encode(key.currency0, 1e6); // settle currency0
+        params[2] = abi.encode(key.currency1, 1e7); // settle currency1
 
         vm.prank(address(liquidityProvider));
         vm.expectRevert();

@@ -52,6 +52,8 @@ contract DeployTokensAndPool is Script, DeployPermit2 {
     IPositionManager public posm;
     PoolModifyLiquidityTest public lpRouter;
 
+    uint256 public initialSupply = 1000e18; // 1000 tokens
+
     function _init() internal {
         bool networkExists = vm.envExists("NETWORK");
         bool hookAddressExists = vm.envExists("HOOK_ADDRESS");
@@ -159,6 +161,14 @@ contract DeployTokensAndPool is Script, DeployPermit2 {
         IERC20(address(USDC)).approve(address(_swapRouter), type(uint256).max);
         _approvePosmCurrency(posm, Currency.wrap(address(wUSDL)));
         _approvePosmCurrency(posm, Currency.wrap(address(USDC)));
+
+        // increase supply of USDL
+        USDL.increaseSupply(initialSupply * 7);
+        USDL.transfer(msg.sender, initialSupply * 6);
+
+        // Approve and deposit USDL for wUSDL
+        IERC20Upgradeable(address(USDL)).approve(address(wUSDL), type(uint256).max);
+        wUSDL.deposit(4 * initialSupply, msg.sender);
 
         // Provision liquidity
         _provisionLiquidity(predicatePoolStartingPrice, tickSpacing, poolKey, msg.sender, 100e18, 100e6);

@@ -113,16 +113,17 @@ contract AutoWrapperTest is Test, AutoWrapperSetup, OperatorTestPrep {
     }
 
     function testSwapOneForZeroExactInput() public permissionedOperators prepOperatorRegistration(true) {
+        // USDL -> USDC
         string memory taskId = "unique-identifier";
         PoolKey memory key = getPoolKey();
         uint256 amountSpecified = 1e18;
         PredicateMessage memory message =
-            getPredicateMessage(taskId, false, -autoWrapper.getUnwrapInputRequired(amountSpecified));
+            getPredicateMessage(taskId, true, -autoWrapper.getUnwrapInputRequired(amountSpecified));
         IV4Router.ExactInputSingleParams memory swapParams = IV4Router.ExactInputSingleParams({
             poolKey: key,
             zeroForOne: false,
             amountIn: amountSpecified.toUint128(),
-            amountOutMinimum: 1e17,
+            amountOutMinimum: 1e5,
             hookData: abi.encode(message, liquidityProvider, 0)
         });
 
@@ -141,7 +142,7 @@ contract AutoWrapperTest is Test, AutoWrapperSetup, OperatorTestPrep {
         bytes[] memory params = new bytes[](4);
         params[0] = abi.encode(key.currency1, amountSpecified, true); // settle currency1
         params[1] = abi.encode(swapParams); // swap params
-        params[2] = abi.encode(key.currency0, 1e17); // take currency0
+        params[2] = abi.encode(key.currency0, 1e5); // take currency0
         params[3] = abi.encode(key.currency1, amountSpecified); // settle currency1
 
         vm.prank(address(liquidityProvider));
@@ -158,9 +159,9 @@ contract AutoWrapperTest is Test, AutoWrapperSetup, OperatorTestPrep {
     function testSwapOneForZeroExactOutput() public permissionedOperators prepOperatorRegistration(true) {
         string memory taskId = "unique-identifier";
         PoolKey memory key = getPoolKey();
-        uint256 amountSpecified = 1e18;
-        uint256 amountSpecifiedReq = 1_005_025_125_628_140_704; // this needs to be an amount >= what is required for the swap
-        PredicateMessage memory message = getPredicateMessage(taskId, false, amountSpecified.toInt128());
+        uint256 amountSpecified = 1e6;
+        uint256 amountSpecifiedReq = 1_005_025; // this needs to be an amount >= what is required for the swap
+        PredicateMessage memory message = getPredicateMessage(taskId, true, amountSpecified.toInt128());
         IV4Router.ExactOutputSingleParams memory swapParams = IV4Router.ExactOutputSingleParams({
             poolKey: key,
             zeroForOne: false,

@@ -29,14 +29,28 @@ import {INetwork} from "./INetwork.sol";
 import {NetworkSelector} from "./NetworkSelector.sol";
 import {V4Router} from "@uniswap/v4-periphery/src/V4Router.sol";
 import {PredicateHook} from "../../src/PredicateHook.sol";
-
+import {LiquidityAmounts} from "@uniswap/v4-core/test/utils/LiquidityAmounts.sol";
 /// @notice Forge script for deploying v4 & hooks
-contract DeployTokensAndPoolAnvil is Script, DeployPermit2 {
+
+contract DeployTokensAndPool is Script, DeployPermit2 {
     using EasyPosm for IPositionManager;
 
     INetwork private _env;
     address private _hookAddress;
     V4Router private _swapRouter;
+
+    address public admin;
+    address public supplyController;
+    address public pauser;
+    address public assetProtector;
+    address public rebaser;
+    address public rebaserAdmin;
+
+    YBSV1_1 public USDL;
+    wYBSV1 public wUSDL;
+    MockERC20 public USDC;
+    IPositionManager public posm;
+    PoolModifyLiquidityTest public lpRouter;
 
     function _init() internal {
         bool networkExists = vm.envExists("NETWORK");
@@ -50,6 +64,13 @@ contract DeployTokensAndPoolAnvil is Script, DeployPermit2 {
         _env = new NetworkSelector().select(_network);
         _hookAddress = vm.envAddress("HOOK_ADDRESS");
         _swapRouter = V4Router(vm.envAddress("SWAP_ROUTER_ADDRESS"));
+
+        admin = msg.sender;
+        supplyController = msg.sender;
+        pauser = msg.sender;
+        assetProtector = msg.sender;
+        rebaser = msg.sender;
+        rebaserAdmin = msg.sender;
     }
 
     function run() public {
@@ -58,8 +79,8 @@ contract DeployTokensAndPoolAnvil is Script, DeployPermit2 {
 
         vm.startBroadcast();
         IPoolManager manager = config.poolManager;
-        IPositionManager posm = _deployPosm(manager);
-        PoolModifyLiquidityTest lpRouter = _deployRouters(manager);
+        _deployPosm(manager);
+        _deployRouters(manager);
         console.log("Deployed POSM: %s", address(posm));
         console.log("Deployed LP Router: %s", address(lpRouter));
         vm.stopBroadcast();
@@ -80,15 +101,15 @@ contract DeployTokensAndPoolAnvil is Script, DeployPermit2 {
 
     function _deployRouters(
         IPoolManager manager
-    ) internal returns (PoolModifyLiquidityTest lpRouter) {
+    ) internal {
         lpRouter = new PoolModifyLiquidityTest(manager);
     }
 
     function _deployPosm(
         IPoolManager poolManager
-    ) internal returns (IPositionManager) {
+    ) internal {
         anvilPermit2();
-        return IPositionManager(
+        posm = IPositionManager(
             new PositionManager(poolManager, permit2, 300_000, IPositionDescriptor(address(0)), IWETH9(address(0)))
         );
     }
@@ -99,78 +120,52 @@ contract DeployTokensAndPoolAnvil is Script, DeployPermit2 {
     }
 
     function _initializePool(IPoolManager manager, IPositionManager posm, PoolModifyLiquidityTest lpRouter) internal {
-        (YBSV1_1 USDL, wYBSV1 wUSDL, MockERC20 baseToken) = _setupTokens();
-        _logTokens(address(USDL), address(wUSDL), address(baseToken));
+        // deploy tokens
+        for (uint256 i = 0; i < 100; i++) {
+            _setUpUSDL();
+            if (_addressStartsWithB(address(USDL))) {
+                break;
+            }
+        }
+        require(_addressStartsWithB(address(USDL)), "USDL address does not start with B");
 
-        Currency token0;
-        Currency token1;
-        if (uint160(address(baseToken)) < uint160(address(wUSDL))) {
-            token0 = Currency.wrap(address(baseToken));
-            token1 = Currency.wrap(address(wUSDL));
-        } else {
-            token0 = Currency.wrap(address(wUSDL));
-            token1 = Currency.wrap(address(baseToken));
+        for (uint256 i = 0; i < 100; i++) {
+            _setUpVault();
+            if (_addressStartsWith7(address(wUSDL))) {
+                break;
+            }
+        }
+        require(_addressStartsWith7(address(wUSDL)), "wUSDL address does not start with 7");
+
+        for (uint256 i = 0; i < 10; i++) {
+            USDC = _deployAndMintToken(msg.sender, 100_000_000_000_000);
+            if (_addressStartsWithA(address(USDC))) {
+                break;
+            }
         }
 
-        console.log(
-            "Deploying liquidity pool with token0: %s and token1: %s", Currency.unwrap(token0), Currency.unwrap(token1)
-        );
-
         // Deploy liquidity pool with predicate hook
-        bytes memory ZERO_BYTES = new bytes(0);
         int24 tickSpacing = 60;
-        PoolKey memory poolKey = PoolKey(token0, token1, 0, tickSpacing, IHooks(_hookAddress));
-        manager.initialize(poolKey, Constants.SQRT_PRICE_1_1);
+        PoolKey memory poolKey =
+            PoolKey(Currency.wrap(address(wUSDL)), Currency.wrap(address(USDC)), 0, tickSpacing, IHooks(_hookAddress));
+        uint160 predicatePoolStartingPrice = 79_228_162_514_264_337_593_543;
+
+        manager.initialize(poolKey, predicatePoolStartingPrice);
 
         // Approve tokens for liquidity router and swap router
-        IERC20(Currency.unwrap(token0)).approve(address(lpRouter), type(uint256).max);
-        IERC20(Currency.unwrap(token1)).approve(address(lpRouter), type(uint256).max);
-        IERC20(Currency.unwrap(token0)).approve(address(_swapRouter), type(uint256).max);
-        IERC20(Currency.unwrap(token1)).approve(address(_swapRouter), type(uint256).max);
+        IERC20(address(wUSDL)).approve(address(lpRouter), type(uint256).max);
+        IERC20(address(USDC)).approve(address(lpRouter), type(uint256).max);
+        IERC20(address(wUSDL)).approve(address(_swapRouter), type(uint256).max);
+        IERC20(address(USDC)).approve(address(_swapRouter), type(uint256).max);
+        _approvePosmCurrency(posm, Currency.wrap(address(wUSDL)));
+        _approvePosmCurrency(posm, Currency.wrap(address(USDC)));
 
-        _approvePosmCurrency(posm, token0);
-        _approvePosmCurrency(posm, token1);
-
-        lpRouter.modifyLiquidity(
-            poolKey,
-            IPoolManager.ModifyLiquidityParams(
-                TickMath.minUsableTick(tickSpacing), TickMath.maxUsableTick(tickSpacing), 100 ether, 0
-            ),
-            ZERO_BYTES
-        );
-
-        posm.mint(
-            poolKey,
-            TickMath.minUsableTick(tickSpacing),
-            TickMath.maxUsableTick(tickSpacing),
-            100e18,
-            10_000e18,
-            10_000e18,
-            msg.sender,
-            block.timestamp + 300,
-            ZERO_BYTES
-        );
+        // Provision liquidity
+        _provisionLiquidity(predicatePoolStartingPrice, tickSpacing, poolKey, msg.sender, 100e18, 100e6);
     }
 
-    /*
-    * @notice Deploy YBSV1_1, wYBSV1 and baseToken
-    * @dev This function is used to deploy the YBSV1_1, wYBSV1 and baseToken
-    * @dev also mints and approves tokens for the deployer for baseToken
-    * @dev sets defaults and ensures token is ready for use in a pool
-    * @dev also sets approvals for autoWrapper, wUSDL and baseToken
-    */
-    function _setupTokens() internal returns (YBSV1_1 USDL, wYBSV1 wUSDL, MockERC20 baseToken) {
-        address admin = msg.sender;
-        address supplyController = msg.sender;
-        address pauser = msg.sender;
-        address assetProtector = msg.sender;
-        address rebaser = msg.sender;
-        address rebaserAdmin = msg.sender;
-
-        uint256 initialSupply = 1000 * 10 ** 18; // 1000 token
-
+    function _setUpUSDL() internal {
         YBSV1_1 ybsImpl = new YBSV1_1();
-        wYBSV1 wYbsImpl = new wYBSV1();
 
         bytes memory ybsData = abi.encodeWithSelector(
             YBSV1_1.initialize.selector,
@@ -184,10 +179,15 @@ contract DeployTokensAndPoolAnvil is Script, DeployPermit2 {
             rebaserAdmin,
             rebaser
         );
-
         ERC1967Proxy ybsProxy = new ERC1967Proxy(address(ybsImpl), ybsData);
         USDL = YBSV1_1(address(ybsProxy));
 
+        USDL.setMaxRebaseRate(0.05 * 10 ** 18); // 5% max rate
+        USDL.setRebasePeriod(1 days);
+    }
+
+    function _setUpVault() internal {
+        wYBSV1 wYbsImpl = new wYBSV1();
         bytes memory wYbsData = abi.encodeWithSelector(
             wYBSV1.initialize.selector,
             "Wrapped YBS",
@@ -197,49 +197,69 @@ contract DeployTokensAndPoolAnvil is Script, DeployPermit2 {
             pauser,
             assetProtector
         );
-
         ERC1967Proxy wYbsProxy = new ERC1967Proxy(address(wYbsImpl), wYbsData);
         wUSDL = wYBSV1(address(wYbsProxy));
-
-        // Deploy baseCurrency for pool
-        baseToken = new MockERC20("MockA", "A", 18); // USDC
-        // Mint 100_000 ether to msg.sender
-        baseToken.mint(msg.sender, 100_000 ether);
-
-        // Set max rebase rate to 5%
-        USDL.setMaxRebaseRate(0.05 * 10 ** 18);
-
-        // Set rebase period to 1 day
-        USDL.setRebasePeriod(1 days);
-
-        // Grant wrapped ybs role to wUSDL
         USDL.grantRole(USDL.WRAPPED_YBS_ROLE(), address(wUSDL));
-
-        // Mint 7 * initialSupply of USDL to msg.sender
-        USDL.increaseSupply(initialSupply * 7);
-        // Transfer 6 * initialSupply of USDL to msg.sender
-        USDL.transfer(msg.sender, initialSupply * 6);
-        // Deposit 3 * initialSupply of USDL from msg.sender to wUSDL
-        wUSDL.deposit(3 * initialSupply, msg.sender);
-
-        return (USDL, wUSDL, baseToken);
     }
 
-    function _logTokens(address USDL, address wUSDL, address baseToken) internal {
-        console.log("Deployed YBSV1_1: %s", address(USDL));
-        console.log("Deployed wYBSV1: %s", address(wUSDL));
-        console.log("Deployed baseToken: %s", address(baseToken));
+    function _deployAndMintToken(address sender, uint256 amount) internal returns (MockERC20 token) {
+        token = _deployToken();
+        token.mint(sender, amount);
+        return token;
+    }
 
-        if (uint160(address(USDL)) < uint160(address(baseToken))) {
-            console.log("USDL is less than baseToken; it will be USDL/baseToken pool");
-        } else {
-            console.log("USDL is greater than baseToken; it will be baseToken/USDL pool");
-        }
+    function _deployToken() internal returns (MockERC20 token) {
+        token = new MockERC20("MockToken", "MT", 6);
+    }
 
-        if (uint160(address(wUSDL)) < uint160(address(baseToken))) {
-            console.log("wUSDL is less than baseToken; it will be wUSDL/baseToken pool");
-        } else {
-            console.log("wUSDL is greater than baseToken; it will be baseToken/wUSDL pool");
-        }
+    function _provisionLiquidity(
+        uint160 sqrtPriceX96,
+        int24 tickSpacing,
+        PoolKey memory poolKey,
+        address sender,
+        uint256 amount0Max,
+        uint256 amount1Max
+    ) internal {
+        bytes memory ZERO_BYTES = new bytes(0);
+
+        int24 currentTick = TickMath.getTickAtSqrtPrice(sqrtPriceX96);
+        int24 tickLower = (currentTick - 600) - ((currentTick - 600) % tickSpacing);
+        int24 tickUpper = (currentTick + 600) - ((currentTick + 600) % tickSpacing);
+
+        uint128 liquidity = LiquidityAmounts.getLiquidityForAmounts(
+            sqrtPriceX96,
+            TickMath.getSqrtPriceAtTick(tickLower),
+            TickMath.getSqrtPriceAtTick(tickUpper),
+            amount0Max,
+            amount1Max
+        );
+
+        posm.mint(
+            poolKey, tickLower, tickUpper, liquidity, amount0Max, amount1Max, sender, block.timestamp + 300, ZERO_BYTES
+        );
+    }
+
+    function _addressStartsWith7(
+        address _addr
+    ) internal pure returns (bool) {
+        uint256 addrValue = uint256(uint160(_addr));
+        uint256 topNibble = (addrValue >> 156) & 0xF; // isolate bits 159..156
+        return topNibble == 0x7;
+    }
+
+    function _addressStartsWithB(
+        address _addr
+    ) internal pure returns (bool) {
+        uint256 addrValue = uint256(uint160(_addr));
+        uint256 topNibble = (addrValue >> 156) & 0xF;
+        return topNibble == 0xB;
+    }
+
+    function _addressStartsWithA(
+        address _addr
+    ) internal pure returns (bool) {
+        uint256 addrValue = uint256(uint160(_addr));
+        uint256 topNibble = (addrValue >> 156) & 0xF;
+        return topNibble == 0xA;
     }
 }

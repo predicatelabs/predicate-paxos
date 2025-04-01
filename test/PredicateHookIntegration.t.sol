@@ -61,7 +61,7 @@ contract PredicateHookIntegrationTest is Test, PredicateHookSetup, OperatorTestP
         params[0] = abi.encode(swapParams); // swap params
         params[1] = abi.encode(key.currency0, 1e6); // settle currency0
         params[2] = abi.encode(key.currency1, 1e5); // settle currency1
-        
+
         vm.prank(address(liquidityProvider));
         swapRouter.execute(abi.encode(actions, params));
 
@@ -167,11 +167,11 @@ contract PredicateHookIntegrationTest is Test, PredicateHookSetup, OperatorTestP
             abi.encodePacked(uint8(Actions.SWAP_EXACT_OUT_SINGLE), uint8(Actions.TAKE_ALL), uint8(Actions.SETTLE_ALL));
 
         bytes[] memory params = new bytes[](3);
-        
+
         params[0] = abi.encode(swapParams); // swap params
         params[1] = abi.encode(key.currency0, 1e6); // take currency0
         params[2] = abi.encode(key.currency1, 1e7); // settle currency1
-        
+
         vm.prank(address(liquidityProvider));
         swapRouter.execute(abi.encode(actions, params));
 
@@ -198,11 +198,11 @@ contract PredicateHookIntegrationTest is Test, PredicateHookSetup, OperatorTestP
             abi.encodePacked(uint8(Actions.SWAP_EXACT_OUT_SINGLE), uint8(Actions.SETTLE_ALL), uint8(Actions.TAKE_ALL));
 
         bytes[] memory params = new bytes[](3);
-        
+
         params[0] = abi.encode(swapParams); // swap params
         params[1] = abi.encode(key.currency0, 1e6); // settle currency0
         params[2] = abi.encode(key.currency1, 1e7); // settle currency1\
-        
+
         vm.prank(address(liquidityProvider));
         vm.expectRevert();
         swapRouter.execute(abi.encode(actions, params));

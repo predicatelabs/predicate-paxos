@@ -21,6 +21,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {ERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import {DeltaResolver} from "@uniswap/v4-periphery/src/base/DeltaResolver.sol";
+import {TickMath} from "@uniswap/v4-core/src/libraries/TickMath.sol";
 
 /**
  * @title AutoWrapper Swap Hook for USDL
@@ -213,13 +214,12 @@ contract AutoWrapper is BaseHook, DeltaResolver {
     ) internal override returns (bytes4 selector, BeforeSwapDelta swapDelta, uint24 lpFeeOverride) {
         if (sender != address(router)) revert CallerIsNotRouter();
 
-        bool isExactInput = params.amountSpecified < 0;
-
         // Step 1: Determines the amounts and direction of the swap for the underlying liquidity pool
+        bool swapZeroForOne = _getSwapZeroForOneForLiquidPool(params);
         IPoolManager.SwapParams memory swapParams = IPoolManager.SwapParams({
-            zeroForOne: _getSwapZeroForOneForLiquidPool(params),
+            zeroForOne: swapZeroForOne,
             amountSpecified: _getAmountSpecifiedForLiquidPool(params),
-            sqrtPriceLimitX96: params.sqrtPriceLimitX96
+            sqrtPriceLimitX96: _getSqrtPriceLimitX96ForLiquidPool(swapZeroForOne)
         });
 
         // Step 2: swap through the liquidity pool
@@ -236,6 +236,7 @@ contract AutoWrapper is BaseHook, DeltaResolver {
         }
 
         // Step 3: settle the delta for the swap with the pool manager and calculate the swap delta
+        bool isExactInput = params.amountSpecified < 0;
         if (params.zeroForOne == baseCurrencyIsToken0) {
             // baseCurrency -> USDL swap path
             _take(Currency.wrap(address(wUSDL)), address(this), uint256(wUSDLDelta));
@@ -251,7 +252,7 @@ contract AutoWrapper is BaseHook, DeltaResolver {
             _take(Currency.wrap(wUSDL.asset()), address(this), inputAmount);
             uint256 wUSDLAmount = _deposit(inputAmount);
             _settle(Currency.wrap(address(wUSDL)), address(this), wUSDLAmount);
-            int128 amountUnspecified = isExactInput ? -baseCurrencyDelta.toInt128() : -(inputAmount.toInt128());
+            int128 amountUnspecified = isExactInput ? -baseCurrencyDelta.toInt128() : inputAmount.toInt128();
             swapDelta = toBeforeSwapDelta(-params.amountSpecified.toInt128(), amountUnspecified);
         }
 
@@ -277,6 +278,17 @@ contract AutoWrapper is BaseHook, DeltaResolver {
             // WUSDL/USDC pool
             return isExactInput ? -getUnwrapInputRequired(uint256(-params.amountSpecified)) : params.amountSpecified;
         }
+    }
+
+    /**
+     * @notice Adjusts the sqrtPriceLimitX96 for the underlying liquidity pool swap based on the swap direction
+     * @dev This function is used to enable the correct swap direction for the liquidity pool
+     * @return sqrtPriceLimitX96 The adjusted sqrtPriceLimitX96 set to max or min sqrtPrice
+     */
+    function _getSqrtPriceLimitX96ForLiquidPool(
+        bool swapZeroForOne
+    ) internal view returns (uint160) {
+        return swapZeroForOne ? TickMath.MIN_SQRT_PRICE + 1 : TickMath.MAX_SQRT_PRICE - 1;
     }
 
     /**

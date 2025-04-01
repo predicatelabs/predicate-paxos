@@ -27,6 +27,8 @@ contract AutoWrapperTest is Test, AutoWrapperSetup, OperatorTestPrep {
         liquidityProvider = makeAddr("liquidityProvider");
         super.setUp();
         _setUpHooksAndPools(liquidityProvider);
+        require(autoWrapper.baseCurrencyIsToken0() == true, "baseCurrency is token0");
+        require(autoWrapper.baseCurrencyIsToken0ForLiquidPool() == false, "baseCurrency is not token0 for liquid pool");
     }
 
     modifier permissionedOperators() {
@@ -40,13 +42,14 @@ contract AutoWrapperTest is Test, AutoWrapperSetup, OperatorTestPrep {
     }
 
     function testSwapZeroForOneExactInput() public permissionedOperators prepOperatorRegistration(true) {
+        // USDC -> USDL
         string memory taskId = "unique-identifier";
         PoolKey memory key = getPoolKey();
-        PredicateMessage memory message = getPredicateMessage(taskId, true, -1e18);
+        PredicateMessage memory message = getPredicateMessage(taskId, false, -1e6);
         IV4Router.ExactInputSingleParams memory swapParams = IV4Router.ExactInputSingleParams({
             poolKey: key,
             zeroForOne: true,
-            amountIn: 1e18,
+            amountIn: 1e6,
             amountOutMinimum: 1e17,
             hookData: abi.encode(message, liquidityProvider, 0)
         });
@@ -61,13 +64,13 @@ contract AutoWrapperTest is Test, AutoWrapperSetup, OperatorTestPrep {
 
         bytes[] memory params = new bytes[](3);
         params[0] = abi.encode(swapParams); // swap params
-        params[1] = abi.encode(key.currency0, 1e18); // settle currency0
-        params[2] = abi.encode(key.currency1, 1e17); // settle currency1
+        params[1] = abi.encode(key.currency0, 1e6); // settle currency0
+        params[2] = abi.encode(key.currency1, 1e17); // take currency1
 
         vm.prank(address(liquidityProvider));
         swapRouter.execute(abi.encode(actions, params));
 
-        assertEq(token0.balanceOf(liquidityProvider), balance0 - 1e18, "Token0 balance should decrease by 1e18");
+        assertEq(token0.balanceOf(liquidityProvider), balance0 - 1e6, "Token0 balance should decrease by 1e6");
         require(token1.balanceOf(liquidityProvider) > balance1, "Token1 balance should increase");
     }
 
@@ -76,12 +79,12 @@ contract AutoWrapperTest is Test, AutoWrapperSetup, OperatorTestPrep {
         string memory taskId = "unique-identifier";
         uint256 amountSpecified = 1e18;
         PredicateMessage memory message =
-            getPredicateMessage(taskId, true, autoWrapper.getUnwrapInputRequired(amountSpecified));
+            getPredicateMessage(taskId, false, autoWrapper.getUnwrapInputRequired(amountSpecified));
         IV4Router.ExactOutputSingleParams memory swapParams = IV4Router.ExactOutputSingleParams({
             poolKey: key,
             zeroForOne: true,
             amountOut: amountSpecified.toUint128(),
-            amountInMaximum: 1e19,
+            amountInMaximum: 1e8,
             hookData: abi.encode(message, liquidityProvider, 0)
         });
 
@@ -96,7 +99,7 @@ contract AutoWrapperTest is Test, AutoWrapperSetup, OperatorTestPrep {
         bytes[] memory params = new bytes[](3);
         params[0] = abi.encode(swapParams); // swap params
         params[1] = abi.encode(key.currency1, amountSpecified); // take currency1
-        params[2] = abi.encode(key.currency0, 1e19); // settle currency0
+        params[2] = abi.encode(key.currency0, 1e8); // settle currency0
 
         vm.prank(address(liquidityProvider));
         swapRouter.execute(abi.encode(actions, params));
@@ -110,16 +113,17 @@ contract AutoWrapperTest is Test, AutoWrapperSetup, OperatorTestPrep {
     }
 
     function testSwapOneForZeroExactInput() public permissionedOperators prepOperatorRegistration(true) {
+        // USDL -> USDC
         string memory taskId = "unique-identifier";
         PoolKey memory key = getPoolKey();
         uint256 amountSpecified = 1e18;
         PredicateMessage memory message =
-            getPredicateMessage(taskId, false, -autoWrapper.getUnwrapInputRequired(amountSpecified));
+            getPredicateMessage(taskId, true, -autoWrapper.getUnwrapInputRequired(amountSpecified));
         IV4Router.ExactInputSingleParams memory swapParams = IV4Router.ExactInputSingleParams({
             poolKey: key,
             zeroForOne: false,
             amountIn: amountSpecified.toUint128(),
-            amountOutMinimum: 1e17,
+            amountOutMinimum: 1e5,
             hookData: abi.encode(message, liquidityProvider, 0)
         });
 
@@ -138,7 +142,7 @@ contract AutoWrapperTest is Test, AutoWrapperSetup, OperatorTestPrep {
         bytes[] memory params = new bytes[](4);
         params[0] = abi.encode(key.currency1, amountSpecified, true); // settle currency1
         params[1] = abi.encode(swapParams); // swap params
-        params[2] = abi.encode(key.currency0, 1e17); // take currency0
+        params[2] = abi.encode(key.currency0, 1e5); // take currency0
         params[3] = abi.encode(key.currency1, amountSpecified); // settle currency1
 
         vm.prank(address(liquidityProvider));
@@ -155,9 +159,9 @@ contract AutoWrapperTest is Test, AutoWrapperSetup, OperatorTestPrep {
     function testSwapOneForZeroExactOutput() public permissionedOperators prepOperatorRegistration(true) {
         string memory taskId = "unique-identifier";
         PoolKey memory key = getPoolKey();
-        uint256 amountSpecified = 1e18;
-        uint256 amountSpecifiedReq = 1_005_025_125_628_140_704; // this needs to be an amount >= what is required for the swap
-        PredicateMessage memory message = getPredicateMessage(taskId, false, amountSpecified.toInt128());
+        uint256 amountSpecified = 1e6;
+        uint256 amountSpecifiedReq = 1_000_307_275_108_773_833; // this needs to be an amount >= what is required for the swap
+        PredicateMessage memory message = getPredicateMessage(taskId, true, amountSpecified.toInt128());
         IV4Router.ExactOutputSingleParams memory swapParams = IV4Router.ExactOutputSingleParams({
             poolKey: key,
             zeroForOne: false,

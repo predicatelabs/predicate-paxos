@@ -22,10 +22,11 @@ import {ERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.so
 import {DeltaResolver} from "@uniswap/v4-periphery/src/base/DeltaResolver.sol";
 
 /**
- * @title USDL Ghost Pool Swap & Wrap Hook
+ * @title AutoWrapper Swap Hook for USDL
  * @author Predicate Labs
- * @notice Uniswap V4 hook for routing swaps between a ghost pool and a liquid ERC20/wUSDL pool, while automatically wrapping/unwrapping USDL ↔ wUSDL
- * @dev This hook is designed to be used with a ghost pool. It intercepts swaps and performs wrapping logic with an ERC4626 vault and executes swaps against the pre-configured liquid ERC20/wUSDL pool.
+ * @notice A V4 hook for swapping USDL, a rebasing asset, against some base currency (e.g. USDC)
+ * @dev This hook is intended to be used with a "ghost pool"-a non-liquid pool that acts as an interface
+ *      for swapping USDL against wUSDL/baseCurrency pool.
  */
 contract AutoWrapper is BaseHook, DeltaResolver {
     using SafeCast for uint256;
@@ -36,7 +37,7 @@ contract AutoWrapper is BaseHook, DeltaResolver {
     /**
      * @notice Thrown when attempting to add liquidity on the ghost pool
      * @dev All liquidity operations must be performed directly on the liquid ERC20/wUSDL pool,
-     *      as the ghost pool is only an interface for users and doesn't hold actual liquidity
+     *      as the ghost pool is only an interface for swapping USDL and does not hold actual liquidity
      */
     error LiquidityNotAllowed();
 
@@ -48,7 +49,7 @@ contract AutoWrapper is BaseHook, DeltaResolver {
 
     /**
      * @notice Thrown when the caller is not the router
-     * @dev This is a security measure to ensure that only the router can call the pool manager
+     * @dev This is a security measure to ensure that only the configured router can call the pool manager
      */
     error CallerIsNotRouter();
 
@@ -58,10 +59,11 @@ contract AutoWrapper is BaseHook, DeltaResolver {
      */
     ERC4626 public immutable wUSDL;
 
-    /// @notice The predicate pool key
-    /// @dev This is the pool key for the pool with liquidity
-    /// @dev example: USDC/wUSDL pool key is {currency0: USDC, currency1: wUSDL, fee: 0}
-    PoolKey public wUSDLPoolKey;
+    /**
+     * @notice The wUSDL/baseCurrency pool key
+     * @dev This is the pool key for the liquid pool
+     */
+    PoolKey public baseCurrencyPoolKey;
 
     /**
      * @notice Reference to the router handling user swap requests
@@ -70,17 +72,17 @@ contract AutoWrapper is BaseHook, DeltaResolver {
     ISimpleV4Router public router;
 
     /**
-     * @notice The base currency for this USDL pool (e.g. USDC)
+     * @notice The base currency for this ghost pool and the liquid pool
      */
     Currency public immutable baseCurrency;
 
     /**
      * @notice Indicates whether the base currency is token0 in the baseCurrency/wUSDL pool
      */
-    bool public immutable baseCurrencyIsToken0ForPredicatePool;
+    bool public immutable baseCurrencyIsToken0ForLiquidPool;
 
     /**
-     * @notice Indicates whether the base currency is token0 in the baseCurrency/USDL pool
+     * @notice Indicates whether the base currency is token0 in this ghost pool
      */
     bool public immutable baseCurrencyIsToken0;
 
@@ -94,8 +96,8 @@ contract AutoWrapper is BaseHook, DeltaResolver {
      */
     constructor(
         IPoolManager _manager,
-        ERC4626 _wUSDL, // _wUSDL.asset() is USDL
-        Currency _baseCurrency, // _baseCurrency is the other asset of the wUSDL pool. ex USDC
+        ERC4626 _wUSDL,
+        Currency _baseCurrency,
         PoolKey memory _wUSDLPoolKey,
         ISimpleV4Router _router
     ) BaseHook(_manager) {
@@ -104,17 +106,17 @@ contract AutoWrapper is BaseHook, DeltaResolver {
             require(
                 address(_wUSDL) == Currency.unwrap(_wUSDLPoolKey.currency1), "currency mismatch; currency1 is not wUSDL"
             );
-            baseCurrencyIsToken0ForPredicatePool = true;
+            baseCurrencyIsToken0ForLiquidPool = true;
         } else {
             require(
                 address(_wUSDL) == Currency.unwrap(_wUSDLPoolKey.currency0), "currency mismatch; currency0 is not wUSDL"
             );
-            baseCurrencyIsToken0ForPredicatePool = false; // false for mainnet
+            baseCurrencyIsToken0ForLiquidPool = false; // false for mainnet
         }
 
         baseCurrency = _baseCurrency;
         wUSDL = _wUSDL;
-        wUSDLPoolKey = _wUSDLPoolKey; // predicate pool key
+        baseCurrencyPoolKey = _wUSDLPoolKey; // predicate pool key
         router = _router;
         baseCurrencyIsToken0 = baseCurrency < Currency.wrap(wUSDL.asset()); // true for mainnet
         IERC20(wUSDL.asset()).approve(address(wUSDL), type(uint256).max);
@@ -191,11 +193,11 @@ contract AutoWrapper is BaseHook, DeltaResolver {
     }
 
     /**
-     * @notice Intercepts swaps on the ghost pool and routes them through the liquid pool
-     * @dev Core function implementing the routing logic between pools. For ERC20→USDL swaps,
-     *      it routes through the liquid pool (ERC20→wUSDL), then unwraps to USDL.
+     * @notice Handles swaps for or with USDL on the ghost pool
+     * @dev Core function implementing the wrapping and routing of the swap against the liquid pool.
+     *      For ERC20→USDL swaps, it routes through the liquid pool (ERC20→wUSDL), then unwraps to USDL.
      *      For USDL→ERC20 swaps, it wraps USDL to wUSDL, executes the swap on the liquid
-     *      pool, and returns ERC20 to the user. Preserves exact input/output semantics throughout.
+     *      pool, and returns ERC20 directly to the user.
      * @param params The swap parameters on the ghost pool
      * @param hookData Encoded data containing authorization information for the liquid pool swap
      * @return selector The function selector indicating success
@@ -214,8 +216,8 @@ contract AutoWrapper is BaseHook, DeltaResolver {
 
         // Step 1: Determines the amounts and direction of the swap for the underlying liquidity pool
         IPoolManager.SwapParams memory swapParams = IPoolManager.SwapParams({
-            zeroForOne: _getSwapZeroForOneForLiquidityPool(params),
-            amountSpecified: _getAmountSpecifiedForLiquidityPool(params),
+            zeroForOne: _getSwapZeroForOneForLiquidPool(params),
+            amountSpecified: _getAmountSpecifiedForLiquidPool(params),
             sqrtPriceLimitX96: params.sqrtPriceLimitX96
         });
 
@@ -224,7 +226,7 @@ contract AutoWrapper is BaseHook, DeltaResolver {
         int256 baseCurrencyDelta; // delta of the baseCurrency
         int256 wUSDLDelta; // delta of the wUSDL
 
-        if (baseCurrencyIsToken0ForPredicatePool) {
+        if (baseCurrencyIsToken0ForLiquidPool) {
             baseCurrencyDelta = BalanceDeltaLibrary.amount0(delta);
             wUSDLDelta = BalanceDeltaLibrary.amount1(delta);
         } else {
@@ -244,7 +246,7 @@ contract AutoWrapper is BaseHook, DeltaResolver {
             // USDL -> baseCurrency swap path
             // Note: UniversalRouter sends USDL to the poolManager at start of swap
             uint256 inputAmount =
-                isExactInput ? -params.amountSpecified : uint256(getWrapInputRequired(uint256(-wUSDLDelta)));
+                isExactInput ? uint256(-params.amountSpecified) : uint256(getWrapInputRequired(uint256(-wUSDLDelta)));
             _take(Currency.wrap(wUSDL.asset()), address(this), inputAmount);
             uint256 wUSDLAmount = _deposit(inputAmount);
             _settle(Currency.wrap(address(wUSDL)), address(this), wUSDLAmount);
@@ -256,11 +258,13 @@ contract AutoWrapper is BaseHook, DeltaResolver {
     }
 
     /**
-     * @notice Adjusts the amount specified for the underlying liquidity pool swap based on the swap direction
+     * @notice Converts the input/output amount based on wUSDL vault price
+     * @dev Depending on swap direction and whether it's exact input or output, converts
+     *      between USDL (vault asset) and wUSDL (vault share) using ERC4626.
      * @param params The swap parameters
-     * @return The adjusted amount specified
+     * @return amount The adjusted amount specified
      */
-    function _getAmountSpecifiedForLiquidityPool(
+    function _getAmountSpecifiedForLiquidPool(
         IPoolManager.SwapParams memory params
     ) internal view returns (int256) {
         bool isExactInput = params.amountSpecified < 0;
@@ -280,18 +284,18 @@ contract AutoWrapper is BaseHook, DeltaResolver {
      * @param params The swap parameters
      * @return flag The adjusted zeroForOne flag
      */
-    function _getSwapZeroForOneForLiquidityPool(
+    function _getSwapZeroForOneForLiquidPool(
         IPoolManager.SwapParams memory params
     ) internal view returns (bool) {
         if (baseCurrencyIsToken0) {
-            if (baseCurrencyIsToken0ForPredicatePool) {
+            if (baseCurrencyIsToken0ForLiquidPool) {
                 // baseCurrency is token0 for the ghost pool, and baseCurrency is token0 for the predicate pool
                 return params.zeroForOne;
             }
             // baseCurrency is token0 for the ghost pool and baseCurrency is token1 for the predicate pool
             return !params.zeroForOne;
         } else {
-            if (baseCurrencyIsToken0ForPredicatePool) {
+            if (baseCurrencyIsToken0ForLiquidPool) {
                 // baseCurrency is token1 for the ghost pool and baseCurrency is token0 for the predicate pool
                 return !params.zeroForOne;
             }
@@ -311,7 +315,7 @@ contract AutoWrapper is BaseHook, DeltaResolver {
         IPoolManager.SwapParams memory params,
         bytes calldata hookData
     ) internal returns (BalanceDelta delta) {
-        return poolManager.swap(wUSDLPoolKey, params, hookData);
+        return poolManager.swap(baseCurrencyPoolKey, params, hookData);
     }
 
     /**

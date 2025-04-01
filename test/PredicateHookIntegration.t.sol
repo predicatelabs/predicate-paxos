@@ -54,7 +54,7 @@ contract PredicateHookIntegrationTest is Test, PredicateHookSetup, OperatorTestP
         uint256 balance1 = token1.balanceOf(liquidityProvider);
 
         bytes memory actions =
-                            abi.encodePacked(uint8(Actions.SWAP_EXACT_IN_SINGLE), uint8(Actions.SETTLE_ALL), uint8(Actions.TAKE_ALL));
+            abi.encodePacked(uint8(Actions.SWAP_EXACT_IN_SINGLE), uint8(Actions.SETTLE_ALL), uint8(Actions.TAKE_ALL));
 
         bytes[] memory params = new bytes[](3);
 
@@ -99,7 +99,7 @@ contract PredicateHookIntegrationTest is Test, PredicateHookSetup, OperatorTestP
         });
 
         bytes memory actions =
-                            abi.encodePacked(uint8(Actions.SWAP_EXACT_IN_SINGLE), uint8(Actions.SETTLE_ALL), uint8(Actions.TAKE_ALL));
+            abi.encodePacked(uint8(Actions.SWAP_EXACT_IN_SINGLE), uint8(Actions.SETTLE_ALL), uint8(Actions.TAKE_ALL));
 
         bytes[] memory params = new bytes[](3);
         params[0] = abi.encode(swapParams); // swap params
@@ -123,7 +123,7 @@ contract PredicateHookIntegrationTest is Test, PredicateHookSetup, OperatorTestP
             zeroForOne: false,
             amountOut: 1e6,
             amountInMaximum: 1e7,
-            hookData: abi.encode(  message)
+            hookData: abi.encode(message)
         });
 
         IERC20 token0 = IERC20(Currency.unwrap(key.currency0));
@@ -132,7 +132,7 @@ contract PredicateHookIntegrationTest is Test, PredicateHookSetup, OperatorTestP
         uint256 balance1 = token1.balanceOf(liquidityProvider);
 
         bytes memory actions =
-                            abi.encodePacked(uint8(Actions.SWAP_EXACT_OUT_SINGLE), uint8(Actions.TAKE_ALL), uint8(Actions.SETTLE_ALL));
+            abi.encodePacked(uint8(Actions.SWAP_EXACT_OUT_SINGLE), uint8(Actions.TAKE_ALL), uint8(Actions.SETTLE_ALL));
 
         bytes[] memory params = new bytes[](3);
         params[0] = abi.encode(swapParams); // swap params
@@ -150,7 +150,7 @@ contract PredicateHookIntegrationTest is Test, PredicateHookSetup, OperatorTestP
         PoolKey memory key = getPoolKey();
         string memory taskId = "unique-identifier";
 
-        bytes memory invalidHookData = abi.encode(  0);
+        bytes memory invalidHookData = abi.encode(0);
 
         IV4Router.ExactOutputSingleParams memory swapParams = IV4Router.ExactOutputSingleParams({
             poolKey: key,
@@ -166,7 +166,7 @@ contract PredicateHookIntegrationTest is Test, PredicateHookSetup, OperatorTestP
         uint256 balance1 = token1.balanceOf(liquidityProvider);
 
         bytes memory actions =
-                            abi.encodePacked(uint8(Actions.SWAP_EXACT_OUT_SINGLE), uint8(Actions.TAKE_ALL), uint8(Actions.SETTLE_ALL));
+            abi.encodePacked(uint8(Actions.SWAP_EXACT_OUT_SINGLE), uint8(Actions.TAKE_ALL), uint8(Actions.SETTLE_ALL));
 
         bytes[] memory params = new bytes[](3);
         params[0] = abi.encode(swapParams); // swap params
@@ -194,7 +194,7 @@ contract PredicateHookIntegrationTest is Test, PredicateHookSetup, OperatorTestP
         });
 
         bytes memory actions =
-                            abi.encodePacked(uint8(Actions.SWAP_EXACT_OUT_SINGLE), uint8(Actions.SETTLE_ALL), uint8(Actions.TAKE_ALL));
+            abi.encodePacked(uint8(Actions.SWAP_EXACT_OUT_SINGLE), uint8(Actions.SETTLE_ALL), uint8(Actions.TAKE_ALL));
 
         bytes[] memory params = new bytes[](3);
 

@@ -11,7 +11,6 @@ import type {
 import * as sdk from '@predicate/predicate-sdk'
 
 
-const SQRT_PRICE_LIMIT_X96 = BigNumber.from("4295128740");
 const SWAP_EXACT_IN_SINGLE_ACTION = 0x06;
 const SWAP_EXACT_OUT_SINGLE_ACTION = 0x08;
 const TAKE_ALL_ACTION = 0x0f;

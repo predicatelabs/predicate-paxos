@@ -15,8 +15,7 @@ import {PoolModifyLiquidityTest} from "@uniswap/v4-core/src/test/PoolModifyLiqui
 import {IPositionDescriptor} from "@uniswap/v4-periphery/src/interfaces/IPositionDescriptor.sol";
 import {IWETH9} from "@uniswap/v4-periphery/src/interfaces/external/IWETH9.sol";
 import {EasyPosm} from "./EasyPosm.sol";
-import {SimpleV4Router} from "../../src/SimpleV4Router.sol";
-import {ISimpleV4Router} from "../../src/interfaces/ISimpleV4Router.sol";
+import {V4SwapRouter} from "../../src/V4SwapRouter.sol";
 import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
 import {MockERC20} from "solmate/src/test/utils/mocks/MockERC20.sol";
 import {PoolManager} from "@uniswap/v4-core/src/PoolManager.sol";
@@ -30,7 +29,7 @@ contract PoolSetup is DeployPermit2 {
     IPoolManager manager;
     IPositionManager posm;
     PoolModifyLiquidityTest lpRouter;
-    ISimpleV4Router swapRouter;
+    V4SwapRouter swapRouter;
 
     // -----------------------------------------------------------
     // Helpers
@@ -55,8 +54,7 @@ contract PoolSetup is DeployPermit2 {
     function deployRouters() internal virtual {
         require(address(manager) != address(0), "Manager not deployed");
         lpRouter = new PoolModifyLiquidityTest(manager);
-        SimpleV4Router v4Router = new SimpleV4Router(manager);
-        swapRouter = ISimpleV4Router(address(v4Router));
+        swapRouter = new V4SwapRouter(manager);
     }
 
     function deployPosm() internal virtual {

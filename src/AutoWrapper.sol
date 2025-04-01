@@ -11,7 +11,7 @@ import {BaseHook} from "@uniswap/v4-periphery/src/utils/BaseHook.sol";
 import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
 import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
 import {BalanceDelta, BalanceDeltaLibrary} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
-import {ISimpleV4Router} from "./interfaces/ISimpleV4Router.sol";
+import {V4Router} from "@uniswap/v4-periphery/src/V4Router.sol";
 import {Currency, CurrencyLibrary} from "@uniswap/v4-core/src/types/Currency.sol";
 import {CurrencySettler} from "@uniswap/v4-core/test/utils/CurrencySettler.sol";
 import {TransientStateLibrary} from "@uniswap/v4-core/src/libraries/TransientStateLibrary.sol";
@@ -70,7 +70,7 @@ contract AutoWrapper is BaseHook, DeltaResolver {
      * @notice Reference to the router handling user swap requests
      * @dev Used to access the actual message sender. This is a trusted contract.
      */
-    ISimpleV4Router public router;
+    V4Router public router;
 
     /**
      * @notice The base currency for this ghost pool and the liquid pool
@@ -100,7 +100,7 @@ contract AutoWrapper is BaseHook, DeltaResolver {
         ERC4626 _wUSDL,
         Currency _baseCurrency,
         PoolKey memory _wUSDLPoolKey,
-        ISimpleV4Router _router
+        V4Router _router
     ) BaseHook(_manager) {
         if (_baseCurrency == _wUSDLPoolKey.currency0) {
             require(

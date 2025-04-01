@@ -2,8 +2,6 @@
 pragma solidity ^0.8.12;
 
 import {PredicateHook} from "../../src/PredicateHook.sol";
-import {SimpleV4Router} from "../../src/SimpleV4Router.sol";
-import {ISimpleV4Router} from "../../src/interfaces/ISimpleV4Router.sol";
 
 import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
 import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";

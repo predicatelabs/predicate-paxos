@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import {PredicateHook} from "../src/PredicateHook.sol";
 import {PredicateHookSetup} from "./utils/PredicateHookSetup.sol";
-import {ISimpleV4Router} from "../src/interfaces/ISimpleV4Router.sol";
+import {V4Router} from "@uniswap/v4-periphery/src/V4Router.sol";
 
 contract PredicateHookTest is PredicateHookSetup {
     address liquidityProvider;
@@ -116,7 +116,7 @@ contract PredicateHookTest is PredicateHookSetup {
     function testSetRouter() public {
         address newRouter = makeAddr("new-router");
         vm.prank(hook.owner());
-        hook.setRouter(ISimpleV4Router(newRouter));
+        hook.setRouter(V4Router(newRouter));
         assertEq(address(hook.router()), newRouter);
     }
 
@@ -124,6 +124,6 @@ contract PredicateHookTest is PredicateHookSetup {
         address newRouter = makeAddr("new-router");
         vm.prank(makeAddr("not-owner"));
         vm.expectRevert();
-        hook.setRouter(ISimpleV4Router(newRouter));
+        hook.setRouter(V4Router(newRouter));
     }
 }

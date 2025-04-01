@@ -6,7 +6,7 @@ import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
 import {PositionManager} from "@uniswap/v4-periphery/src/PositionManager.sol";
 import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
 import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
-import {ISimpleV4Router} from "../../src/interfaces/ISimpleV4Router.sol";
+import {V4Router} from "@uniswap/v4-periphery/src/V4Router.sol";
 import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
 
 contract Mainnet is INetwork {
@@ -23,7 +23,7 @@ contract Mainnet is INetwork {
     function config() external pure override returns (Config memory) {
         return Config({
             poolManager: IPoolManager(POOL_MANAGER),
-            router: ISimpleV4Router(SWAP_ROUTER),
+            router: V4Router(SWAP_ROUTER),
             positionManager: PositionManager(payable(POSITION_MANAGER)),
             permit2: IAllowanceTransfer(PERMIT2),
             create2Deployer: CREATE2_DEPLOYER,

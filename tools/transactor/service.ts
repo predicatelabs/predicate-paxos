@@ -115,12 +115,7 @@ export class TransactorService {
             signatures: predicateResponse.signature,
         };
 
-        const hookDataEncoded = this.encodeHookData(
-            pm,
-            this.wallet.address,
-            BigNumber.from("0"),
-        );
-        return hookDataEncoded;
+        return this.encodeHookData(pm);
     }
 
     encodeBeforeSwap(sender: string, key: PoolKey, params: SwapParams): string {
@@ -159,21 +154,17 @@ export class TransactorService {
 
     encodeHookData(
         pm: PredicateMessage,
-        msgSender: string,
-        msgValue: BigNumber,
     ): string {
         const abiCoder = ethers.utils.defaultAbiCoder;
         const encoded = abiCoder.encode(
-            ["tuple(string,uint256,address[],bytes[])", "address", "uint256"],
+            ["tuple(string,uint256,address[],bytes[])"],
             [
                 [
                     pm.taskId,
                     pm.expireByBlockNumber.toString(),
                     pm.signerAddresses,
                     pm.signatures,
-                ],
-                msgSender,
-                msgValue.toString(),
+                ]
             ],
         );
         return encoded;

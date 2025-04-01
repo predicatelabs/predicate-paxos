@@ -158,7 +158,7 @@ contract PredicateHook is BaseHook, PredicateClient, Ownable2Step {
             return (IHooks.beforeSwap.selector, delta, 0);
         }
 
-        (PredicateMessage memory predicateMessage, address msgSender, uint256 msgValue) = this.decodeHookData(hookData);
+        PredicateMessage memory predicateMessage = abi.decode(hookData, (PredicateMessage));
 
         bytes memory encodeSigAndArgs = abi.encodeWithSignature(
             "_beforeSwap(address,address,address,uint24,int24,address,bool,int256)",
@@ -172,7 +172,7 @@ contract PredicateHook is BaseHook, PredicateClient, Ownable2Step {
             params.amountSpecified
         );
 
-        if (!_authorizeTransaction(predicateMessage, encodeSigAndArgs, msgSender, msgValue)) {
+        if (!_authorizeTransaction(predicateMessage, encodeSigAndArgs, router.msgSender(), 0)) {
             revert PredicateAuthorizationFailed();
         }
 
@@ -207,26 +207,6 @@ contract PredicateHook is BaseHook, PredicateClient, Ownable2Step {
 
         // If the sender is not an authorized liquidity provider, the transaction will revert
         revert UnauthorizedLiquidityProvider();
-    }
-
-    /**
-     * @notice Utility to decode hook data into its components
-     * @dev Extracts the authorization message, sender, and value from encoded hook data
-     * @param hookData The encoded hook data from the swap call
-     * @return predicateMessage The Predicate authorization message with signatures
-     * @return msgSender The original transaction sender
-     * @return msgValue Any ETH value sent with the transaction
-     */
-    function decodeHookData(
-        bytes calldata hookData
-    ) external pure returns (PredicateMessage memory, address, uint256) {
-        (
-            PredicateMessage memory predicateMessage,
-            address msgSender, // todo remove this from the hook data
-            uint256 msgValue
-        ) = abi.decode(hookData, (PredicateMessage, address, uint256));
-
-        return (predicateMessage, msgSender, msgValue);
     }
 
     /**

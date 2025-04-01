@@ -2,64 +2,60 @@
 pragma solidity ^0.8.24;
 
 import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
-import {BalanceDelta} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
 import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
 import {PositionManager} from "@uniswap/v4-periphery/src/PositionManager.sol";
 import {IPositionManager} from "@uniswap/v4-periphery/src/interfaces/IPositionManager.sol";
 import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
 import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
-import {IERC20} from "forge-std/interfaces/IERC20.sol";
 import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
 import {DeployPermit2} from "./forks/DeployPermit2.sol";
 import {PoolModifyLiquidityTest} from "@uniswap/v4-core/src/test/PoolModifyLiquidityTest.sol";
 import {IPositionDescriptor} from "@uniswap/v4-periphery/src/interfaces/IPositionDescriptor.sol";
 import {IWETH9} from "@uniswap/v4-periphery/src/interfaces/external/IWETH9.sol";
 import {EasyPosm} from "./EasyPosm.sol";
-import {SimpleV4Router} from "../../src/SimpleV4Router.sol";
-import {ISimpleV4Router} from "../../src/interfaces/ISimpleV4Router.sol";
+import {V4SwapRouter} from "../../src/V4SwapRouter.sol";
 import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
-import {MockERC20} from "solmate/src/test/utils/mocks/MockERC20.sol";
 import {PoolManager} from "@uniswap/v4-core/src/PoolManager.sol";
-import {Constants} from "@uniswap/v4-core/src/../test/utils/Constants.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {TickMath} from "@uniswap/v4-core/src/libraries/TickMath.sol";
+import {MockERC20} from "solmate/src/test/utils/mocks/MockERC20.sol";
 
 contract PoolSetup is DeployPermit2 {
     using EasyPosm for IPositionManager;
 
     // Global variables
-    IPoolManager manager;
-    IPositionManager posm;
-    PoolModifyLiquidityTest lpRouter;
-    ISimpleV4Router swapRouter;
+    IPoolManager public manager;
+    IPositionManager public posm;
+    PoolModifyLiquidityTest public lpRouter;
+    V4SwapRouter public swapRouter;
 
     // -----------------------------------------------------------
     // Helpers
     // -----------------------------------------------------------
 
-    function initPool(
-        Currency _currency0,
-        Currency _currency1,
+    function _initPool(
+        Currency currency0,
+        Currency currency1,
         IHooks hooks,
         uint24 fee,
         int24 tickSpacing,
         uint160 sqrtPriceX96
-    ) internal returns (PoolKey memory _key) {
-        _key = PoolKey(_currency0, _currency1, fee, tickSpacing, hooks);
-        manager.initialize(_key, sqrtPriceX96);
+    ) internal returns (PoolKey memory key) {
+        key = PoolKey(currency0, currency1, fee, tickSpacing, hooks);
+        manager.initialize(key, sqrtPriceX96);
     }
 
-    function deployPoolManager() internal virtual {
+    function _deployPoolManager() internal virtual {
         manager = IPoolManager(new PoolManager(address(this)));
     }
 
-    function deployRouters() internal virtual {
+    function _deployRouters() internal virtual {
         require(address(manager) != address(0), "Manager not deployed");
         lpRouter = new PoolModifyLiquidityTest(manager);
-        SimpleV4Router v4Router = new SimpleV4Router(manager);
-        swapRouter = ISimpleV4Router(address(v4Router));
+        swapRouter = new V4SwapRouter(manager);
     }
 
-    function deployPosm() internal virtual {
+    function _deployPosm() internal virtual {
         require(address(permit2) != address(0), "Permit2 not deployed");
         require(address(manager) != address(0), "Manager not deployed");
         etchPermit2();
@@ -68,7 +64,7 @@ contract PoolSetup is DeployPermit2 {
         );
     }
 
-    function approvePosmCurrency(
+    function _approvePosmCurrency(
         Currency currency
     ) internal {
         // Because POSM uses permit2, we must execute 2 permits/approvals.
@@ -78,7 +74,7 @@ contract PoolSetup is DeployPermit2 {
         permit2.approve(Currency.unwrap(currency), address(posm), type(uint160).max, type(uint48).max);
     }
 
-    function deployTokens() internal returns (MockERC20 token0, MockERC20 token1) {
+    function _deployTokens() internal returns (MockERC20 token0, MockERC20 token1) {
         MockERC20 tokenA = new MockERC20("MockA", "A", 18);
         MockERC20 tokenB = new MockERC20("MockB", "B", 18);
         if (uint160(address(tokenA)) < uint160(address(tokenB))) {
@@ -90,28 +86,28 @@ contract PoolSetup is DeployPermit2 {
         }
     }
 
-    function deployAndMintTokens(
+    function _deployAndMintTokens(
         address sender,
         uint256 amount
     ) internal returns (Currency currency0, Currency currency1) {
-        (MockERC20 token0, MockERC20 token1) = deployTokens();
+        (MockERC20 token0, MockERC20 token1) = _deployTokens();
         token0.mint(sender, amount);
         token1.mint(sender, amount);
         currency0 = Currency.wrap(address(token0));
         currency1 = Currency.wrap(address(token1));
     }
 
-    function deployAndMintToken(address sender, uint256 amount) internal returns (Currency currency) {
-        (MockERC20 token) = deployToken();
+    function _deployAndMintToken(address sender, uint256 amount) internal returns (Currency currency) {
+        (MockERC20 token) = _deployToken();
         token.mint(sender, amount);
         currency = Currency.wrap(address(token));
     }
 
-    function deployToken() internal returns (MockERC20 token) {
+    function _deployToken() internal returns (MockERC20 token) {
         token = new MockERC20("MockToken", "MT", 18);
     }
 
-    function provisionLiquidity(
+    function _provisionLiquidity(
         int24 tickSpacing,
         PoolKey memory poolKey,
         uint256 liquidity,
@@ -142,13 +138,13 @@ contract PoolSetup is DeployPermit2 {
         );
     }
 
-    function setTokenApprovalForRouters(
+    function _setTokenApprovalForRouters(
         Currency currency0
     ) internal {
         // approve the tokens to the routers
         IERC20 token0 = IERC20(Currency.unwrap(currency0));
         token0.approve(address(lpRouter), type(uint256).max);
         token0.approve(address(swapRouter), type(uint256).max);
-        approvePosmCurrency(currency0);
+        _approvePosmCurrency(currency0);
     }
 }

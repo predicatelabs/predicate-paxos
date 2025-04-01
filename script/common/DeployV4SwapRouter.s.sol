@@ -5,9 +5,9 @@ import "forge-std/Script.sol";
 import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
 import {INetwork} from "./INetwork.sol";
 import {NetworkSelector} from "./NetworkSelector.sol";
-import {SimpleV4Router} from "../../src/SimpleV4Router.sol";
+import {V4SwapRouter} from "../../src/V4SwapRouter.sol";
 
-contract DeploySimpleV4Router is Script {
+contract DeployV4SwapRouter is Script {
     INetwork private _env;
 
     function _init() internal {
@@ -28,8 +28,8 @@ contract DeploySimpleV4Router is Script {
         IPoolManager manager = config.poolManager;
 
         vm.startBroadcast();
-        SimpleV4Router router = new SimpleV4Router(manager);
-        console.log("SimpleV4Router deployed at: ", address(router));
+        V4SwapRouter router = new V4SwapRouter(manager);
+        console.log("V4Router deployed at: ", address(router));
         vm.stopBroadcast();
     }
 }

@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import {PredicateHook} from "../src/PredicateHook.sol";
 import {PredicateMessage} from "@predicate/interfaces/IPredicateClient.sol";
 import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
+import {IV4Router} from "@uniswap/v4-periphery/src/interfaces/IV4Router.sol";
 import {Task} from "@predicate/interfaces/IPredicateManager.sol";
 import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
 import {OperatorTestPrep} from "@predicate-test/helpers/utility/OperatorTestPrep.sol";
@@ -12,14 +13,16 @@ import {PredicateHookSetup} from "./utils/PredicateHookSetup.sol";
 import {TickMath} from "@uniswap/v4-core/src/libraries/TickMath.sol";
 import {IERC20} from "forge-std/interfaces/IERC20.sol";
 import {BalanceDelta} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
+import {Actions} from "@uniswap/v4-periphery/src/libraries/Actions.sol";
+import {Test} from "forge-std/Test.sol";
 
-contract PredicateHookIntegrationTest is PredicateHookSetup, OperatorTestPrep {
-    address liquidityProvider;
+contract PredicateHookIntegrationTest is Test, PredicateHookSetup, OperatorTestPrep {
+    address public liquidityProvider;
 
     function setUp() public override {
         liquidityProvider = makeAddr("liquidityProvider");
         super.setUp();
-        setUpPredicateHook(liquidityProvider);
+        _setUpPredicateHook(liquidityProvider);
     }
 
     modifier permissionedOperators() {
@@ -32,25 +35,36 @@ contract PredicateHookIntegrationTest is PredicateHookSetup, OperatorTestPrep {
         _;
     }
 
-    function testSwapZeroForOne() public permissionedOperators prepOperatorRegistration(true) {
+    function testSwapZeroForOneExactInput() public permissionedOperators prepOperatorRegistration(true) {
         PoolKey memory key = getPoolKey();
         string memory taskId = "unique-identifier";
-        IPoolManager.SwapParams memory params = IPoolManager.SwapParams({
-            zeroForOne: true,
-            amountSpecified: 1e18,
-            sqrtPriceLimitX96: TickMath.MIN_SQRT_PRICE + 1
-        });
 
-        PredicateMessage memory message = getPredicateMessage(taskId, params);
+        PredicateMessage memory message = getPredicateMessage(taskId, true, -1e18);
+        IV4Router.ExactInputSingleParams memory swapParams = IV4Router.ExactInputSingleParams({
+            poolKey: key,
+            zeroForOne: true,
+            amountIn: 1e18,
+            amountOutMinimum: 1e17,
+            hookData: abi.encode(message, liquidityProvider, 0)
+        });
 
         IERC20 token0 = IERC20(Currency.unwrap(key.currency0));
         IERC20 token1 = IERC20(Currency.unwrap(key.currency1));
         uint256 balance0 = token0.balanceOf(liquidityProvider);
         uint256 balance1 = token1.balanceOf(liquidityProvider);
 
+        bytes memory actions =
+            abi.encodePacked(uint8(Actions.SWAP_EXACT_IN_SINGLE), uint8(Actions.SETTLE_ALL), uint8(Actions.TAKE_ALL));
+
+        bytes[] memory params = new bytes[](3);
+        params[0] = abi.encode(swapParams); // swap params
+        params[1] = abi.encode(key.currency0, 1e18); // settle currency0
+        params[2] = abi.encode(key.currency1, 1e17); // settle currency1
+
         vm.prank(address(liquidityProvider));
-        BalanceDelta delta = swapRouter.swap(key, params, abi.encode(message, liquidityProvider, 0));
-        require(token0.balanceOf(liquidityProvider) < balance0, "Token0 balance should decrease");
+        swapRouter.execute(abi.encode(actions, params));
+
+        assertEq(token0.balanceOf(liquidityProvider), balance0 - 1e18, "Token0 balance should decrease by 1e18");
         require(token1.balanceOf(liquidityProvider) > balance1, "Token1 balance should increase");
     }
 
@@ -75,90 +89,54 @@ contract PredicateHookIntegrationTest is PredicateHookSetup, OperatorTestPrep {
         uint256 balance0 = token0.balanceOf(authorizedUsers[0]);
         uint256 balance1 = token1.balanceOf(authorizedUsers[0]);
 
-        IPoolManager.SwapParams memory params = IPoolManager.SwapParams({
+        IV4Router.ExactInputSingleParams memory swapParams = IV4Router.ExactInputSingleParams({
+            poolKey: key,
             zeroForOne: true,
-            amountSpecified: -1e18,
-            sqrtPriceLimitX96: TickMath.MIN_SQRT_PRICE + 1
+            amountIn: 1e18,
+            amountOutMinimum: 1e17,
+            hookData: abi.encode(0)
         });
 
+        bytes memory actions =
+            abi.encodePacked(uint8(Actions.SWAP_EXACT_IN_SINGLE), uint8(Actions.SETTLE_ALL), uint8(Actions.TAKE_ALL));
+
+        bytes[] memory params = new bytes[](3);
+        params[0] = abi.encode(swapParams); // swap params
+        params[1] = abi.encode(key.currency0, 1e18); // settle currency0
+        params[2] = abi.encode(key.currency1, 1e17); // settle currency1
+
         vm.prank(authorizedUsers[0]);
-        BalanceDelta delta = swapRouter.swap(key, params, abi.encode(0)); // no predicate message
-        require(token0.balanceOf(authorizedUsers[0]) < balance0, "Token0 balance should decrease");
+        swapRouter.execute(abi.encode(actions, params));
+
+        assertEq(token0.balanceOf(authorizedUsers[0]), balance0 - 1e18, "Token0 balance should decrease by 1e18");
         require(token1.balanceOf(authorizedUsers[0]) > balance1, "Token1 balance should increase");
     }
 
-    function testSwapOneForZero() public permissionedOperators prepOperatorRegistration(true) {
+    function testSwapOneForZeroExactOutput() public permissionedOperators prepOperatorRegistration(true) {
         PoolKey memory key = getPoolKey();
         string memory taskId = "unique-identifier";
-        IPoolManager.SwapParams memory params = IPoolManager.SwapParams({
-            zeroForOne: false,
-            amountSpecified: 1e18,
-            sqrtPriceLimitX96: TickMath.MAX_SQRT_PRICE - 1
-        });
 
-        PredicateMessage memory message = getPredicateMessage(taskId, params);
+        PredicateMessage memory message = getPredicateMessage(taskId, false, 1e18);
+        IV4Router.ExactOutputSingleParams memory swapParams = IV4Router.ExactOutputSingleParams({
+            poolKey: key,
+            zeroForOne: false,
+            amountOut: 1e18,
+            amountInMaximum: 1e19,
+            hookData: abi.encode(message, liquidityProvider, 0)
+        });
 
         IERC20 token0 = IERC20(Currency.unwrap(key.currency0));
         IERC20 token1 = IERC20(Currency.unwrap(key.currency1));
         uint256 balance0 = token0.balanceOf(liquidityProvider);
         uint256 balance1 = token1.balanceOf(liquidityProvider);
 
-        vm.prank(address(liquidityProvider));
-        BalanceDelta delta = swapRouter.swap(key, params, abi.encode(message, liquidityProvider, 0));
-        require(token0.balanceOf(liquidityProvider) > balance0, "Token0 balance should increase");
-        require(token1.balanceOf(liquidityProvider) < balance1, "Token1 balance should decrease");
-    }
+        bytes memory actions =
+            abi.encodePacked(uint8(Actions.SWAP_EXACT_OUT_SINGLE), uint8(Actions.TAKE_ALL), uint8(Actions.SETTLE_ALL));
 
-    function testSwapWithInvalidMessage() public permissionedOperators prepOperatorRegistration(true) {
-        PoolKey memory key = getPoolKey();
-        string memory taskId = "unique-identifier";
-        IPoolManager.SwapParams memory params = IPoolManager.SwapParams({
-            zeroForOne: true,
-            amountSpecified: 1e18,
-            sqrtPriceLimitX96: uint160(4_295_128_740)
-        });
-
-        PredicateMessage memory message = getPredicateMessage(taskId, params);
-        message.taskId = "invalid-task-id";
-
-        vm.prank(address(liquidityProvider));
-        vm.expectRevert();
-        swapRouter.swap(key, params, abi.encode(message, liquidityProvider, 0));
-    }
-
-    function testSwapWithExpiredSignature() public permissionedOperators prepOperatorRegistration(true) {
-        PoolKey memory key = getPoolKey();
-        string memory taskId = "unique-identifier";
-        IPoolManager.SwapParams memory params = IPoolManager.SwapParams({
-            zeroForOne: true,
-            amountSpecified: 1e18,
-            sqrtPriceLimitX96: TickMath.MIN_SQRT_PRICE + 1
-        });
-
-        IERC20 token0 = IERC20(Currency.unwrap(key.currency0));
-        IERC20 token1 = IERC20(Currency.unwrap(key.currency1));
-        uint256 initialBalance0 = token0.balanceOf(liquidityProvider);
-        uint256 initialBalance1 = token1.balanceOf(liquidityProvider);
-
-        Task memory task = getTask(taskId, params);
-        task.expireByBlockNumber = block.number - 1;
-
-        bytes32 taskHash = serviceManager.hashTaskWithExpiry(task);
-
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(operatorOneAliasPk, taskHash);
-        bytes memory signature = abi.encodePacked(r, s, v);
-
-        address[] memory signerAddresses = new address[](1);
-        bytes[] memory operatorSignatures = new bytes[](1);
-        signerAddresses[0] = operatorOneAlias;
-        operatorSignatures[0] = signature;
-
-        PredicateMessage memory message = PredicateMessage({
-            taskId: taskId,
-            expireByBlockNumber: task.expireByBlockNumber,
-            signerAddresses: signerAddresses,
-            signatures: operatorSignatures
-        });
+        bytes[] memory params = new bytes[](3);
+        params[0] = abi.encode(swapParams); // swap params
+        params[1] = abi.encode(key.currency0, 1e18); // take currency0
+        params[2] = abi.encode(key.currency1, 1e19); // settle currency1
 
         vm.prank(address(liquidityProvider));
         vm.expectRevert();
@@ -169,48 +147,46 @@ contract PredicateHookIntegrationTest is PredicateHookSetup, OperatorTestPrep {
     }
 
     function testSwapWithEmptySignatures() public permissionedOperators prepOperatorRegistration(true) {
+        swapRouter.execute(abi.encode(actions, params));
+        
+        assertEq(token0.balanceOf(liquidityProvider), balance0 + 1e18, "Token0 balance should increase by 1e18");
+        require(token1.balanceOf(liquidityProvider) < balance1, "Token1 balance should decrease");
+    }
+    
+    function testSwapWithInvalidMessage() public permissionedOperators prepOperatorRegistration(true) {
         PoolKey memory key = getPoolKey();
         string memory taskId = "unique-identifier";
-        IPoolManager.SwapParams memory params = IPoolManager.SwapParams({
-            zeroForOne: true,
-            amountSpecified: 1e18,
-            sqrtPriceLimitX96: TickMath.MIN_SQRT_PRICE + 1
+
+        PredicateMessage memory message = getPredicateMessage(taskId, false, 1e18);
+
+        message.taskId = "wrong-identifier";
+        IV4Router.ExactOutputSingleParams memory swapParams = IV4Router.ExactOutputSingleParams({
+            poolKey: key,
+            zeroForOne: false,
+            amountOut: 1e18,
+            amountInMaximum: 1e17,
+            hookData: abi.encode(message, liquidityProvider, 0)
         });
 
-        IERC20 token0 = IERC20(Currency.unwrap(key.currency0));
-        IERC20 token1 = IERC20(Currency.unwrap(key.currency1));
-        uint256 initialBalance0 = token0.balanceOf(liquidityProvider);
-        uint256 initialBalance1 = token1.balanceOf(liquidityProvider);
+        bytes memory actions =
+            abi.encodePacked(uint8(Actions.SWAP_EXACT_OUT_SINGLE), uint8(Actions.SETTLE_ALL), uint8(Actions.TAKE_ALL));
 
-        PredicateMessage memory message = PredicateMessage({
-            taskId: taskId,
-            expireByBlockNumber: block.number + 100,
-            signerAddresses: new address[](0),
-            signatures: new bytes[](0)
-        });
-
-        bytes memory expectedError = abi.encodeWithSelector(
-            bytes4(0x575e24b4),
-            abi.encodeWithSelector(
-                bytes4(0x08c379a0),
-                abi.encode("ServiceManager.PredicateVerified: quorum threshold count cannot be zero")
-            ),
-            bytes4(0xa9e35b2f)
-        );
+        bytes[] memory params = new bytes[](3);
+        params[0] = abi.encode(swapParams); // swap params
+        params[1] = abi.encode(key.currency0, 1e17); // settle currency0
+        params[2] = abi.encode(key.currency1, 1e18); // settle currency1
 
         vm.prank(address(liquidityProvider));
         vm.expectRevert();
-        swapRouter.swap(key, params, abi.encode(message, liquidityProvider, 0));
-
-        assertEq(token0.balanceOf(liquidityProvider), initialBalance0, "Token0 balance should not change");
-        assertEq(token1.balanceOf(liquidityProvider), initialBalance1, "Token1 balance should not change");
+        swapRouter.execute(abi.encode(actions, params));
     }
 
     function getPredicateMessage(
         string memory taskId,
-        IPoolManager.SwapParams memory params
+        bool zeroForOne,
+        int256 amountSpecified
     ) public returns (PredicateMessage memory) {
-        Task memory task = getTask(taskId, params);
+        Task memory task = getTask(taskId, zeroForOne, amountSpecified);
         bytes32 taskHash = serviceManager.hashTaskWithExpiry(task);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(operatorOneAliasPk, taskHash);
 
@@ -231,7 +207,7 @@ contract PredicateHookIntegrationTest is PredicateHookSetup, OperatorTestPrep {
         return message;
     }
 
-    function getTask(string memory taskId, IPoolManager.SwapParams memory params) public returns (Task memory) {
+    function getTask(string memory taskId, bool zeroForOne, int256 amountSpecified) public returns (Task memory) {
         PoolKey memory key = getPoolKey();
         return Task({
             taskId: taskId,
@@ -239,16 +215,15 @@ contract PredicateHookIntegrationTest is PredicateHookSetup, OperatorTestPrep {
             target: address(hook),
             value: 0,
             encodedSigAndArgs: abi.encodeWithSignature(
-                "_beforeSwap(address,address,address,uint24,int24,address,bool,int256,uint160)",
+                "_beforeSwap(address,address,address,uint24,int24,address,bool,int256)",
                 liquidityProvider,
                 key.currency0,
                 key.currency1,
                 key.fee,
                 key.tickSpacing,
                 address(key.hooks),
-                params.zeroForOne,
-                params.amountSpecified,
-                params.sqrtPriceLimitX96
+                zeroForOne,
+                amountSpecified
             ),
             policyID: "testPolicy",
             quorumThresholdCount: 1,

@@ -13,7 +13,7 @@ import {INetwork} from "./INetwork.sol";
 import {NetworkSelector} from "./NetworkSelector.sol";
 import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
 import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
-import {ISimpleV4Router} from "../../src/interfaces/ISimpleV4Router.sol";
+import {V4Router} from "@uniswap/v4-periphery/src/V4Router.sol";
 
 contract CreatePoolAndAddLiquidityScript is Script {
     using CurrencyLibrary for Currency;
@@ -24,7 +24,7 @@ contract CreatePoolAndAddLiquidityScript is Script {
     IERC20 private token1;
     PositionManager private posm;
     IAllowanceTransfer private permit2;
-    ISimpleV4Router private swapRouter;
+    V4Router private swapRouter;
 
     INetwork private _env;
     address private hookAddress;

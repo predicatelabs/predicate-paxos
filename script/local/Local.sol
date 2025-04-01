@@ -6,8 +6,8 @@ import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
 import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
 import {PositionManager} from "@uniswap/v4-periphery/src/PositionManager.sol";
 import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
-import {ISimpleV4Router} from "../../src/interfaces/ISimpleV4Router.sol";
 import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
+import {V4Router} from "@uniswap/v4-periphery/src/V4Router.sol";
 
 contract Local is INetwork {
     address public constant USDL = address(0x959922bE3CAee4b8Cd9a407cc3ac1C251C2007B1);
@@ -17,7 +17,7 @@ contract Local is INetwork {
     function config() external pure override returns (Config memory) {
         return Config({
             poolManager: IPoolManager(address(0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6)),
-            router: ISimpleV4Router(address(0x8A791620dd6260079BF849Dc5567aDC3F2FdC318)),
+            router: V4Router(address(0x8A791620dd6260079BF849Dc5567aDC3F2FdC318)),
             positionManager: PositionManager(payable(address(0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0))), // not used
             permit2: IAllowanceTransfer(address(0x1f98407aaB862CdDeF78Ed252D6f557aA5b0f00d)), // not used
             create2Deployer: address(0x4e59b44847b379578588920cA78FbF26c0B4956C),

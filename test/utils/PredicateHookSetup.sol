@@ -2,8 +2,6 @@
 pragma solidity ^0.8.12;
 
 import {PredicateHook} from "../../src/PredicateHook.sol";
-import {SimpleV4Router} from "../../src/SimpleV4Router.sol";
-import {ISimpleV4Router} from "../../src/interfaces/ISimpleV4Router.sol";
 
 import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
 import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
@@ -17,22 +15,22 @@ import {PoolSetup} from "./PoolSetup.sol";
 
 contract PredicateHookSetup is MetaCoinTestSetup, PoolSetup {
     PredicateHook public hook;
-    Currency currency0;
-    Currency currency1;
-    int24 tickSpacing = 60;
-    PoolKey poolKey;
+    Currency public currency0;
+    Currency public currency1;
+    int24 public tickSpacing = 60;
+    PoolKey public poolKey;
 
-    function setUpPredicateHook(
+    function _setUpPredicateHook(
         address _liquidityProvider
     ) internal {
         address _owner = makeAddr("owner");
-        deployPoolManager();
-        deployRouters();
-        deployPosm();
-        (currency0, currency1) = deployAndMintTokens(_liquidityProvider, 100_000 ether);
+        _deployPoolManager();
+        _deployRouters();
+        _deployPosm();
+        (currency0, currency1) = _deployAndMintTokens(_liquidityProvider, 100_000 ether);
         vm.startPrank(_liquidityProvider);
-        setTokenApprovalForRouters(currency0);
-        setTokenApprovalForRouters(currency1);
+        _setTokenApprovalForRouters(currency0);
+        _setTokenApprovalForRouters(currency1);
         vm.stopPrank();
 
         uint160 flags = uint160(Hooks.BEFORE_SWAP_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG | Hooks.BEFORE_INITIALIZE_FLAG);
@@ -54,7 +52,7 @@ contract PredicateHookSetup is MetaCoinTestSetup, PoolSetup {
         require(hook.isAuthorizedLP(_liquidityProvider), "Liquidity Provider not authorized");
 
         vm.startPrank(_liquidityProvider);
-        provisionLiquidity(tickSpacing, poolKey, 100 ether, _liquidityProvider, 100_000 ether, 100_000 ether);
+        _provisionLiquidity(tickSpacing, poolKey, 100 ether, _liquidityProvider, 100_000 ether, 100_000 ether);
         vm.stopPrank();
     }
 

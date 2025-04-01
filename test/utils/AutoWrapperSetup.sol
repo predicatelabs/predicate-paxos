@@ -42,7 +42,7 @@ contract AutoWrapperSetup is MetaCoinTestSetup, PoolSetup {
     uint256 public initialSupply = 1000 * 10 ** 18; // 1000 tokens
     int24 public tickSpacing = 60;
 
-    function setUpHooksAndPools(
+    function _setUpHooksAndPools(
         address _liquidityProvider
     ) internal {
         // deploy pool manager, routers and posm

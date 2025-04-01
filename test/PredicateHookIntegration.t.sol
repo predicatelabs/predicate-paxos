@@ -57,9 +57,9 @@ contract PredicateHookIntegrationTest is Test, PredicateHookSetup, OperatorTestP
             abi.encodePacked(uint8(Actions.SWAP_EXACT_IN_SINGLE), uint8(Actions.SETTLE_ALL), uint8(Actions.TAKE_ALL));
 
         bytes[] memory params = new bytes[](3);
-        params[0] = abi.encode(swapParams); // swap params
-        params[1] = abi.encode(key.currency0, 1e18); // settle currency0
-        params[2] = abi.encode(key.currency1, 1e17); // settle currency1
+        params[0] = abi.encode(swapParams);
+        params[1] = abi.encode(key.currency0, 1e18);
+        params[2] = abi.encode(key.currency1, 1e17);
 
         vm.prank(address(liquidityProvider));
         swapRouter.execute(abi.encode(actions, params));
@@ -134,25 +134,48 @@ contract PredicateHookIntegrationTest is Test, PredicateHookSetup, OperatorTestP
             abi.encodePacked(uint8(Actions.SWAP_EXACT_OUT_SINGLE), uint8(Actions.TAKE_ALL), uint8(Actions.SETTLE_ALL));
 
         bytes[] memory params = new bytes[](3);
-        params[0] = abi.encode(swapParams); // swap params
-        params[1] = abi.encode(key.currency0, 1e18); // take currency0
-        params[2] = abi.encode(key.currency1, 1e19); // settle currency1
+        params[0] = abi.encode(swapParams);
+        params[1] = abi.encode(key.currency0, 1e18);
+        params[2] = abi.encode(key.currency1, 1e19);
 
         vm.prank(address(liquidityProvider));
-        vm.expectRevert();
-        swapRouter.swap(key, params, abi.encode(message, liquidityProvider, 0));
+        swapRouter.execute(abi.encode(actions, params));
 
-        assertEq(token0.balanceOf(liquidityProvider), initialBalance0, "Token0 balance should not change");
-        assertEq(token1.balanceOf(liquidityProvider), initialBalance1, "Token1 balance should not change");
+        assertEq(token0.balanceOf(liquidityProvider), balance0, "Token0 balance should not change");
+        assertEq(token1.balanceOf(liquidityProvider), balance1, "Token1 balance should not change");
     }
 
     function testSwapWithEmptySignatures() public permissionedOperators prepOperatorRegistration(true) {
+        PoolKey memory key = getPoolKey();
+
+        IERC20 token0 = IERC20(Currency.unwrap(key.currency0));
+        IERC20 token1 = IERC20(Currency.unwrap(key.currency1));
+        uint256 balance0 = token0.balanceOf(liquidityProvider);
+        uint256 balance1 = token1.balanceOf(liquidityProvider);
+
+        IV4Router.ExactOutputSingleParams memory swapParams = IV4Router.ExactOutputSingleParams({
+            poolKey: key,
+            zeroForOne: false,
+            amountOut: 1e18,
+            amountInMaximum: 1e19,
+            hookData: abi.encode(0)
+        });
+
+        bytes memory actions =
+            abi.encodePacked(uint8(Actions.SWAP_EXACT_OUT_SINGLE), uint8(Actions.TAKE_ALL), uint8(Actions.SETTLE_ALL));
+
+        bytes[] memory params = new bytes[](3);
+        params[0] = abi.encode(swapParams);
+        params[1] = abi.encode(key.currency0, 1e18);
+        params[2] = abi.encode(key.currency1, 1e19);
+
+        vm.prank(address(liquidityProvider));
         swapRouter.execute(abi.encode(actions, params));
-        
+
         assertEq(token0.balanceOf(liquidityProvider), balance0 + 1e18, "Token0 balance should increase by 1e18");
         require(token1.balanceOf(liquidityProvider) < balance1, "Token1 balance should decrease");
     }
-    
+
     function testSwapWithInvalidMessage() public permissionedOperators prepOperatorRegistration(true) {
         PoolKey memory key = getPoolKey();
         string memory taskId = "unique-identifier";
@@ -172,9 +195,9 @@ contract PredicateHookIntegrationTest is Test, PredicateHookSetup, OperatorTestP
             abi.encodePacked(uint8(Actions.SWAP_EXACT_OUT_SINGLE), uint8(Actions.SETTLE_ALL), uint8(Actions.TAKE_ALL));
 
         bytes[] memory params = new bytes[](3);
-        params[0] = abi.encode(swapParams); // swap params
-        params[1] = abi.encode(key.currency0, 1e17); // settle currency0
-        params[2] = abi.encode(key.currency1, 1e18); // settle currency1
+        params[0] = abi.encode(swapParams);
+        params[1] = abi.encode(key.currency0, 1e17);
+        params[2] = abi.encode(key.currency1, 1e18);
 
         vm.prank(address(liquidityProvider));
         vm.expectRevert();

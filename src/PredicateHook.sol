@@ -160,7 +160,7 @@ contract PredicateHook is BaseHook, PredicateClient, Ownable {
         (PredicateMessage memory predicateMessage, address msgSender, uint256 msgValue) = this.decodeHookData(hookData);
 
         bytes memory encodeSigAndArgs = abi.encodeWithSignature(
-            "_beforeSwap(address,address,address,uint24,int24,address,bool,int256,uint160)",
+            "_beforeSwap(address,address,address,uint24,int24,address,bool,int256)",
             router.msgSender(),
             key.currency0,
             key.currency1,
@@ -168,8 +168,7 @@ contract PredicateHook is BaseHook, PredicateClient, Ownable {
             key.tickSpacing,
             address(key.hooks),
             params.zeroForOne,
-            params.amountSpecified,
-            params.sqrtPriceLimitX96
+            params.amountSpecified
         );
 
         if (!_authorizeTransaction(predicateMessage, encodeSigAndArgs, msgSender, msgValue)) {

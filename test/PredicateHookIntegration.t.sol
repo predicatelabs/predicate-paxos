@@ -13,6 +13,7 @@ import {PredicateHookSetup} from "./utils/PredicateHookSetup.sol";
 import {TickMath} from "@uniswap/v4-core/src/libraries/TickMath.sol";
 import {IERC20} from "forge-std/interfaces/IERC20.sol";
 import {BalanceDelta} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
+import {Actions} from "@uniswap/v4-periphery/src/libraries/Actions.sol";
 
 contract PredicateHookIntegrationTest is PredicateHookSetup, OperatorTestPrep {
     address public liquidityProvider;
@@ -38,7 +39,7 @@ contract PredicateHookIntegrationTest is PredicateHookSetup, OperatorTestPrep {
         string memory taskId = "unique-identifier";
 
         PredicateMessage memory message = getPredicateMessage(taskId, true, -1e18);
-        IV4Router.ExactInputSingleParams memory params = IV4Router.ExactInputSingleParams({
+        IV4Router.ExactInputSingleParams memory swapParams = IV4Router.ExactInputSingleParams({
             poolKey: key,
             zeroForOne: true,
             amountIn: 1e18,
@@ -51,8 +52,16 @@ contract PredicateHookIntegrationTest is PredicateHookSetup, OperatorTestPrep {
         uint256 balance0 = token0.balanceOf(liquidityProvider);
         uint256 balance1 = token1.balanceOf(liquidityProvider);
 
+        bytes memory actions =
+            abi.encodePacked(uint8(Actions.SWAP_EXACT_IN_SINGLE), uint8(Actions.SETTLE_ALL), uint8(Actions.TAKE_ALL));
+
+        bytes[] memory params = new bytes[](3);
+        params[0] = abi.encode(swapParams); // swap params
+        params[1] = abi.encode(key.currency0, 1e18); // settle currency0
+        params[2] = abi.encode(key.currency1, 1e17); // settle currency1
+
         vm.prank(address(liquidityProvider));
-        swapRouter.execute(abi.encode(params));
+        swapRouter.execute(abi.encode(actions, params));
 
         assertEq(token0.balanceOf(liquidityProvider), balance0 - 1e18, "Token0 balance should decrease by 1e18");
         require(token1.balanceOf(liquidityProvider) > balance1, "Token1 balance should increase");

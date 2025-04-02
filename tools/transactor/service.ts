@@ -81,7 +81,9 @@ export class TransactorService {
         console.log("Encoded Swap:", encodedSwap);
 
 
-        const tx = await this.swapRouter.execute(encodedSwap);
+        const tx = await this.swapRouter.execute(encodedSwap, {
+            gasLimit: 1000000,
+        });
         console.log("Transaction submitted, hash:", tx.hash);
         const receipt = await tx.wait();
         if (receipt.status !== 1) {
@@ -215,9 +217,9 @@ export class TransactorService {
         paramsArray.push(encodedParams);
         paramsArray.push(this.encodeSettleAll(params.poolKey.currency0, params.amountIn));
         paramsArray.push(this.encodeTakeAll(params.poolKey.currency1, params.amountOutMinimum));
-        const encodedActions = abiCoder.encode(["uint8[]"], [actions]);
+        const encodedActions = abiCoder.encode(["uint8", "uint8", "uint8"], [actions[0], actions[1], actions[2]]);
         const encoded = abiCoder.encode(
-            ["tuple(uint8[],bytes)"],
+            ["bytes", "bytes[]"],
             [encodedActions, paramsArray],
         );
         return encoded;
@@ -226,8 +228,19 @@ export class TransactorService {
     encodeExactInputSingleParams(params: ExactInputSingleParams): string {
         const abiCoder = ethers.utils.defaultAbiCoder;
         const encoded = abiCoder.encode(
-            ["tuple(tuple(address,address,uint24,int24,address),bool,uint128,uint128,bytes)"],
-            [params.poolKey, params.zeroForOne, params.amountIn, params.amountOutMinimum, params.hookData],
+            ["tuple(address,address,uint24,int24,address)", "bool", "uint128", "uint128", "bytes"],
+            [[
+                params.poolKey.currency0,
+                params.poolKey.currency1, 
+                params.poolKey.fee,
+                params.poolKey.tickSpacing,
+                params.poolKey.hooks,
+            ],
+                params.zeroForOne,
+                params.amountIn,
+                params.amountOutMinimum,
+                params.hookData
+            ]
         );
         return encoded;
     }
@@ -235,8 +248,20 @@ export class TransactorService {
     encodeExactOutputSingleParams(params: ExactOutputSingleParams): string {
         const abiCoder = ethers.utils.defaultAbiCoder;
         const encoded = abiCoder.encode(
-            ["tuple(tuple(address,address,uint24,int24,address),bool,uint128,uint128,bytes)"],
-            [params.poolKey, params.zeroForOne, params.amountOut, params.amountInMaximum, params.hookData],
+            ["tuple(address,address,uint24,int24,address)", "bool", "uint128", "uint128", "bytes"],
+            [
+                [
+                    params.poolKey.currency0,
+                    params.poolKey.currency1, 
+                    params.poolKey.fee,
+                    params.poolKey.tickSpacing,
+                    params.poolKey.hooks,
+                ],
+                params.zeroForOne,
+                params.amountOut,
+                params.amountInMaximum,
+                params.hookData,
+            ],
         );
         return encoded;
     }
@@ -244,7 +269,7 @@ export class TransactorService {
     encodeSettle(currency: string, amount: BigNumber, isPayer: boolean): string {
         const abiCoder = ethers.utils.defaultAbiCoder;
         const encoded = abiCoder.encode(
-            ["tuple(address,uint256,bool)"],
+            ["address", "uint256", "bool"],
             [currency, amount, isPayer],
         );
         return encoded;
@@ -253,7 +278,7 @@ export class TransactorService {
     encodeTakeAll(currency: string, amount: BigNumber): string {
         const abiCoder = ethers.utils.defaultAbiCoder;
         const encoded = abiCoder.encode(
-            ["tuple(address,uint256)"],
+            ["address", "uint256"],
             [currency, amount],
         );
         return encoded;
@@ -262,7 +287,7 @@ export class TransactorService {
     encodeSettleAll(currency: string, amount: BigNumber): string {
         const abiCoder = ethers.utils.defaultAbiCoder;
         const encoded = abiCoder.encode(
-            ["tuple(address,uint256)"],
+            ["address", "uint256"],
             [currency, amount],
         );
         return encoded;

@@ -63,23 +63,37 @@ export class TransactorService {
         );
 
         const zeroForOne = true;
-        const amountIn = BigNumber.from("10000");
-        const hookData = await this.getAutoWrapperHookData(true, amountIn.mul(-1));
+        const amountInMaximum = ethers.utils.parseEther("10"); // 1e18
+        const amountOut = BigNumber.from("1000000");
+        const hookData = await this.getAutoWrapperHookData(false, amountOut);
         console.log("Hook Data:", hookData);
 
-        // Exact input WUSDL -> USDC swap
-        const params: ExactInputSingleParams = {
+        // // Exact input USDC -> WUSDL swap on WUSDL/USDC pool
+        // const params: ExactInputSingleParams = {
+        //     poolKey: this.poolKey,
+        //     zeroForOne: zeroForOne,
+        //     amountIn: amountIn,
+        //     amountOutMinimum: BigNumber.from("100000"),
+        //     hookData: hookData,
+        // };
+        // const actions = [SWAP_EXACT_IN_SINGLE_ACTION, SETTLE_ALL_ACTION, TAKE_ALL_ACTION];
+        // const encodedSwap = this.encodeSwapExactInputSingle(actions, params);
+        // console.log("Encoded Swap:", encodedSwap);
+
+
+        // Exact output WUSDL -> USDC swap on WUSDL/USDC pool
+        const params: ExactOutputSingleParams = {
             poolKey: this.poolKey,
             zeroForOne: zeroForOne,
-            amountIn: amountIn,
-            amountOutMinimum: BigNumber.from("1000"),
+            amountOut: amountOut,
+            amountInMaximum: amountInMaximum,
             hookData: hookData,
         };
-
-        const actions = [SWAP_EXACT_IN_SINGLE_ACTION, SETTLE_ALL_ACTION, TAKE_ALL_ACTION];
-        const encodedSwap = this.encodeSwapExactInputSingle(actions, params);
+        const actions = [SWAP_EXACT_OUT_SINGLE_ACTION, TAKE_ALL_ACTION, SETTLE_ALL_ACTION];
+        const encodedSwap = this.encodeSwapExactOutputSingle(actions, params);
         console.log("Encoded Swap:", encodedSwap);
-    
+
+
         const tx = await this.swapRouter.execute(encodedSwap, {
             gasLimit: 1000000,
         });
@@ -221,7 +235,28 @@ export class TransactorService {
         );
         return encoded;
     }
-    
+
+    encodeSwapExactOutputSingle(actions: number[], params: ExactOutputSingleParams): string {
+        var paramsArray = new Array<string>();
+        const abiCoder = ethers.utils.defaultAbiCoder;
+        const encodedParams = this.encodeExactOutputSingleParams(params);
+        paramsArray.push(encodedParams);
+        paramsArray.push(this.encodeTakeAll(params.poolKey.currency1, params.amountOut));
+        paramsArray.push(this.encodeSettleAll(params.poolKey.currency0, params.amountInMaximum));
+        
+        // Encode actions using abi.encodePacked equivalent
+        const encodedActions = ethers.utils.solidityPack(
+            ["uint8", "uint8", "uint8"],
+            [actions[0], actions[1], actions[2]]
+        );
+        
+        const encoded = abiCoder.encode(
+            ["bytes", "bytes[]"],
+            [encodedActions, paramsArray],
+        );
+        return encoded;
+    }
+
     encodeExactInputSingleParams(params: ExactInputSingleParams): string {
         const abiCoder = ethers.utils.defaultAbiCoder;
         
@@ -248,6 +283,30 @@ export class TransactorService {
         return encoded;
     }
 
+    encodeExactOutputSingleParams(params: ExactOutputSingleParams): string {
+        const abiCoder = ethers.utils.defaultAbiCoder;
+        const encoded = abiCoder.encode(
+            [
+                "tuple(tuple(address,address,uint24,int24,address),bool,uint128,uint128,bytes)"
+            ],
+            [
+                [   
+                    [
+                        params.poolKey.currency0,
+                        params.poolKey.currency1,
+                        params.poolKey.fee,
+                        params.poolKey.tickSpacing,
+                        params.poolKey.hooks
+                    ],
+                    params.zeroForOne,
+                    params.amountOut,
+                    params.amountInMaximum,
+                    params.hookData
+                ]
+            ]
+        );
+        return encoded;
+    }
     encodeSettle(currency: string, amount: BigNumber, isPayer: boolean): string {
         const abiCoder = ethers.utils.defaultAbiCoder;
         const encoded = abiCoder.encode(

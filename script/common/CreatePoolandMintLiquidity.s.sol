@@ -112,9 +112,9 @@ contract CreatePoolAndMintLiquidity is Script {
         PredicateHook predicateHook = PredicateHook(_hookAddress);
 
         vm.startBroadcast();
-        // predicateHook.addAuthorizedLPs(authorizedLps);
+        predicateHook.addAuthorizedLPs(authorizedLps);
         _tokenApprovals();
-        // _posm.multicall(params);
+        _posm.multicall(params);
         vm.stopBroadcast();
     }
 

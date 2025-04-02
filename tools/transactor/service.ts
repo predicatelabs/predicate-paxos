@@ -44,7 +44,7 @@ export class TransactorService {
             currency1: config.currency1Address,
             fee: config.lpFees,
             tickSpacing: config.tickSpacing,
-            hooks: config.predicateHookAddress,
+            hooks: config.autoWrapperAddress,
         };
 
         console.log("Config values:", {
@@ -63,16 +63,16 @@ export class TransactorService {
         );
 
         const zeroForOne = true;
-        const amountIn = BigNumber.from("1000000");
+        const amountIn = BigNumber.from("10000");
         const hookData = await this.getAutoWrapperHookData(true, amountIn.mul(-1));
         console.log("Hook Data:", hookData);
 
-        // Exact input USDC -> USDL swap
+        // Exact input WUSDL -> USDC swap
         const params: ExactInputSingleParams = {
             poolKey: this.poolKey,
             zeroForOne: zeroForOne,
             amountIn: amountIn,
-            amountOutMinimum: BigNumber.from("100000"),
+            amountOutMinimum: BigNumber.from("1000"),
             hookData: hookData,
         };
 

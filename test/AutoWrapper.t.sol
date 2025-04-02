@@ -51,7 +51,7 @@ contract AutoWrapperTest is Test, AutoWrapperSetup, OperatorTestPrep {
             zeroForOne: true,
             amountIn: 1e6,
             amountOutMinimum: 1e17,
-            hookData: abi.encode(message, liquidityProvider, 0)
+            hookData: abi.encode(message)
         });
 
         IERC20 token0 = IERC20(Currency.unwrap(key.currency0));
@@ -85,7 +85,7 @@ contract AutoWrapperTest is Test, AutoWrapperSetup, OperatorTestPrep {
             zeroForOne: true,
             amountOut: amountSpecified.toUint128(),
             amountInMaximum: 1e8,
-            hookData: abi.encode(message, liquidityProvider, 0)
+            hookData: abi.encode(message)
         });
 
         IERC20 token0 = IERC20(Currency.unwrap(key.currency0));
@@ -124,7 +124,7 @@ contract AutoWrapperTest is Test, AutoWrapperSetup, OperatorTestPrep {
             zeroForOne: false,
             amountIn: amountSpecified.toUint128(),
             amountOutMinimum: 1e5,
-            hookData: abi.encode(message, liquidityProvider, 0)
+            hookData: abi.encode(message)
         });
 
         IERC20 token0 = IERC20(Currency.unwrap(key.currency0));
@@ -167,7 +167,7 @@ contract AutoWrapperTest is Test, AutoWrapperSetup, OperatorTestPrep {
             zeroForOne: false,
             amountOut: amountSpecified.toUint128(),
             amountInMaximum: 1e19,
-            hookData: abi.encode(message, liquidityProvider, 0)
+            hookData: abi.encode(message)
         });
 
         IERC20 token0 = IERC20(Currency.unwrap(key.currency0));
@@ -213,7 +213,7 @@ contract AutoWrapperTest is Test, AutoWrapperSetup, OperatorTestPrep {
             zeroForOne: true,
             amountOut: amountSpecified.toUint128(),
             amountInMaximum: 1e19,
-            hookData: abi.encode(message, liquidityProvider, 0)
+            hookData: abi.encode(message)
         });
 
         bytes memory actions =

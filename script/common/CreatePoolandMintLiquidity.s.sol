@@ -30,7 +30,7 @@ contract CreatePoolAndMintLiquidity is Script {
 
     uint256 public wUSDLAmount = 100e18;
     uint256 public USDCAmount = 100e6;
-    uint160 public startingPrice = 79_228_162_514_264_337_593_543_950_336_000_000;
+    uint160 public startingPrice = 79_228_162_514_264_337_593_543;
 
     function _init() internal {
         bool networkExists = vm.envExists("NETWORK");

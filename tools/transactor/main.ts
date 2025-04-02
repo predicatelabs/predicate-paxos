@@ -23,6 +23,7 @@ let config: Config = {
     amount: "",
 };
 
+
 program
     .option(
         "--predicate-api-url <url>",

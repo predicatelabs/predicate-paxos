@@ -36,7 +36,7 @@ export interface ExactInputSingleParams {
     zeroForOne: boolean;
     amountIn: BigNumber;
     amountOutMinimum: BigNumber;
-    hookData: string;
+    hookData: string | Uint8Array;
 }
 
 export interface ExactOutputSingleParams {
@@ -44,5 +44,5 @@ export interface ExactOutputSingleParams {
     zeroForOne: boolean;
     amountOut: BigNumber;
     amountInMaximum: BigNumber;
-    hookData: string;
+    hookData: string | Uint8Array;
 }

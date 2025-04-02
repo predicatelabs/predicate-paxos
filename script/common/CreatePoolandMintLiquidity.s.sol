@@ -28,8 +28,8 @@ contract CreatePoolAndMintLiquidity is Script {
     address private _hookAddress;
     V4Router private _swapRouter;
 
-    uint256 public wUSDLAmount = 100e18;
-    uint256 public USDCAmount = 100e6;
+    uint256 public wUSDLAmount = 10e18;
+    uint256 public USDCAmount = 10e6;
     uint160 public startingPrice = 79_228_162_514_264_337_593_543;
 
     function _init() internal {
@@ -112,9 +112,9 @@ contract CreatePoolAndMintLiquidity is Script {
         PredicateHook predicateHook = PredicateHook(_hookAddress);
 
         vm.startBroadcast();
-        predicateHook.addAuthorizedLPs(authorizedLps);
+        // predicateHook.addAuthorizedLPs(authorizedLps);
         _tokenApprovals();
-        _posm.multicall(params);
+        // _posm.multicall(params);
         vm.stopBroadcast();
     }
 

@@ -64,7 +64,7 @@ export class TransactorService {
 
         const zeroForOne = true;
         const amountIn = BigNumber.from("1000000");
-        const hookData = await this.getAutoWrapperHookData(!zeroForOne, amountIn.mul(-1));
+        const hookData = await this.getAutoWrapperHookData(true, amountIn.mul(-1));
         console.log("Hook Data:", hookData);
 
         // Exact input USDC -> USDL swap
@@ -72,15 +72,14 @@ export class TransactorService {
             poolKey: this.poolKey,
             zeroForOne: zeroForOne,
             amountIn: amountIn,
-            amountOutMinimum: BigNumber.from("1"),
+            amountOutMinimum: BigNumber.from("100000"),
             hookData: hookData,
         };
 
         const actions = [SWAP_EXACT_IN_SINGLE_ACTION, SETTLE_ALL_ACTION, TAKE_ALL_ACTION];
         const encodedSwap = this.encodeSwapExactInputSingle(actions, params);
         console.log("Encoded Swap:", encodedSwap);
-
-
+    
         const tx = await this.swapRouter.execute(encodedSwap, {
             gasLimit: 1000000,
         });
@@ -209,25 +208,37 @@ export class TransactorService {
         paramsArray.push(encodedParams);
         paramsArray.push(this.encodeSettleAll(params.poolKey.currency0, params.amountIn));
         paramsArray.push(this.encodeTakeAll(params.poolKey.currency1, params.amountOutMinimum));
-        const encodedActions = abiCoder.encode(["uint8", "uint8", "uint8"], [actions[0], actions[1], actions[2]]);
+        
+        // Encode actions using abi.encodePacked equivalent
+        const encodedActions = ethers.utils.solidityPack(
+            ["uint8", "uint8", "uint8"],
+            [actions[0], actions[1], actions[2]]
+        );
+        
         const encoded = abiCoder.encode(
             ["bytes", "bytes[]"],
             [encodedActions, paramsArray],
         );
         return encoded;
     }
-
     encodeExactInputSingleParams(params: ExactInputSingleParams): string {
         const abiCoder = ethers.utils.defaultAbiCoder;
         const encoded = abiCoder.encode(
-            ["tuple(address,address,uint24,int24,address)", "bool", "uint128", "uint128", "bytes"],
-            [[
-                params.poolKey.currency0,
-                params.poolKey.currency1, 
-                params.poolKey.fee,
-                params.poolKey.tickSpacing,
-                params.poolKey.hooks,
+            [
+                "tuple(address,address,uint24,int24,address)",  // poolKey
+                "bool",                                         // zeroForOne
+                "uint128",                                      // amountIn
+                "uint128",                                      // amountOutMinimum
+                "bytes"                                         // hookData
             ],
+            [
+                [
+                    params.poolKey.currency0,
+                    params.poolKey.currency1, 
+                    params.poolKey.fee,
+                    params.poolKey.tickSpacing,
+                    params.poolKey.hooks,
+                ],
                 params.zeroForOne,
                 params.amountIn,
                 params.amountOutMinimum,
@@ -239,23 +250,32 @@ export class TransactorService {
 
     encodeExactOutputSingleParams(params: ExactOutputSingleParams): string {
         const abiCoder = ethers.utils.defaultAbiCoder;
-        const encoded = abiCoder.encode(
-            ["tuple(address,address,uint24,int24,address)", "bool", "uint128", "uint128", "bytes"],
+        
+        // First encode the poolKey tuple
+        const poolKeyEncoded = abiCoder.encode(
+            ["tuple(address,address,uint24,int24,address)"],
+            [[
+                params.poolKey.currency0,
+                params.poolKey.currency1, 
+                params.poolKey.fee,
+                params.poolKey.tickSpacing,
+                params.poolKey.hooks,
+            ]]
+        );
+    
+        // Then encode the rest of the parameters
+        const restEncoded = abiCoder.encode(
+            ["bool", "uint128", "uint128", "bytes"],
             [
-                [
-                    params.poolKey.currency0,
-                    params.poolKey.currency1, 
-                    params.poolKey.fee,
-                    params.poolKey.tickSpacing,
-                    params.poolKey.hooks,
-                ],
                 params.zeroForOne,
                 params.amountOut,
                 params.amountInMaximum,
-                params.hookData,
-            ],
+                params.hookData
+            ]
         );
-        return encoded;
+    
+        // Combine them with the proper offset for the bytes field
+        return poolKeyEncoded + restEncoded.substring(2);
     }
 
     encodeSettle(currency: string, amount: BigNumber, isPayer: boolean): string {

@@ -29,20 +29,6 @@ contract Mainnet is INetwork {
         });
     }
 
-    function liquidityPoolConfig() external pure override returns (LiquidityPoolConfig memory) {
-        return LiquidityPoolConfig({
-            token0: WUSDL,
-            token1: USDC,
-            fee: 0,
-            tickSpacing: 60,
-            tickLower: -120,
-            tickUpper: 120,
-            startingPrice: 79_228_162_514_264_337_593_543,
-            token0Amount: 5e18,
-            token1Amount: 5e6
-        });
-    }
-
     function tokenConfig() external pure override returns (TokenConfig memory) {
         return TokenConfig({USDL: Currency.wrap(USDL), wUSDL: Currency.wrap(WUSDL), USDC: Currency.wrap(USDC)});
     }

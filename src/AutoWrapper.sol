@@ -287,7 +287,7 @@ contract AutoWrapper is BaseHook, DeltaResolver {
      */
     function _getSqrtPriceLimitX96ForLiquidPool(
         bool swapZeroForOne
-    ) internal view returns (uint160) {
+    ) internal pure returns (uint160) {
         return swapZeroForOne ? TickMath.MIN_SQRT_PRICE + 1 : TickMath.MAX_SQRT_PRICE - 1;
     }
 

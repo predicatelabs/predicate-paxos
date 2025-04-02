@@ -7,9 +7,8 @@ import type {
     PoolKey,
     ExactInputSingleParams,
     ExactOutputSingleParams,
+    PredicateResponse,
 } from "./types";
-import * as sdk from '@predicate/predicate-sdk'
-
 
 const SWAP_EXACT_IN_SINGLE_ACTION = 0x06;
 const SWAP_EXACT_OUT_SINGLE_ACTION = 0x08;
@@ -26,7 +25,6 @@ export class TransactorService {
     poolKey: PoolKey;
     provider: ethers.providers.Provider;
     wallet: ethers.Wallet;
-    predicateClient: sdk.PredicateClient;
 
     constructor(private config: Config) {
         this.environment = config.environment;
@@ -40,11 +38,6 @@ export class TransactorService {
             SwapRouterABI,
             this.wallet,
         );
-
-        this.predicateClient = new sdk.PredicateClient({
-            apiUrl: this.predicateAPIURL,
-            apiKey: this.apiKey,
-        });
 
         this.poolKey = {
             currency0: config.currency0Address,
@@ -113,7 +106,32 @@ export class TransactorService {
         };
         console.log("Predicate Request:", predicateRequest);
 
-        const predicateResponse = await this.predicateClient.evaluatePolicy(predicateRequest);
+        const response = await fetch(this.predicateAPIURL, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "x-api-key": this.apiKey,
+            },
+            body: JSON.stringify(predicateRequest),
+        });
+
+        const responseText = await response.text();
+        if (!response.ok) {
+            throw new Error(
+                `Failed to fetch hook data: ${response.status} ${response.statusText}\nResponse: ${responseText}`,
+            );
+        }
+
+        var predicateResponse: PredicateResponse;
+        try {
+            predicateResponse = JSON.parse(responseText) as PredicateResponse;
+        } catch (error) {
+            throw new Error(
+                `Failed to parse API response as JSON: ${error}\nResponse: ${responseText}`,
+            );
+        }
+
+        console.log("Predicate Response:", predicateResponse);
         
         if (!predicateResponse.is_compliant) {
             throw new Error("Predicate Response is not compliant");
@@ -126,6 +144,7 @@ export class TransactorService {
             signerAddresses: predicateResponse.signers,
             signatures: predicateResponse.signature,
         };
+        console.log("Predicate Message:", pm);
 
         const hookDataEncoded = this.encodeHookData(
             pm,

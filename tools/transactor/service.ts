@@ -161,8 +161,7 @@ export class TransactorService {
         };
         console.log("Predicate Message:", pm);
 
-        const hookDataEncoded = this.encodeHookData(pm);
-        return hookDataEncoded;
+        return this.encodeHookData(pm);
     }
 
     encodeBeforeSwap(sender: string, key: PoolKey, zeroForOne: boolean, amountSpecified: BigNumber): string {

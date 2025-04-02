@@ -221,61 +221,31 @@ export class TransactorService {
         );
         return encoded;
     }
+    
     encodeExactInputSingleParams(params: ExactInputSingleParams): string {
         const abiCoder = ethers.utils.defaultAbiCoder;
+        
         const encoded = abiCoder.encode(
             [
-                "tuple(address,address,uint24,int24,address)",  // poolKey
-                "bool",                                         // zeroForOne
-                "uint128",                                      // amountIn
-                "uint128",                                      // amountOutMinimum
-                "bytes"                                         // hookData
+                "tuple(tuple(address,address,uint24,int24,address),bool,uint128,uint128,bytes)"
             ],
             [
-                [
-                    params.poolKey.currency0,
-                    params.poolKey.currency1, 
-                    params.poolKey.fee,
-                    params.poolKey.tickSpacing,
-                    params.poolKey.hooks,
-                ],
-                params.zeroForOne,
-                params.amountIn,
-                params.amountOutMinimum,
-                params.hookData
+                [   
+                    [
+                        params.poolKey.currency0,
+                        params.poolKey.currency1,
+                        params.poolKey.fee,
+                        params.poolKey.tickSpacing,
+                        params.poolKey.hooks
+                    ],
+                    params.zeroForOne,
+                    params.amountIn,
+                    params.amountOutMinimum,
+                    params.hookData
+                ]
             ]
         );
         return encoded;
-    }
-
-    encodeExactOutputSingleParams(params: ExactOutputSingleParams): string {
-        const abiCoder = ethers.utils.defaultAbiCoder;
-        
-        // First encode the poolKey tuple
-        const poolKeyEncoded = abiCoder.encode(
-            ["tuple(address,address,uint24,int24,address)"],
-            [[
-                params.poolKey.currency0,
-                params.poolKey.currency1, 
-                params.poolKey.fee,
-                params.poolKey.tickSpacing,
-                params.poolKey.hooks,
-            ]]
-        );
-    
-        // Then encode the rest of the parameters
-        const restEncoded = abiCoder.encode(
-            ["bool", "uint128", "uint128", "bytes"],
-            [
-                params.zeroForOne,
-                params.amountOut,
-                params.amountInMaximum,
-                params.hookData
-            ]
-        );
-    
-        // Combine them with the proper offset for the bytes field
-        return poolKeyEncoded + restEncoded.substring(2);
     }
 
     encodeSettle(currency: string, amount: BigNumber, isPayer: boolean): string {

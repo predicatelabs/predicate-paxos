@@ -148,11 +148,7 @@ export class TransactorService {
         };
         console.log("Predicate Message:", pm);
 
-        const hookDataEncoded = this.encodeHookData(
-            pm,
-            this.wallet.address,
-            BigNumber.from("0"),
-        );
+        const hookDataEncoded = this.encodeHookData(pm);
         return hookDataEncoded;
     }
 
@@ -190,12 +186,10 @@ export class TransactorService {
 
     encodeHookData(
         pm: PredicateMessage,
-        msgSender: string,
-        msgValue: BigNumber,
     ): string {
         const abiCoder = ethers.utils.defaultAbiCoder;
         const encoded = abiCoder.encode(
-            ["tuple(string,uint256,address[],bytes[])", "address", "uint256"],
+            ["tuple(string,uint256,address[],bytes[])"],
             [
                 [
                     pm.taskId,
@@ -203,8 +197,6 @@ export class TransactorService {
                     pm.signerAddresses,
                     pm.signatures,
                 ],
-                msgSender,
-                msgValue.toString(),
             ],
         );
         return encoded;

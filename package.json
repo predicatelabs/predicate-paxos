@@ -9,6 +9,7 @@
     "fmt": "prettier --write \"tools/transactor/**/*.{ts,js,json,md}\""
   },
   "dependencies": {
+    "@predicate/predicate-sdk": "^0.1.4",
     "commander": "^10.0.0",
     "ethers": "^5.7.2",
     "node-fetch": "^3.3.0"

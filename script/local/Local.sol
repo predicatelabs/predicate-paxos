@@ -10,9 +10,9 @@ import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
 import {V4Router} from "@uniswap/v4-periphery/src/V4Router.sol";
 
 contract Local is INetwork {
-    address public constant USDL = address(0x959922bE3CAee4b8Cd9a407cc3ac1C251C2007B1);
-    address public constant WUSDL = address(0x9A9f2CCfdE556A7E9Ff0848998Aa4a0CFD8863AE);
-    address public constant USDC = address(0x68B1D87F95878fE05B998F19b66F4baba5De1aed);
+    address public constant USDL = address(0xb185E9f6531BA9877741022C92CE858cDCc5760E);
+    address public constant WUSDL = address(0x742489F22807ebB4C36ca6cD95c3e1C044B7B6c8);
+    address public constant USDC = address(0xA9e6Bfa2BF53dE88FEb19761D9b2eE2e821bF1Bf);
 
     function config() external pure override returns (Config memory) {
         return Config({
@@ -21,20 +21,6 @@ contract Local is INetwork {
             permit2: IAllowanceTransfer(address(0x1f98407aaB862CdDeF78Ed252D6f557aA5b0f00d)), // not used
             create2Deployer: address(0x4e59b44847b379578588920cA78FbF26c0B4956C),
             serviceManager: address(0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0)
-        });
-    }
-
-    function liquidityPoolConfig() external pure override returns (LiquidityPoolConfig memory) {
-        return LiquidityPoolConfig({
-            token0: USDC,
-            token1: WUSDL,
-            fee: 0,
-            tickSpacing: 60,
-            tickLower: -600,
-            tickUpper: 600,
-            startingPrice: 79_228_162_514_264_337_593_543,
-            token0Amount: 1e6,
-            token1Amount: 1e6
         });
     }
 

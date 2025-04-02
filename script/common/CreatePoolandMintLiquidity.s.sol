@@ -16,7 +16,7 @@ import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
 import {V4Router} from "@uniswap/v4-periphery/src/V4Router.sol";
 import {PredicateHook} from "../../src/PredicateHook.sol";
 
-contract CreatePoolAndAddLiquidityScript is Script {
+contract CreatePoolAndMintLiquidity is Script {
     using CurrencyLibrary for Currency;
 
     Currency private _currency0;
@@ -27,6 +27,10 @@ contract CreatePoolAndAddLiquidityScript is Script {
     INetwork private _env;
     address private _hookAddress;
     V4Router private _swapRouter;
+
+    uint256 public wUSDLAmount = 10e18;
+    uint256 public USDCAmount = 10e6;
+    uint160 public startingPrice = 79_228_162_514_264_337_593_543;
 
     function _init() internal {
         bool networkExists = vm.envExists("NETWORK");
@@ -47,20 +51,20 @@ contract CreatePoolAndAddLiquidityScript is Script {
     function run() external {
         _init();
         INetwork.Config memory config = _env.config();
-        INetwork.LiquidityPoolConfig memory poolConfig = _env.liquidityPoolConfig();
+        INetwork.TokenConfig memory tokenConfig = _env.tokenConfig();
 
         // --------------------------------- //
         _posm = config.positionManager;
         _permit2 = config.permit2;
-        _currency0 = Currency.wrap(poolConfig.token0);
-        _currency1 = Currency.wrap(poolConfig.token1);
+        _currency0 = tokenConfig.wUSDL;
+        _currency1 = tokenConfig.USDC;
 
         // tokens should be sorted
         PoolKey memory pool = PoolKey({
             currency0: _currency0,
             currency1: _currency1,
-            fee: poolConfig.fee,
-            tickSpacing: poolConfig.tickSpacing,
+            fee: 0,
+            tickSpacing: 60,
             hooks: IHooks(_hookAddress)
         });
         bytes memory hookData = new bytes(0);
@@ -68,25 +72,25 @@ contract CreatePoolAndAddLiquidityScript is Script {
         // --------------------------------- //
 
         // Get tick at current price
-        int24 currentTick = TickMath.getTickAtSqrtPrice(poolConfig.startingPrice);
+        int24 currentTick = TickMath.getTickAtSqrtPrice(startingPrice);
         console.log("Current tick: %s", currentTick);
         // Ensure ticks are aligned with tick spacing
-        int24 tickSpacing = poolConfig.tickSpacing;
+        int24 tickSpacing = 60;
         int24 tickLower = (currentTick - 600) - ((currentTick - 600) % tickSpacing);
         int24 tickUpper = (currentTick + 600) - ((currentTick + 600) % tickSpacing);
 
         // Converts token amounts to liquidity units
         uint128 liquidity = LiquidityAmounts.getLiquidityForAmounts(
-            poolConfig.startingPrice,
+            startingPrice,
             TickMath.getSqrtPriceAtTick(tickLower),
             TickMath.getSqrtPriceAtTick(tickUpper),
-            poolConfig.token0Amount,
-            poolConfig.token1Amount
+            wUSDLAmount,
+            USDCAmount
         );
 
         // slippage limits
-        uint256 amount0Max = poolConfig.token0Amount + 1 wei;
-        uint256 amount1Max = poolConfig.token1Amount + 1 wei;
+        uint256 amount0Max = wUSDLAmount + 100 wei;
+        uint256 amount1Max = USDCAmount + 100 wei;
 
         (bytes memory actions, bytes[] memory mintParams) =
             _mintLiquidityParams(pool, tickLower, tickUpper, liquidity, amount0Max, amount1Max, msg.sender, hookData);
@@ -95,7 +99,7 @@ contract CreatePoolAndAddLiquidityScript is Script {
         bytes[] memory params = new bytes[](2);
 
         // initialize pool
-        params[0] = abi.encodeWithSelector(_posm.initializePool.selector, pool, poolConfig.startingPrice, hookData);
+        params[0] = abi.encodeWithSelector(_posm.initializePool.selector, pool, startingPrice, hookData);
 
         // mint liquidity
         params[1] = abi.encodeWithSelector(
@@ -122,7 +126,7 @@ contract CreatePoolAndAddLiquidityScript is Script {
         PoolKey memory poolKey,
         int24 _tickLower,
         int24 _tickUpper,
-        uint256 liquidity,
+        uint128 liquidity,
         uint256 amount0Max,
         uint256 amount1Max,
         address recipient,

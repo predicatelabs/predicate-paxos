@@ -39,7 +39,6 @@ contract DeployAutoWrapperAndInitPool is Script {
     function run() public {
         _init();
         INetwork.Config memory config = _env.config();
-        INetwork.LiquidityPoolConfig memory poolConfig = _env.liquidityPoolConfig();
         INetwork.TokenConfig memory tokenConfig = _env.tokenConfig();
 
         IPoolManager manager = config.poolManager;
@@ -47,15 +46,13 @@ contract DeployAutoWrapperAndInitPool is Script {
         IERC20 USDC = IERC20(Currency.unwrap(tokenConfig.USDC));
         IERC20 USDL = IERC20(Currency.unwrap(tokenConfig.USDL));
         IHooks hook = IHooks(_hookAddress);
-        _tickSpacing = poolConfig.tickSpacing;
-        PoolKey memory predicatePoolKey = PoolKey(
-            Currency.wrap(poolConfig.token0), Currency.wrap(poolConfig.token1), poolConfig.fee, _tickSpacing, hook
-        );
+        _tickSpacing = 60;
+        PoolKey memory predicatePoolKey = PoolKey(tokenConfig.wUSDL, tokenConfig.USDC, 0, _tickSpacing, hook);
 
         // initialize the auto wrapper
         uint160 autoWrapperFlags = uint160(
             Hooks.BEFORE_INITIALIZE_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG | Hooks.BEFORE_SWAP_FLAG
-                | Hooks.BEFORE_SWAP_RETURNS_DELTA_FLAG
+                | Hooks.BEFORE_SWAP_RETURNS_DELTA_FLAG | Hooks.AFTER_SWAP_FLAG
         );
         bytes memory autoWrapperConstructorArgs =
             abi.encode(manager, ERC4626(address(wUSDL)), USDC, predicatePoolKey, _swapRouter);
@@ -71,25 +68,13 @@ contract DeployAutoWrapperAndInitPool is Script {
 
         // initialize the ghost pool
         PoolKey memory ghostPoolKey;
-        if (uint160(address(USDL)) < uint160(address(USDC))) {
-            ghostPoolKey = PoolKey(
-                Currency.wrap(address(USDL)), Currency.wrap(address(USDC)), 0, _tickSpacing, IHooks(autoWrapper)
-            );
-            console.log(
-                "Deploying ghost pool with token0: %s and token1: %s",
-                Currency.unwrap(ghostPoolKey.currency0),
-                Currency.unwrap(ghostPoolKey.currency1)
-            );
-        } else {
-            ghostPoolKey = PoolKey(
-                Currency.wrap(address(USDC)), Currency.wrap(address(USDL)), 0, _tickSpacing, IHooks(autoWrapper)
-            );
-            console.log(
-                "Deploying ghost pool with token0: %s and token1: %s",
-                Currency.unwrap(ghostPoolKey.currency0),
-                Currency.unwrap(ghostPoolKey.currency1)
-            );
-        }
+        ghostPoolKey =
+            PoolKey(Currency.wrap(address(USDC)), Currency.wrap(address(USDL)), 0, _tickSpacing, IHooks(autoWrapper));
+        console.log(
+            "Deploying ghost pool with token0: %s and token1: %s",
+            Currency.unwrap(ghostPoolKey.currency0),
+            Currency.unwrap(ghostPoolKey.currency1)
+        );
         uint160 ghostPoolStartingPrice = 79_228_162_514_264_337_593_543_950_336_000_000;
         manager.initialize(ghostPoolKey, ghostPoolStartingPrice);
 

@@ -17,18 +17,6 @@ interface INetwork {
         address serviceManager;
     }
 
-    struct LiquidityPoolConfig {
-        address token0;
-        address token1;
-        uint24 fee;
-        int24 tickSpacing;
-        int24 tickLower;
-        int24 tickUpper;
-        uint160 startingPrice;
-        uint256 token0Amount;
-        uint256 token1Amount;
-    }
-
     struct TokenConfig {
         Currency USDL;
         Currency wUSDL;
@@ -36,6 +24,5 @@ interface INetwork {
     }
 
     function config() external view returns (Config memory);
-    function liquidityPoolConfig() external view returns (LiquidityPoolConfig memory);
     function tokenConfig() external view returns (TokenConfig memory);
 }

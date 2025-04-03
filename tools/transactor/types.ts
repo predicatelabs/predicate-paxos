@@ -2,18 +2,18 @@
 import type { BigNumber } from "ethers";
 
 export interface PredicateResponse {
-    is_compliant: boolean;
+    isCompliant: boolean;
     signers: string[];
     signature: string[]; 
-    expiry_block: number;
-    task_id: string;
+    expiryBlock: number;
+    taskId: string;
 }
 
 export interface PredicateRequest {
     to: string;
     from: string;
     data: string;
-    msg_value: string;
+    msgValue: string;
 }
 
 export interface PredicateMessage {

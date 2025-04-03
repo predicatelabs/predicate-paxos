@@ -117,7 +117,7 @@ export class TransactorService {
             to: this.config.predicateHookAddress,
             from: this.wallet.address,
             data: dataBeforeSwap,
-            msg_value: "0",
+            msgValue: "0",
         };
         console.log("Predicate Request:", predicateRequest);
 
@@ -137,7 +137,7 @@ export class TransactorService {
             );
         }
 
-        var predicateResponse: PredicateResponse;
+        let predicateResponse: PredicateResponse;
         try {
             predicateResponse = JSON.parse(responseText) as PredicateResponse;
         } catch (error) {
@@ -148,14 +148,14 @@ export class TransactorService {
 
         console.log("Predicate Response:", predicateResponse);
         
-        if (!predicateResponse.is_compliant) {
+        if (!predicateResponse.isCompliant) {
             throw new Error("Predicate Response is not compliant");
         }
         console.log("Predicate Response:", predicateResponse);
 
         const pm: PredicateMessage = {
-            taskId: predicateResponse.task_id,
-            expireByBlockNumber: BigNumber.from(predicateResponse.expiry_block),
+            taskId: predicateResponse.taskId,
+            expireByBlockNumber: BigNumber.from(predicateResponse.expiryBlock),
             signerAddresses: predicateResponse.signers,
             signatures: predicateResponse.signature,
         };
@@ -215,7 +215,7 @@ export class TransactorService {
     }
 
     encodeSwapExactInputSingle(actions: number[], params: ExactInputSingleParams): string {
-        var paramsArray = new Array<string>();
+        const paramsArray = new Array<string>();
         const abiCoder = ethers.utils.defaultAbiCoder;
         const encodedParams = this.encodeExactInputSingleParams(params);
         paramsArray.push(encodedParams);
@@ -236,7 +236,7 @@ export class TransactorService {
     }
 
     encodeSwapExactOutputSingle(actions: number[], params: ExactOutputSingleParams): string {
-        var paramsArray = new Array<string>();
+        const paramsArray = new Array<string>();
         const abiCoder = ethers.utils.defaultAbiCoder;
         const encodedParams = this.encodeExactOutputSingleParams(params);
         paramsArray.push(encodedParams);

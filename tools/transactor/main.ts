@@ -25,49 +25,49 @@ let config: Config = {
 
 program
     .option(
-        "--predicate-api-url <url>",
+        "--predicateApiUrl <url>",
         "Predicate API URL",
         config.predicateAPIURL,
     )
-    .option("--api-key <key>", "API key", config.apiKey)
-    .option("--eth-rpc-url <url>", "Ethereum RPC URL", config.ethRPCURL)
-    .option("--private-key <key>", "Private key", config.privateKey)
+    .option("--apiKey <key>", "API key", config.apiKey)
+    .option("--ethRpcUrl <url>", "Ethereum RPC URL", config.ethRPCURL)
+    .option("--privateKey <key>", "Private key", config.privateKey)
     .option("--environment <env>", "Environment", config.environment)
     .option(
-        "--currency0-address <address>",
+        "--currency0Address <address>",
         "Currency0 address",
         config.currency0Address,
     )
     .option(
-        "--currency1-address <address>",
+        "--currency1Address <address>",
         "Currency1 address",
         config.currency1Address,
     )
     .option(
-        "--swap-router-address <address>",
+        "--routerAddress <address>",
         "Swap router address",
         config.routerAddress,
     )
     .option(
-        "--predicate-hook-address <address>",
+        "--predicateHookAddress <address>",
         "Predicate hook address",
         config.predicateHookAddress,
     )
     .option(
-        "--auto-wrapper-address <address>",
+        "--autoWrapperAddress <address>",
         "Auto wrapper address",
         config.autoWrapperAddress,
     )
     .option(
-        "--lp-fees <number>",
+        "--lpFees <number>",
         "LP fees",
-        (val) => Number.parseInt(val),
+        (val: string) => Number.parseInt(val),
         config.lpFees,
     )
     .option(
-        "--tick-spacing <number>",
+        "--tickSpacing <number>",
         "Tick spacing",
-        (val) => Number.parseInt(val),
+        (val: string) => Number.parseInt(val),
         config.tickSpacing,
     )
     .option(
@@ -81,14 +81,14 @@ const options = program.opts();
 
 config = {
     ...config,
-    predicateAPIURL: options.predicateApiUrl || options.predicate_api_url,
+    predicateAPIURL: options.predicateApiUrl,
     apiKey: options.apiKey,
-    ethRPCURL: options.ethRpcUrl || options.eth_rpc_url,
+    ethRPCURL: options.ethRpcUrl,
     privateKey: options.privateKey,
     environment: options.environment,
     currency0Address: options.currency0Address,
     currency1Address: options.currency1Address,
-    routerAddress: options.swapRouterAddress || options.swap_router_address,
+    routerAddress: options.routerAddress,
     predicateHookAddress: options.predicateHookAddress,
     autoWrapperAddress: options.autoWrapperAddress,
     lpFees: options.lpFees,

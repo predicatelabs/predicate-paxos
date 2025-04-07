@@ -251,6 +251,8 @@ contract AutoWrapper is BaseHook, DeltaResolver {
 
             uint256 wUSDLDebt = _getFullDebt(Currency.wrap(address(wUSDL)));
             require(wUSDLDebt == 0, "wUSDL debt is not settled on auto wrapper");
+            uint256 wUSDLCredit = _getFullCredit(Currency.wrap(address(wUSDL)));
+            require(wUSDLCredit == 0, "wUSDL credit is not settled on auto wrapper");
 
             int128 amountUnspecified = isExactInput
                 ? -(usdlBalanceAfter - usdlBalanceBefore).toInt256().toInt128()
@@ -277,6 +279,8 @@ contract AutoWrapper is BaseHook, DeltaResolver {
 
             uint256 remainingWUSDLDebt = _getFullDebt(Currency.wrap(address(wUSDL)));
             require(remainingWUSDLDebt == 0, "wUSDL debt is not settled on auto wrapper");
+            uint256 remainingWUSDLCredit = _getFullCredit(Currency.wrap(address(wUSDL)));
+            require(remainingWUSDLCredit == 0, "wUSDL credit is not settled on auto wrapper");
 
             int128 amountUnspecified =
                 isExactInput ? -baseCurrencyDelta.toInt128() : (usdlBalanceAfter - usdlBalanceBefore).toInt128();

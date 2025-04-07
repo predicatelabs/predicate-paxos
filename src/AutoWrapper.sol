@@ -240,10 +240,11 @@ contract AutoWrapper is BaseHook, DeltaResolver {
         if (params.zeroForOne == baseCurrencyIsToken0) {
             // baseCurrency -> USDL swap path
             _take(Currency.wrap(address(wUSDL)), address(this), uint256(wUSDLDelta));
-            uint256 usdlBalanceBefore = IERC20(wUSDL.asset()).balanceOf(address(poolManager));
             uint256 usdlDelta = _withdraw(uint256(wUSDLDelta));
+            uint256 usdlBalanceBefore = IERC20(wUSDL.asset()).balanceOf(address(poolManager));
             _settle(Currency.wrap(wUSDL.asset()), address(this), uint256(usdlDelta));
-            // transfer usdDelta can have rounding errors, so we need to check the balance after
+            // transfer usdlDelta can have rounding errors, so we need to check the balance after
+            uint256 usdlBalanceAfter = IERC20(wUSDL.asset()).balanceOf(address(poolManager));
             int128 amountUnspecified = isExactInput
                 ? -(usdlBalanceAfter - usdlBalanceBefore).toInt256().toInt128()
                 : -baseCurrencyDelta.toInt128();
@@ -256,6 +257,12 @@ contract AutoWrapper is BaseHook, DeltaResolver {
             // todo: might not receive same amount of wUSDL as expected from take
             _take(Currency.wrap(wUSDL.asset()), address(this), inputAmount);
             uint256 wUSDLAmount = _deposit(inputAmount);
+            _getFullDebt(currency);
+            if (inputAmount > wUSDLAmount) {
+                // there might be rounding issue where we did not receive the expected amount of wUSDL
+                // take the difference from the poolManager
+                _take(Currency.wrap(address(wUSDL.asset())), address(this), inputAmount - wUSDLAmount);
+            }
             _settle(Currency.wrap(address(wUSDL)), address(this), wUSDLAmount);
             int128 amountUnspecified = isExactInput ? -baseCurrencyDelta.toInt128() : inputAmount.toInt128();
             swapDelta = toBeforeSwapDelta(-params.amountSpecified.toInt128(), amountUnspecified);

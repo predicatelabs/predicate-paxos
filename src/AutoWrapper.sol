@@ -240,15 +240,20 @@ contract AutoWrapper is BaseHook, DeltaResolver {
         if (params.zeroForOne == baseCurrencyIsToken0) {
             // baseCurrency -> USDL swap path
             _take(Currency.wrap(address(wUSDL)), address(this), uint256(wUSDLDelta));
+            uint256 usdlBalanceBefore = IERC20(wUSDL.asset()).balanceOf(address(poolManager));
             uint256 usdlDelta = _withdraw(uint256(wUSDLDelta));
             _settle(Currency.wrap(wUSDL.asset()), address(this), uint256(usdlDelta));
-            int128 amountUnspecified = isExactInput ? -usdlDelta.toInt256().toInt128() : -baseCurrencyDelta.toInt128();
+            // transfer usdDelta can have rounding errors, so we need to check the balance after
+            int128 amountUnspecified = isExactInput
+                ? -(usdlBalanceAfter - usdlBalanceBefore).toInt256().toInt128()
+                : -baseCurrencyDelta.toInt128();
             swapDelta = toBeforeSwapDelta(-params.amountSpecified.toInt128(), amountUnspecified);
         } else {
             // USDL -> baseCurrency swap path
             // Note: UniversalRouter sends USDL to the poolManager at start of swap
             uint256 inputAmount =
                 isExactInput ? uint256(-params.amountSpecified) : uint256(getWrapInputRequired(uint256(-wUSDLDelta)));
+            // todo: might not receive same amount of wUSDL as expected from take
             _take(Currency.wrap(wUSDL.asset()), address(this), inputAmount);
             uint256 wUSDLAmount = _deposit(inputAmount);
             _settle(Currency.wrap(address(wUSDL)), address(this), wUSDLAmount);

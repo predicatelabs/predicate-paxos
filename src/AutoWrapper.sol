@@ -237,22 +237,53 @@ contract AutoWrapper is BaseHook, DeltaResolver {
 
         // Step 3: settle the delta for the swap with the pool manager and calculate the swap delta
         bool isExactInput = params.amountSpecified < 0;
+        uint256 usdlBalanceBefore;
+        uint256 usdlBalanceAfter;
         if (params.zeroForOne == baseCurrencyIsToken0) {
             // baseCurrency -> USDL swap path
             _take(Currency.wrap(address(wUSDL)), address(this), uint256(wUSDLDelta));
             uint256 usdlDelta = _withdraw(uint256(wUSDLDelta));
+            usdlBalanceBefore = IERC20(wUSDL.asset()).balanceOf(address(poolManager));
             _settle(Currency.wrap(wUSDL.asset()), address(this), uint256(usdlDelta));
-            int128 amountUnspecified = isExactInput ? -usdlDelta.toInt256().toInt128() : -baseCurrencyDelta.toInt128();
+
+            // in case of rounding error, we have to check transfererred balance.
+            usdlBalanceAfter = IERC20(wUSDL.asset()).balanceOf(address(poolManager));
+
+            uint256 wUSDLDebt = _getFullDebt(Currency.wrap(address(wUSDL)));
+            require(wUSDLDebt == 0, "wUSDL debt is not settled on auto wrapper");
+            uint256 wUSDLCredit = _getFullCredit(Currency.wrap(address(wUSDL)));
+            require(wUSDLCredit == 0, "wUSDL credit is not settled on auto wrapper");
+
+            int128 amountUnspecified = isExactInput
+                ? -(usdlBalanceAfter - usdlBalanceBefore).toInt256().toInt128()
+                : -baseCurrencyDelta.toInt128();
             swapDelta = toBeforeSwapDelta(-params.amountSpecified.toInt128(), amountUnspecified);
         } else {
             // USDL -> baseCurrency swap path
             // Note: UniversalRouter sends USDL to the poolManager at start of swap
             uint256 inputAmount =
                 isExactInput ? uint256(-params.amountSpecified) : uint256(getWrapInputRequired(uint256(-wUSDLDelta)));
+            usdlBalanceBefore = IERC20(wUSDL.asset()).balanceOf(address(this));
             _take(Currency.wrap(wUSDL.asset()), address(this), inputAmount);
-            uint256 wUSDLAmount = _deposit(inputAmount);
+            usdlBalanceAfter = IERC20(wUSDL.asset()).balanceOf(address(this));
+
+            // in case of rounding error, we have to check transfererred balance.
+            if (usdlBalanceAfter - usdlBalanceBefore < inputAmount) {
+                _take(Currency.wrap(wUSDL.asset()), address(this), inputAmount - (usdlBalanceAfter - usdlBalanceBefore));
+            } else if (usdlBalanceAfter - usdlBalanceBefore > inputAmount) {
+                _settle(Currency.wrap(wUSDL.asset()), address(this), usdlBalanceAfter - usdlBalanceBefore - inputAmount);
+            }
+            usdlBalanceAfter = IERC20(wUSDL.asset()).balanceOf(address(this));
+            uint256 wUSDLAmount = _deposit(usdlBalanceAfter - usdlBalanceBefore);
             _settle(Currency.wrap(address(wUSDL)), address(this), wUSDLAmount);
-            int128 amountUnspecified = isExactInput ? -baseCurrencyDelta.toInt128() : inputAmount.toInt128();
+
+            uint256 remainingWUSDLDebt = _getFullDebt(Currency.wrap(address(wUSDL)));
+            require(remainingWUSDLDebt == 0, "wUSDL debt is not settled on auto wrapper");
+            uint256 remainingWUSDLCredit = _getFullCredit(Currency.wrap(address(wUSDL)));
+            require(remainingWUSDLCredit == 0, "wUSDL credit is not settled on auto wrapper");
+
+            int128 amountUnspecified =
+                isExactInput ? -baseCurrencyDelta.toInt128() : (usdlBalanceAfter - usdlBalanceBefore).toInt128();
             swapDelta = toBeforeSwapDelta(-params.amountSpecified.toInt128(), amountUnspecified);
         }
 

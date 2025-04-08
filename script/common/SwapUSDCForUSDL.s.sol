@@ -47,9 +47,9 @@ contract SwapScript is Script {
         INetwork.TokenConfig memory tokenConfig = _env.tokenConfig();
         vm.label(address(_swapRouter), "SWAP_ROUTER_CONTRACT");
         vm.label(_autowrapperHookAddress, "AUTOWRAPPER_HOOK_CONTRACT");
-        vm.label(tokenConfig.wUSDL, "WRAPPED_USDL_TOKEN");
-        vm.label(tokenConfig.USDL, "USDL_TOKEN");
-        vm.label(tokenConfig.USDC, "USDC_TOKEN");
+        vm.label(Currency.unwrap(tokenConfig.wUSDL), "WRAPPED_USDL_TOKEN");
+        vm.label(Currency.unwrap(tokenConfig.USDL), "USDL_TOKEN");
+        vm.label(Currency.unwrap(tokenConfig.USDC), "USDC_TOKEN");
         vm.label(address(0x000000000004444c5dc75cB358380D2e3dE08A90), "POOLMANAGER");
         vm.label(address(0xf6f4A30EeF7cf51Ed4Ee1415fB3bFDAf3694B0d2), "SERVICEMANAGER_CONTRACT");
 

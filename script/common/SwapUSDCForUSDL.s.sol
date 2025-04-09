@@ -44,22 +44,36 @@ contract SwapScript is Script {
 
     function run() public {
         _init();
-        vm.label(address(0x8F2c925603c4ba055779475F14241E3c9ee7c1be), "SWAP_ROUTER_CONTRACT");
-        vm.label(address(0x084B1d8B3f5cb834Fe15C39B18F91Faf2fbE2880), "PREDICATE_HOOK_CONTRACT");
-        vm.label(address(0x599d955C3504898952775c83Fd826A9f7339a8C8), "AUTOWRAPPER_HOOK_CONTRACT");
-        vm.label(address(0x7751E2F4b8ae93EF6B79d86419d42FE3295A4559), "WRAPPED_USDL_TOKEN");
-        vm.label(address(0xbdC7c08592Ee4aa51D06C27Ee23D5087D65aDbcD), "USDL_TOKEN");
-        vm.label(address(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48), "USDC_TOKEN");
+        INetwork.TokenConfig memory tokenConfig = _env.tokenConfig();
+        vm.label(address(_swapRouter), "SWAP_ROUTER_CONTRACT");
+        vm.label(_autowrapperHookAddress, "AUTOWRAPPER_HOOK_CONTRACT");
+        vm.label(Currency.unwrap(tokenConfig.wUSDL), "WRAPPED_USDL_TOKEN");
+        vm.label(Currency.unwrap(tokenConfig.USDL), "USDL_TOKEN");
+        vm.label(Currency.unwrap(tokenConfig.USDC), "USDC_TOKEN");
         vm.label(address(0x000000000004444c5dc75cB358380D2e3dE08A90), "POOLMANAGER");
         vm.label(address(0xf6f4A30EeF7cf51Ed4Ee1415fB3bFDAf3694B0d2), "SERVICEMANAGER_CONTRACT");
-        INetwork.Config memory config = _env.config();
+
+        _tokenApprovals();
+        swapUSDForUSDLExactIn();
+        swapUSDForUSDLExactOut();
+        swapUSDLForUSDCExactIn();
+        swapUSDLForUSDCExactOut();
+    }
+
+    function _tokenApprovals() internal {
         INetwork.TokenConfig memory tokenConfig = _env.tokenConfig();
-        address tokenIn = Currency.unwrap(tokenConfig.USDC);
-        address tokenOut = Currency.unwrap(tokenConfig.USDL);
-        address recipient = msg.sender;
-        uint128 amountIn = 1e6; // 1 wUSDL
-        uint128 amountOutMin = 1; // accept any amount out
-        uint160 sqrtPriceLimitX96 = 0;
+        IERC20 token0 = IERC20(Currency.unwrap(tokenConfig.USDC));
+        IERC20 token1 = IERC20(Currency.unwrap(tokenConfig.USDL));
+        vm.startBroadcast();
+        token0.approve(address(_swapRouter), type(uint256).max);
+        token1.approve(address(_swapRouter), type(uint256).max);
+        vm.stopBroadcast();
+    }
+
+    function swapUSDForUSDLExactIn() public {
+        INetwork.TokenConfig memory tokenConfig = _env.tokenConfig();
+        uint128 amountIn = 1e6; // 1 USDC
+        uint128 amountOutMin = 1e17; // accepts min 0.1 USDL out
         PoolKey memory key = PoolKey({
             currency0: tokenConfig.USDC,
             currency1: tokenConfig.USDL,
@@ -78,8 +92,103 @@ contract SwapScript is Script {
             abi.encodePacked(uint8(Actions.SWAP_EXACT_IN_SINGLE), uint8(Actions.SETTLE_ALL), uint8(Actions.TAKE_ALL));
         bytes[] memory params = new bytes[](3);
         params[0] = abi.encode(swapParams); // swap params
-        params[1] = abi.encode(key.currency0, 1e6); // settle currency0
-        params[2] = abi.encode(key.currency1, 1e18); // take currency1
+        params[1] = abi.encode(key.currency0, amountIn); // settle currency0
+        params[2] = abi.encode(key.currency1, amountOutMin); // take currency1
+        vm.startBroadcast();
+        _swapRouter.execute(abi.encode(actions, params));
+        vm.stopBroadcast();
+    }
+
+    function swapUSDForUSDLExactOut() public {
+        INetwork.TokenConfig memory tokenConfig = _env.tokenConfig();
+        uint128 amountOut = 1e18 - 1; // 1 USDL
+        uint128 amountInMax = 2e6; // accepts max 2 USDC in
+        PoolKey memory key = PoolKey({
+            currency0: tokenConfig.USDC,
+            currency1: tokenConfig.USDL,
+            fee: lpFee,
+            tickSpacing: tickSpacing,
+            hooks: IHooks(_autowrapperHookAddress)
+        });
+        IV4Router.ExactOutputSingleParams memory swapParams = IV4Router.ExactOutputSingleParams({
+            poolKey: key,
+            zeroForOne: true,
+            amountInMaximum: amountInMax,
+            amountOut: amountOut,
+            hookData: abi.encode("0x")
+        });
+        bytes memory actions =
+            abi.encodePacked(uint8(Actions.SWAP_EXACT_OUT_SINGLE), uint8(Actions.SETTLE_ALL), uint8(Actions.TAKE_ALL));
+        bytes[] memory params = new bytes[](3);
+        params[0] = abi.encode(swapParams); // swap params
+        params[1] = abi.encode(key.currency0, amountInMax); // settle currency0
+        params[2] = abi.encode(key.currency1, amountOut); // take currency1
+        vm.startBroadcast();
+        _swapRouter.execute(abi.encode(actions, params));
+        vm.stopBroadcast();
+    }
+
+    function swapUSDLForUSDCExactIn() public {
+        INetwork.TokenConfig memory tokenConfig = _env.tokenConfig();
+        uint128 amountIn = 1e18; // 1 USDL
+        uint128 amountOutMin = 9e5; // accepts min 0.9 USDC out
+        PoolKey memory key = PoolKey({
+            currency0: tokenConfig.USDC,
+            currency1: tokenConfig.USDL,
+            fee: lpFee,
+            tickSpacing: tickSpacing,
+            hooks: IHooks(_autowrapperHookAddress)
+        });
+        IV4Router.ExactInputSingleParams memory swapParams = IV4Router.ExactInputSingleParams({
+            poolKey: key,
+            zeroForOne: false,
+            amountIn: amountIn,
+            amountOutMinimum: amountOutMin,
+            hookData: abi.encode("0x")
+        });
+        bytes memory actions = abi.encodePacked(
+            uint8(Actions.SETTLE), uint8(Actions.SWAP_EXACT_IN_SINGLE), uint8(Actions.TAKE_ALL), uint8(Actions.TAKE_ALL)
+        );
+        bytes[] memory params = new bytes[](4);
+        params[0] = abi.encode(key.currency1, amountIn, true); // settle currency1
+        params[1] = abi.encode(swapParams); // swap params
+        params[2] = abi.encode(key.currency0, amountIn); // take currency0
+        params[3] = abi.encode(key.currency1, 0); // take currency1
+        vm.startBroadcast();
+        _swapRouter.execute(abi.encode(actions, params));
+        vm.stopBroadcast();
+    }
+
+    function swapUSDLForUSDCExactOut() public {
+        INetwork.TokenConfig memory tokenConfig = _env.tokenConfig();
+        uint128 amountOut = 1e6; // 1 USDC
+        uint128 amountInMax = 2e18; // accepts max 2 USDL in
+        PoolKey memory key = PoolKey({
+            currency0: tokenConfig.USDC,
+            currency1: tokenConfig.USDL,
+            fee: lpFee,
+            tickSpacing: tickSpacing,
+            hooks: IHooks(_autowrapperHookAddress)
+        });
+        IV4Router.ExactOutputSingleParams memory swapParams = IV4Router.ExactOutputSingleParams({
+            poolKey: key,
+            zeroForOne: false,
+            amountOut: amountOut,
+            amountInMaximum: amountInMax,
+            hookData: abi.encode("0x")
+        });
+        bytes memory actions = abi.encodePacked(
+            uint8(Actions.SETTLE),
+            uint8(Actions.SWAP_EXACT_OUT_SINGLE),
+            uint8(Actions.TAKE_ALL),
+            uint8(Actions.TAKE_ALL)
+        );
+        bytes[] memory params = new bytes[](4);
+        params[0] = abi.encode(key.currency1, amountInMax, true); // settle currency1
+        params[1] = abi.encode(swapParams); // swap params
+        params[2] = abi.encode(key.currency0, amountOut); // take currency0
+        params[3] = abi.encode(key.currency1, 0); // take currency1
+
         vm.startBroadcast();
         _swapRouter.execute(abi.encode(actions, params));
         vm.stopBroadcast();

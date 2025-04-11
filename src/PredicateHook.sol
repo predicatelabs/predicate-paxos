@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import {V4Router} from "@uniswap/v4-periphery/src/V4Router.sol";
+import {V4SwapRouter} from "./V4SwapRouter.sol";
 
 import {BaseHook} from "@uniswap/v4-periphery/src/utils/BaseHook.sol";
 import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
@@ -42,7 +42,7 @@ contract PredicateHook is BaseHook, PredicateClient, Ownable2Step {
      * @notice The router contract that is used to swap tokens
      * @dev This router contract is used to get the msgSender() who initiated the swap
      */
-    V4Router public router;
+    V4SwapRouter public router;
 
     /**
      * @notice A mapping of authorized liquidity providers
@@ -90,7 +90,7 @@ contract PredicateHook is BaseHook, PredicateClient, Ownable2Step {
      */
     constructor(
         IPoolManager _poolManager,
-        V4Router _router,
+        V4SwapRouter _router,
         address _serviceManager,
         string memory _policyID,
         address _owner
@@ -231,7 +231,7 @@ contract PredicateHook is BaseHook, PredicateClient, Ownable2Step {
      * @param _router The new router
      */
     function setRouter(
-        V4Router _router
+        V4SwapRouter _router
     ) external onlyOwner {
         router = _router;
     }

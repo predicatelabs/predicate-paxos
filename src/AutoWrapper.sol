@@ -12,7 +12,6 @@ import {BaseHook} from "@uniswap/v4-periphery/src/utils/BaseHook.sol";
 import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
 import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
 import {BalanceDelta, BalanceDeltaLibrary} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
-import {V4Router} from "@uniswap/v4-periphery/src/V4Router.sol";
 import {Currency, CurrencyLibrary} from "@uniswap/v4-core/src/types/Currency.sol";
 import {CurrencySettler} from "@uniswap/v4-core/test/utils/CurrencySettler.sol";
 import {TransientStateLibrary} from "@uniswap/v4-core/src/libraries/TransientStateLibrary.sol";
@@ -22,6 +21,7 @@ import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {ERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import {DeltaResolver} from "@uniswap/v4-periphery/src/base/DeltaResolver.sol";
 import {TickMath} from "@uniswap/v4-core/src/libraries/TickMath.sol";
+import {V4SwapRouter} from "./V4SwapRouter.sol";
 
 /**
  * @title AutoWrapper Swap Hook for USDL
@@ -71,7 +71,7 @@ contract AutoWrapper is BaseHook, DeltaResolver {
      * @notice Reference to the router handling user swap requests
      * @dev Used to access the actual message sender. This is a trusted contract.
      */
-    V4Router public router;
+    V4SwapRouter public router;
 
     /**
      * @notice The base currency for this ghost pool and the liquid pool
@@ -101,7 +101,7 @@ contract AutoWrapper is BaseHook, DeltaResolver {
         ERC4626 _wUSDL,
         Currency _baseCurrency,
         PoolKey memory _wUSDLPoolKey,
-        V4Router _router
+        V4SwapRouter _router
     ) BaseHook(_manager) {
         if (_baseCurrency == _wUSDLPoolKey.currency0) {
             // baseCurrency/wUSDL pool

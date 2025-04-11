@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import {PredicateHook} from "../src/PredicateHook.sol";
 import {PredicateHookSetup} from "./utils/PredicateHookSetup.sol";
-import {V4Router} from "@uniswap/v4-periphery/src/V4Router.sol";
+import {V4SwapRouter} from "../src/V4SwapRouter.sol";
 import {Test} from "forge-std/Test.sol";
 
 contract PredicateHookTest is Test, PredicateHookSetup {
@@ -144,7 +144,7 @@ contract PredicateHookTest is Test, PredicateHookSetup {
     function testSetRouter() public {
         address newRouter = makeAddr("new-router");
         vm.prank(hook.owner());
-        hook.setRouter(V4Router(newRouter));
+        hook.setRouter(V4SwapRouter(newRouter));
         assertEq(address(hook.router()), newRouter);
     }
 
@@ -152,6 +152,6 @@ contract PredicateHookTest is Test, PredicateHookSetup {
         address newRouter = makeAddr("new-router");
         vm.prank(makeAddr("not-owner"));
         vm.expectRevert();
-        hook.setRouter(V4Router(newRouter));
+        hook.setRouter(V4SwapRouter(newRouter));
     }
 }

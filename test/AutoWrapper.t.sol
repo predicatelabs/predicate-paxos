@@ -93,14 +93,18 @@ contract AutoWrapperTest is Test, AutoWrapperSetup, OperatorTestPrep {
         uint256 balance0 = token0.balanceOf(liquidityProvider);
         uint256 balance1 = token1.balanceOf(liquidityProvider);
 
-        bytes memory actions =
-            abi.encodePacked(uint8(Actions.SWAP_EXACT_OUT_SINGLE), uint8(Actions.TAKE_ALL), uint8(Actions.SETTLE_ALL));
+        bytes memory actions = abi.encodePacked(
+            uint8(Actions.SWAP_EXACT_OUT_SINGLE),
+            uint8(Actions.TAKE_ALL),
+            uint8(Actions.SETTLE_ALL),
+            uint8(Actions.CLEAR_OR_TAKE)
+        );
 
-        bytes[] memory params = new bytes[](3);
+        bytes[] memory params = new bytes[](4);
         params[0] = abi.encode(swapParams); // swap params
         params[1] = abi.encode(key.currency1, amountSpecified); // take currency1
         params[2] = abi.encode(key.currency0, 1e8); // settle currency0
-
+        params[3] = abi.encode(key.currency1, amountSpecified); // settle currency1
         vm.prank(address(liquidityProvider));
         swapRouter.execute(abi.encode(actions, params));
 

@@ -6,7 +6,7 @@ import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
 import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
 import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
 import {INetwork} from "./INetwork.sol";
-import {V4Router} from "@uniswap/v4-periphery/src/V4Router.sol";
+import {V4SwapRouter} from "../../src/V4SwapRouter.sol";
 import {NetworkSelector} from "./NetworkSelector.sol";
 import {ERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -19,7 +19,7 @@ import {Constants} from "@uniswap/v4-core/test/utils/Constants.sol";
 contract DeployAutoWrapperAndInitPool is Script {
     INetwork private _env;
     address private _hookAddress;
-    V4Router private _swapRouter;
+    V4SwapRouter private _swapRouter;
     int24 private _tickSpacing;
 
     function _init() internal {
@@ -33,7 +33,7 @@ contract DeployAutoWrapperAndInitPool is Script {
         string memory _network = vm.envString("NETWORK");
         _env = new NetworkSelector().select(_network);
         _hookAddress = vm.envAddress("HOOK_ADDRESS");
-        _swapRouter = V4Router(vm.envAddress("SWAP_ROUTER_ADDRESS"));
+        _swapRouter = V4SwapRouter(vm.envAddress("SWAP_ROUTER_ADDRESS"));
     }
 
     function run() public {

@@ -6,14 +6,14 @@ import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
 import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
 import {INetwork} from "./INetwork.sol";
 import {NetworkSelector} from "./NetworkSelector.sol";
-import {V4Router} from "@uniswap/v4-periphery/src/V4Router.sol";
+import {V4SwapRouter} from "../../src/V4SwapRouter.sol";
 
 import {PredicateHook} from "../../src/PredicateHook.sol";
 import {HookMiner} from "../../test/utils/HookMiner.sol";
 
 contract DeployPredicateHook is Script {
     INetwork private _env;
-    V4Router private _swapRouter;
+    V4SwapRouter private _swapRouter;
     string private _policyId;
 
     function _init() internal {
@@ -26,7 +26,7 @@ contract DeployPredicateHook is Script {
         );
         string memory _network = vm.envString("NETWORK");
         _env = new NetworkSelector().select(_network);
-        _swapRouter = V4Router(vm.envAddress("SWAP_ROUTER_ADDRESS"));
+        _swapRouter = V4SwapRouter(vm.envAddress("SWAP_ROUTER_ADDRESS"));
         _policyId = vm.envString("POLICY_ID");
     }
 

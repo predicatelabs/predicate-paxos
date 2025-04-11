@@ -1,13 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import {V4Router} from "@uniswap/v4-periphery/src/V4Router.sol";
+import {V4Router} from "./base/V4Router.sol";
 import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
 import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
 import {Lock} from "./base/Lock.sol";
 import {IERC20} from "forge-std/interfaces/IERC20.sol";
 
 /// @title Router for Uniswap v4 Trades
+/// @notice This contract is a modified version of the V4Router contract from Uniswap v4 periphery
+/// @dev This contract adds an extra CLEAR_OR_TAKE action to the router to allow for forfeiting positive deltas with clear
 contract V4SwapRouter is V4Router, Lock {
     constructor(
         IPoolManager _poolManager

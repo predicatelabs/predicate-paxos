@@ -81,6 +81,24 @@ contract PredicateHook is BaseHook, PredicateClient, Ownable2Step {
     event AuthorizedUserRemoved(address indexed user);
 
     /**
+     * @notice Event emitted when the policy ID is updated
+     * @param policyID The new policy ID
+     */
+    event PolicyUpdated(string policyID);
+
+    /**
+     * @notice Event emitted when the predicate manager is updated
+     * @param predicateManager The new predicate manager address
+     */
+    event PredicateManagerUpdated(address predicateManager);
+
+    /**
+     * @notice Event emitted when the router is updated
+     * @param router The new router address
+     */
+    event RouterUpdated(address router);
+
+    /**
      * @notice Constructor for the PredicateHook
      * @param _poolManager The pool manager contract
      * @param _router The router contract
@@ -99,6 +117,11 @@ contract PredicateHook is BaseHook, PredicateClient, Ownable2Step {
         router = _router;
         isAuthorizedLP[_owner] = true;
         isAuthorizedSwapper[_owner] = true;
+        emit PolicyUpdated(_policyID);
+        emit PredicateManagerUpdated(_serviceManager);
+        emit RouterUpdated(address(_router));
+        emit AuthorizedLPAdded(_owner);
+        emit AuthorizedUserAdded(_owner);
     }
 
     /**
@@ -214,6 +237,7 @@ contract PredicateHook is BaseHook, PredicateClient, Ownable2Step {
         string memory _policyID
     ) external onlyOwner {
         _setPolicy(_policyID);
+        emit PolicyUpdated(_policyID);
     }
 
     /**
@@ -224,6 +248,7 @@ contract PredicateHook is BaseHook, PredicateClient, Ownable2Step {
         address _predicateManager
     ) external onlyOwner {
         _setPredicateManager(_predicateManager);
+        emit PredicateManagerUpdated(_predicateManager);
     }
 
     /**
@@ -234,6 +259,7 @@ contract PredicateHook is BaseHook, PredicateClient, Ownable2Step {
         V4Router _router
     ) external onlyOwner {
         router = _router;
+        emit RouterUpdated(address(_router));
     }
 
     /**

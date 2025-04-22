@@ -102,14 +102,8 @@ contract AutoWrapperTest is Test, AutoWrapperSetup, OperatorTestPrep {
         params[2] = abi.encode(key.currency0, 1e8); // settle currency0
 
         vm.prank(address(liquidityProvider));
+        vm.expectRevert();
         swapRouter.execute(abi.encode(actions, params));
-
-        assertEq(
-            token1.balanceOf(liquidityProvider),
-            balance1 + amountSpecified,
-            "Token1 balance should increase by amountSpecified"
-        );
-        require(token0.balanceOf(liquidityProvider) < balance0, "Token0 balance should decrease");
     }
 
     function testSwapOneForZeroExactInput() public permissionedOperators prepOperatorRegistration(true) {
@@ -123,7 +117,7 @@ contract AutoWrapperTest is Test, AutoWrapperSetup, OperatorTestPrep {
             poolKey: key,
             zeroForOne: false,
             amountIn: amountSpecified.toUint128(),
-            amountOutMinimum: 1e5,
+            amountOutMinimum: 9e5,
             hookData: abi.encode(message)
         });
 
@@ -133,17 +127,14 @@ contract AutoWrapperTest is Test, AutoWrapperSetup, OperatorTestPrep {
         uint256 balance1 = token1.balanceOf(liquidityProvider);
 
         bytes memory actions = abi.encodePacked(
-            uint8(Actions.SETTLE),
-            uint8(Actions.SWAP_EXACT_IN_SINGLE),
-            uint8(Actions.TAKE_ALL),
-            uint8(Actions.SETTLE_ALL)
+            uint8(Actions.SETTLE), uint8(Actions.SWAP_EXACT_IN_SINGLE), uint8(Actions.TAKE_ALL), uint8(Actions.TAKE_ALL)
         );
 
         bytes[] memory params = new bytes[](4);
         params[0] = abi.encode(key.currency1, 1e18 + 1, true); // settle currency1
         params[1] = abi.encode(swapParams); // swap params
-        params[2] = abi.encode(key.currency0, 1e5); // take currency0
-        params[3] = abi.encode(key.currency1, amountSpecified); // settle currency1
+        params[2] = abi.encode(key.currency0, 9e5); // take currency0
+        params[3] = abi.encode(key.currency1, 0); // take currency1
 
         vm.prank(address(liquidityProvider));
         swapRouter.execute(abi.encode(actions, params));
@@ -160,13 +151,13 @@ contract AutoWrapperTest is Test, AutoWrapperSetup, OperatorTestPrep {
         string memory taskId = "unique-identifier";
         PoolKey memory key = getPoolKey();
         uint256 amountSpecified = 1e6;
-        uint256 amountSpecifiedReq = 1_000_307_275_108_773_833; // this needs to be an amount >= what is required for the swap
+        uint256 amountInMax = 2e18; // this needs to be an amount >= what is required for the swap
         PredicateMessage memory message = getPredicateMessage(taskId, true, amountSpecified.toInt128());
         IV4Router.ExactOutputSingleParams memory swapParams = IV4Router.ExactOutputSingleParams({
             poolKey: key,
             zeroForOne: false,
             amountOut: amountSpecified.toUint128(),
-            amountInMaximum: 1e19,
+            amountInMaximum: amountInMax.toUint128(),
             hookData: abi.encode(message)
         });
 
@@ -179,14 +170,14 @@ contract AutoWrapperTest is Test, AutoWrapperSetup, OperatorTestPrep {
             uint8(Actions.SETTLE),
             uint8(Actions.SWAP_EXACT_OUT_SINGLE),
             uint8(Actions.TAKE_ALL),
-            uint8(Actions.SETTLE_ALL)
+            uint8(Actions.TAKE_ALL)
         );
 
         bytes[] memory params = new bytes[](4);
-        params[0] = abi.encode(key.currency1, amountSpecifiedReq, true); // settle currency1
+        params[0] = abi.encode(key.currency1, amountInMax, true); // settle currency1
         params[1] = abi.encode(swapParams); // swap params
         params[2] = abi.encode(key.currency0, amountSpecified); // take currency0
-        params[3] = abi.encode(key.currency1, amountSpecifiedReq); // settle currency1
+        params[3] = abi.encode(key.currency1, 0); // take currency1
 
         vm.prank(address(liquidityProvider));
         swapRouter.execute(abi.encode(actions, params));

@@ -81,7 +81,7 @@ create-pool-and-mint-liquidity:
 
 swap-usdc-for-usdl:
 	export NETWORK=${NETWORK} && \
-	export HOOK_ADDRESS=${AUTO_WRAPPER_HOOK_ADDRESS} && \
+	export AUTO_WRAPPER_HOOK_ADDRESS=${AUTO_WRAPPER_HOOK_ADDRESS} && \
 	export SWAP_ROUTER_ADDRESS=${SWAP_ROUTER_ADDRESS} && \
 	forge script script/common/SwapUSDCForUSDL.s.sol \
 		--via-ir \

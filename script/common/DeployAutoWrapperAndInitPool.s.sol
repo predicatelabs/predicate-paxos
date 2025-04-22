@@ -78,6 +78,9 @@ contract DeployAutoWrapperAndInitPool is Script {
         uint160 ghostPoolStartingPrice = 79_228_162_514_264_337_593_543_950_336_000_000;
         manager.initialize(ghostPoolKey, ghostPoolStartingPrice);
 
+        // move 2e18 USDL to the auto wrapper
+        USDL.transfer(address(autoWrapper), 2e18);
+
         // set approvals
         _setApprovals(wUSDL, USDC, USDL, autoWrapper);
         vm.stopBroadcast();

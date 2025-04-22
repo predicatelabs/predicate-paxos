@@ -54,9 +54,9 @@ contract SwapScript is Script {
         vm.label(address(0xf6f4A30EeF7cf51Ed4Ee1415fB3bFDAf3694B0d2), "SERVICEMANAGER_CONTRACT");
 
         _tokenApprovals();
-        // swapUSDForUSDLExactIn();
-        swapUSDLForUSDCExactIn();
-        // swapUSDLForUSDCExactOut();
+        // swapUSDCForUSDLExactIn();
+        // swapUSDLForUSDCExactIn();
+        swapUSDLForUSDCExactOut();
     }
 
     function _tokenApprovals() internal {
@@ -69,7 +69,7 @@ contract SwapScript is Script {
         vm.stopBroadcast();
     }
 
-    function swapUSDForUSDLExactIn() public {
+    function swapUSDCForUSDLExactIn() public {
         INetwork.TokenConfig memory tokenConfig = _env.tokenConfig();
         uint128 amountIn = 1e6; // 1 USDC
         uint128 amountOutMin = 1e17; // accepts min 0.1 USDL out

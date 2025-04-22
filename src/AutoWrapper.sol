@@ -426,10 +426,4 @@ contract AutoWrapper is BaseHook, DeltaResolver {
     ) public view returns (int256) {
         return int256(wUSDL.previewDeposit(usdlAmount));
     }
-
-    function setRouter(
-        V4SwapRouter _router
-    ) external {
-        router = _router;
-    }
 }

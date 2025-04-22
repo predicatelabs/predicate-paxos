@@ -140,7 +140,7 @@ contract AutoWrapperTest is Test, AutoWrapperSetup, OperatorTestPrep {
         );
 
         bytes[] memory params = new bytes[](4);
-        params[0] = abi.encode(key.currency1, amountSpecified, true); // settle currency1
+        params[0] = abi.encode(key.currency1, 1e18 + 1, true); // settle currency1
         params[1] = abi.encode(swapParams); // swap params
         params[2] = abi.encode(key.currency0, 1e5); // take currency0
         params[3] = abi.encode(key.currency1, amountSpecified); // settle currency1

@@ -56,6 +56,16 @@ contract AutoWrapper is BaseHook, DeltaResolver {
     error CallerIsNotRouter();
 
     /**
+     * @notice baseCurrency -> USDL swap path, exactOutput is not allowed
+     */
+    error ExactOutputIsNotAllowed();
+
+    /**
+     * @notice Insufficient USDL balance
+     */
+    error InsufficientUSDLBalance();
+
+    /**
      * @notice The ERC4626 vault contract
      * @dev This is the wrapped token (wUSDL in this case)
      */
@@ -240,23 +250,19 @@ contract AutoWrapper is BaseHook, DeltaResolver {
         uint256 usdlBalanceBefore;
         uint256 usdlBalanceAfter;
         if (params.zeroForOne == baseCurrencyIsToken0) {
-            // baseCurrency -> USDL swap path
+            // baseCurrency -> USDL swap path exactOutput is not allowed
+            if (!isExactInput) revert ExactOutputIsNotAllowed();
+
             _take(Currency.wrap(address(wUSDL)), address(this), uint256(wUSDLDelta));
             uint256 usdlDelta = _withdraw(uint256(wUSDLDelta));
             usdlBalanceBefore = IERC20(wUSDL.asset()).balanceOf(address(poolManager));
             _settle(Currency.wrap(wUSDL.asset()), address(this), uint256(usdlDelta));
 
             // in case of rounding error, we have to check transfererred balance.
+            // _settle() automatically syncs the balance from poolManager perspective
             usdlBalanceAfter = IERC20(wUSDL.asset()).balanceOf(address(poolManager));
 
-            uint256 wUSDLDebt = _getFullDebt(Currency.wrap(address(wUSDL)));
-            require(wUSDLDebt == 0, "wUSDL debt is not settled on auto wrapper");
-            uint256 wUSDLCredit = _getFullCredit(Currency.wrap(address(wUSDL)));
-            require(wUSDLCredit == 0, "wUSDL credit is not settled on auto wrapper");
-
-            int128 amountUnspecified = isExactInput
-                ? -(usdlBalanceAfter - usdlBalanceBefore).toInt256().toInt128()
-                : -baseCurrencyDelta.toInt128();
+            int128 amountUnspecified = -(usdlBalanceAfter - usdlBalanceBefore).toInt256().toInt128();
             swapDelta = toBeforeSwapDelta(-params.amountSpecified.toInt128(), amountUnspecified);
         } else {
             // USDL -> baseCurrency swap path
@@ -268,19 +274,22 @@ contract AutoWrapper is BaseHook, DeltaResolver {
             usdlBalanceAfter = IERC20(wUSDL.asset()).balanceOf(address(this));
 
             // in case of rounding error, we have to check transfererred balance.
-            if (usdlBalanceAfter - usdlBalanceBefore < inputAmount) {
-                _take(Currency.wrap(wUSDL.asset()), address(this), inputAmount - (usdlBalanceAfter - usdlBalanceBefore));
-            } else if (usdlBalanceAfter - usdlBalanceBefore > inputAmount) {
-                _settle(Currency.wrap(wUSDL.asset()), address(this), usdlBalanceAfter - usdlBalanceBefore - inputAmount);
+            // _take() will not sync the balance from poolManager perspective
+            if (usdlBalanceAfter - usdlBalanceBefore != inputAmount) {
+                IERC20(wUSDL.asset()).transferFrom(router.msgSender(), address(this), 2); // hardcoded dust
             }
             usdlBalanceAfter = IERC20(wUSDL.asset()).balanceOf(address(this));
-            uint256 wUSDLAmount = _deposit(usdlBalanceAfter - usdlBalanceBefore);
-            _settle(Currency.wrap(address(wUSDL)), address(this), wUSDLAmount);
+            if (usdlBalanceAfter - usdlBalanceBefore < inputAmount) {
+                revert InsufficientUSDLBalance();
+            }
 
-            uint256 remainingWUSDLDebt = _getFullDebt(Currency.wrap(address(wUSDL)));
-            require(remainingWUSDLDebt == 0, "wUSDL debt is not settled on auto wrapper");
-            uint256 remainingWUSDLCredit = _getFullCredit(Currency.wrap(address(wUSDL)));
-            require(remainingWUSDLCredit == 0, "wUSDL credit is not settled on auto wrapper");
+            // in case of rounding error in deposit, we have to deposit the total amount with dust
+            uint256 wUSDLAmount = _deposit(inputAmount);
+            if (wUSDLAmount < uint256(-wUSDLDelta)) {
+                _deposit(2);
+            }
+
+            _settle(Currency.wrap(address(wUSDL)), address(this), uint256(-wUSDLDelta));
 
             int128 amountUnspecified =
                 isExactInput ? -baseCurrencyDelta.toInt128() : (usdlBalanceAfter - usdlBalanceBefore).toInt128();
@@ -307,7 +316,7 @@ contract AutoWrapper is BaseHook, DeltaResolver {
         } else {
             // USDL -> USDC ex. 5 USDL as output
             // WUSDL/USDC pool
-            return isExactInput ? -getUnwrapInputRequired(uint256(-params.amountSpecified)) : params.amountSpecified;
+            return isExactInput ? -(getUnwrapInputRequired(uint256(-params.amountSpecified))) : params.amountSpecified;
         }
     }
 
@@ -404,7 +413,7 @@ contract AutoWrapper is BaseHook, DeltaResolver {
     function getWrapInputRequired(
         uint256 wUSDLAmount
     ) public view returns (int256) {
-        return int256(wUSDL.convertToAssets({shares: wUSDLAmount}));
+        return int256(wUSDL.previewRedeem(wUSDLAmount));
     }
 
     /**
@@ -415,6 +424,6 @@ contract AutoWrapper is BaseHook, DeltaResolver {
     function getUnwrapInputRequired(
         uint256 usdlAmount
     ) public view returns (int256) {
-        return int256(wUSDL.convertToShares({assets: usdlAmount}));
+        return int256(wUSDL.previewDeposit(usdlAmount));
     }
 }

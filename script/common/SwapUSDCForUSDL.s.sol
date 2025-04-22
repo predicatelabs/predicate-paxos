@@ -54,9 +54,8 @@ contract SwapScript is Script {
         vm.label(address(0xf6f4A30EeF7cf51Ed4Ee1415fB3bFDAf3694B0d2), "SERVICEMANAGER_CONTRACT");
 
         _tokenApprovals();
-        swapUSDForUSDLExactIn();
-        swapUSDForUSDLExactOut();
-        swapUSDLForUSDCExactIn();
+        // swapUSDCForUSDLExactIn();
+        // swapUSDLForUSDCExactIn();
         swapUSDLForUSDCExactOut();
     }
 
@@ -70,7 +69,7 @@ contract SwapScript is Script {
         vm.stopBroadcast();
     }
 
-    function swapUSDForUSDLExactIn() public {
+    function swapUSDCForUSDLExactIn() public {
         INetwork.TokenConfig memory tokenConfig = _env.tokenConfig();
         uint128 amountIn = 1e6; // 1 USDC
         uint128 amountOutMin = 1e17; // accepts min 0.1 USDL out
@@ -99,35 +98,6 @@ contract SwapScript is Script {
         vm.stopBroadcast();
     }
 
-    function swapUSDForUSDLExactOut() public {
-        INetwork.TokenConfig memory tokenConfig = _env.tokenConfig();
-        uint128 amountOut = 1e18 - 1; // 1 USDL
-        uint128 amountInMax = 2e6; // accepts max 2 USDC in
-        PoolKey memory key = PoolKey({
-            currency0: tokenConfig.USDC,
-            currency1: tokenConfig.USDL,
-            fee: lpFee,
-            tickSpacing: tickSpacing,
-            hooks: IHooks(_autowrapperHookAddress)
-        });
-        IV4Router.ExactOutputSingleParams memory swapParams = IV4Router.ExactOutputSingleParams({
-            poolKey: key,
-            zeroForOne: true,
-            amountInMaximum: amountInMax,
-            amountOut: amountOut,
-            hookData: abi.encode("0x")
-        });
-        bytes memory actions =
-            abi.encodePacked(uint8(Actions.SWAP_EXACT_OUT_SINGLE), uint8(Actions.SETTLE_ALL), uint8(Actions.TAKE_ALL));
-        bytes[] memory params = new bytes[](3);
-        params[0] = abi.encode(swapParams); // swap params
-        params[1] = abi.encode(key.currency0, amountInMax); // settle currency0
-        params[2] = abi.encode(key.currency1, amountOut); // take currency1
-        vm.startBroadcast();
-        _swapRouter.execute(abi.encode(actions, params));
-        vm.stopBroadcast();
-    }
-
     function swapUSDLForUSDCExactIn() public {
         INetwork.TokenConfig memory tokenConfig = _env.tokenConfig();
         uint128 amountIn = 1e18; // 1 USDL
@@ -150,9 +120,9 @@ contract SwapScript is Script {
             uint8(Actions.SETTLE), uint8(Actions.SWAP_EXACT_IN_SINGLE), uint8(Actions.TAKE_ALL), uint8(Actions.TAKE_ALL)
         );
         bytes[] memory params = new bytes[](4);
-        params[0] = abi.encode(key.currency1, amountIn, true); // settle currency1
+        params[0] = abi.encode(key.currency1, amountIn + 1, true); // settle currency1
         params[1] = abi.encode(swapParams); // swap params
-        params[2] = abi.encode(key.currency0, amountIn); // take currency0
+        params[2] = abi.encode(key.currency0, amountOutMin); // take currency0
         params[3] = abi.encode(key.currency1, 0); // take currency1
         vm.startBroadcast();
         _swapRouter.execute(abi.encode(actions, params));

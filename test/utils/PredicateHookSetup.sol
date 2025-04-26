@@ -36,13 +36,13 @@ contract PredicateHookSetup is MetaCoinTestSetup, PoolSetup {
 
         uint160 flags = uint160(Hooks.BEFORE_SWAP_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG | Hooks.BEFORE_INITIALIZE_FLAG);
         bytes memory constructorArgs = abi.encode(
-            manager, PositionManager(address(posm)), swapRouter, address(serviceManager), "testPolicy", _owner
+            manager, PositionManager(payable(address(posm))), swapRouter, address(serviceManager), "testPolicy", _owner
         );
         (address hookAddress, bytes32 salt) =
             HookMiner.find(address(this), flags, type(PredicateHook).creationCode, constructorArgs);
 
         hook = new PredicateHook{salt: salt}(
-            manager, PositionManager(address(posm)), swapRouter, address(serviceManager), "testPolicy", _owner
+            manager, PositionManager(payable(address(posm))), swapRouter, address(serviceManager), "testPolicy", _owner
         );
         require(address(hook) == hookAddress, "Hook deployment failed");
 

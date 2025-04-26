@@ -25,26 +25,19 @@ contract DeployPredicateHook is Script {
         bool posmExists = vm.envExists("POSM_ADDRESS"); // only used for non-MAINNET networks
 
         require(
-            networkExists && swapRouterExists && policyIdExists,
+            networkExists && swapRouterExists && policyIdExists && posmExists,
             "All environment variables must be set if any are specified"
         );
         string memory _network = vm.envString("NETWORK");
         _env = new NetworkSelector().select(_network);
         _swapRouter = V4Router(vm.envAddress("SWAP_ROUTER_ADDRESS"));
         _policyId = vm.envString("POLICY_ID");
-
-        if (_network != "MAINNET") {
-            require(posmExists, "POSM_ADDRESS must be set for non-MAINNET networks");
-            _posm = PositionManager(vm.envAddress("POSM_ADDRESS"));
-        }
+        _posm = PositionManager(payable(vm.envAddress("POSM_ADDRESS")));
     }
 
     function run() public {
         _init();
         INetwork.Config memory config = _env.config();
-        if (_network == "MAINNET") {
-            _posm = config.positionManager;
-        }
         uint160 flags = uint160(Hooks.BEFORE_SWAP_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG | Hooks.BEFORE_INITIALIZE_FLAG);
 
         bytes memory constructorArgs =

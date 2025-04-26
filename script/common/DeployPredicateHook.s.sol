@@ -10,16 +10,20 @@ import {V4Router} from "@uniswap/v4-periphery/src/V4Router.sol";
 
 import {PredicateHook} from "../../src/PredicateHook.sol";
 import {HookMiner} from "../../test/utils/HookMiner.sol";
+import {PositionManager} from "@uniswap/v4-periphery/src/PositionManager.sol";
 
 contract DeployPredicateHook is Script {
     INetwork private _env;
     V4Router private _swapRouter;
+    PositionManager private _posm;
     string private _policyId;
 
     function _init() internal {
         bool networkExists = vm.envExists("NETWORK");
         bool swapRouterExists = vm.envExists("SWAP_ROUTER_ADDRESS");
         bool policyIdExists = vm.envExists("POLICY_ID");
+        bool posmExists = vm.envExists("POSM_ADDRESS"); // only used for non-MAINNET networks
+
         require(
             networkExists && swapRouterExists && policyIdExists,
             "All environment variables must be set if any are specified"
@@ -28,21 +32,30 @@ contract DeployPredicateHook is Script {
         _env = new NetworkSelector().select(_network);
         _swapRouter = V4Router(vm.envAddress("SWAP_ROUTER_ADDRESS"));
         _policyId = vm.envString("POLICY_ID");
+
+        if (_network != "MAINNET") {
+            require(posmExists, "POSM_ADDRESS must be set for non-MAINNET networks");
+            _posm = PositionManager(vm.envAddress("POSM_ADDRESS"));
+        }
     }
 
     function run() public {
         _init();
         INetwork.Config memory config = _env.config();
+        if (_network == "MAINNET") {
+            _posm = config.positionManager;
+        }
         uint160 flags = uint160(Hooks.BEFORE_SWAP_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG | Hooks.BEFORE_INITIALIZE_FLAG);
 
         bytes memory constructorArgs =
-            abi.encode(config.poolManager, _swapRouter, config.serviceManager, _policyId, msg.sender);
+            abi.encode(config.poolManager, _posm, _swapRouter, config.serviceManager, _policyId, msg.sender);
         (address hookAddress, bytes32 salt) =
             HookMiner.find(config.create2Deployer, flags, type(PredicateHook).creationCode, constructorArgs);
         console.log("Deploying PredicateHook at address: ", hookAddress);
         vm.startBroadcast();
-        PredicateHook predicateHook =
-            new PredicateHook{salt: salt}(config.poolManager, _swapRouter, config.serviceManager, _policyId, msg.sender);
+        PredicateHook predicateHook = new PredicateHook{salt: salt}(
+            config.poolManager, _posm, _swapRouter, config.serviceManager, _policyId, msg.sender
+        );
         require(address(predicateHook) == hookAddress, "PredicateHook address does not match expected address");
         console.log("PredicateHook deployed at: ", address(predicateHook));
         vm.stopBroadcast();

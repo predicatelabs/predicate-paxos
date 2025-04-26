@@ -15,6 +15,7 @@ import {PredicateClient} from "@predicate/mixins/PredicateClient.sol";
 import {PredicateMessage} from "@predicate/interfaces/IPredicateClient.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
+import {PositionManager} from "@uniswap/v4-periphery/src/PositionManager.sol";
 
 /**
  * @title Predicated v4 Hook
@@ -43,6 +44,12 @@ contract PredicateHook is BaseHook, PredicateClient, Ownable2Step {
      * @dev This router contract is used to get the msgSender() who initiated the swap
      */
     V4Router public router;
+
+    /**
+     * @notice The position manager contract
+     * @dev This contract is used to manage positions on the pool
+     */
+    PositionManager public posm;
 
     /**
      * @notice A mapping of authorized liquidity providers
@@ -101,6 +108,7 @@ contract PredicateHook is BaseHook, PredicateClient, Ownable2Step {
     /**
      * @notice Constructor for the PredicateHook
      * @param _poolManager The pool manager contract
+     * @param _posm The position manager contract
      * @param _router The router contract
      * @param _serviceManager The service manager contract
      * @param _policyID The policy ID
@@ -108,6 +116,7 @@ contract PredicateHook is BaseHook, PredicateClient, Ownable2Step {
      */
     constructor(
         IPoolManager _poolManager,
+        PositionManager _posm,
         V4Router _router,
         address _serviceManager,
         string memory _policyID,
@@ -115,6 +124,7 @@ contract PredicateHook is BaseHook, PredicateClient, Ownable2Step {
     ) BaseHook(_poolManager) Ownable(_owner) {
         _initPredicateClient(_serviceManager, _policyID);
         router = _router;
+        posm = _posm;
         isAuthorizedLP[_owner] = true;
         isAuthorizedSwapper[_owner] = true;
         emit PolicyUpdated(_policyID);
@@ -204,7 +214,7 @@ contract PredicateHook is BaseHook, PredicateClient, Ownable2Step {
 
     /**
      * @notice Validates transactions against the authorized liquidity providers before allowing add liquidity
-     * @dev If the sender or router.msgSender() is not an authorized liquidity provider, the transaction will revert
+     * @dev If the sender or posm.msgSender() is not an authorized liquidity provider, the transaction will revert
      * @dev This is to prevent unauthorized liquidity providers from adding liquidity to the pool
      * @param sender The address of the sender
      * @return selector The function selector indicating success
@@ -215,13 +225,13 @@ contract PredicateHook is BaseHook, PredicateClient, Ownable2Step {
         IPoolManager.ModifyLiquidityParams calldata,
         bytes calldata
     ) internal override returns (bytes4) {
-        // If the sender is an authorized liquidity provider, allow the transaction
-        if (isAuthorizedLP[sender]) {
+        // If the sender is the position manager and the msgSender is an authorized liquidity provider, allow the transaction
+        if (sender == address(posm) && isAuthorizedLP[posm.msgSender()]) {
             return BaseHook.beforeAddLiquidity.selector;
         }
 
-        // If the router.msgSender() is an authorized liquidity provider, allow the transaction
-        if (isAuthorizedLP[router.msgSender()]) {
+        // If the sender is an authorized liquidity provider, allow the transaction
+        if (isAuthorizedLP[sender]) {
             return BaseHook.beforeAddLiquidity.selector;
         }
 

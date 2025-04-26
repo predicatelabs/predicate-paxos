@@ -174,7 +174,7 @@ contract PredicateHook is BaseHook, PredicateClient, Ownable2Step {
         IPoolManager.SwapParams calldata params,
         bytes calldata hookData
     ) internal override returns (bytes4, BeforeSwapDelta, uint24) {
-        BeforeSwapDelta delta = toBeforeSwapDelta(0, 0);
+        BeforeSwapDelta delta = BeforeSwapDelta.wrap(0);
 
         // If the end user is authorized, bypass the predicate check
         if (isAuthorizedSwapper[router.msgSender()]) {

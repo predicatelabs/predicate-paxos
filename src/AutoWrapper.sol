@@ -75,7 +75,7 @@ contract AutoWrapper is BaseHook, DeltaResolver {
      * @notice The wUSDL/baseCurrency pool key
      * @dev This is the pool key for the liquid pool
      */
-    PoolKey public baseCurrencyPoolKey;
+    PoolKey public immutable baseCurrencyPoolKey;
 
     /**
      * @notice Reference to the router handling user swap requests

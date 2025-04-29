@@ -40,6 +40,11 @@ contract PredicateHook is BaseHook, PredicateClient, Ownable2Step {
     error InvalidPoolFee();
 
     /**
+     * @notice An error emitted when the pool being initialized does not match the expected configuration
+     */
+    error InvalidPoolConfiguration();
+
+    /**
      * @notice The router contract that is used to swap tokens
      * @dev This router contract is used to get the msgSender() who initiated the swap
      */
@@ -50,6 +55,16 @@ contract PredicateHook is BaseHook, PredicateClient, Ownable2Step {
      * @dev This contract is used to manage positions on the pool
      */
     PositionManager public posm;
+
+    /**
+     * @notice The base currency for this liquid pool
+     */
+    Currency public immutable baseCurrency;
+
+    /**
+     * @notice The wrapped USDL token
+     */
+    address public immutable wUSDL;
 
     /**
      * @notice A mapping of authorized liquidity providers
@@ -113,6 +128,8 @@ contract PredicateHook is BaseHook, PredicateClient, Ownable2Step {
      * @param _serviceManager The service manager contract
      * @param _policyID The policy ID
      * @param _owner The owner of the contract
+     * @param _baseCurrency The base currency for the liquid pool
+     * @param _wUSDL The wrapped USDL token address
      */
     constructor(
         IPoolManager _poolManager,
@@ -120,11 +137,15 @@ contract PredicateHook is BaseHook, PredicateClient, Ownable2Step {
         V4Router _router,
         address _serviceManager,
         string memory _policyID,
-        address _owner
+        address _owner,
+        Currency _baseCurrency,
+        address _wUSDL
     ) BaseHook(_poolManager) Ownable(_owner) {
         _initPredicateClient(_serviceManager, _policyID);
         router = _router;
         posm = _posm;
+        baseCurrency = _baseCurrency;
+        wUSDL = _wUSDL;
         isAuthorizedLP[_owner] = true;
         isAuthorizedSwapper[_owner] = true;
         emit PolicyUpdated(_policyID);
@@ -159,12 +180,15 @@ contract PredicateHook is BaseHook, PredicateClient, Ownable2Step {
 
     /**
      * @notice Validates pool initialization parameters for the underlying pool
-     * @dev Ensures this pool has zero pool fees
+     * @dev Ensures the pool being initialized matches the expected liquid pool configuration
      * @param poolKey The pool configuration being initialized
      * @return The function selector if validation passes
      */
     function _beforeInitialize(address, PoolKey calldata poolKey, uint160) internal view override returns (bytes4) {
         if (poolKey.fee != 0) revert InvalidPoolFee();
+        bool hasBaseCurrency = poolKey.currency0 == baseCurrency || poolKey.currency1 == baseCurrency;
+        bool hasWUSDL = poolKey.currency0 == Currency.wrap(wUSDL) || poolKey.currency1 == Currency.wrap(wUSDL);
+        if (!hasBaseCurrency || !hasWUSDL) revert InvalidPoolConfiguration();
         return IHooks.beforeInitialize.selector;
     }
 

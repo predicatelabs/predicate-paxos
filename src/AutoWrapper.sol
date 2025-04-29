@@ -50,12 +50,6 @@ contract AutoWrapper is BaseHook, DeltaResolver {
     error InvalidPoolFee();
 
     /**
-     * @notice Thrown when the caller is not the router
-     * @dev This is a security measure to ensure that only the configured router can call the pool manager
-     */
-    error CallerIsNotRouter();
-
-    /**
      * @notice baseCurrency -> USDL swap path, exactOutput is not allowed
      */
     error ExactOutputIsNotAllowed();
@@ -97,6 +91,17 @@ contract AutoWrapper is BaseHook, DeltaResolver {
      * @notice Indicates whether the base currency is token0 in this ghost pool
      */
     bool public immutable baseCurrencyIsToken0;
+
+    /**
+     * @notice Thrown when the pool being initialized does not match the expected configuration
+     */
+    error InvalidPoolConfiguration();
+
+    /**
+     * @notice Thrown when the caller is not the router
+     * @dev This is a security measure to ensure that only the configured router can call the pool manager
+     */
+    error CallerIsNotRouter();
 
     /**
      * @notice Creates a new ERC4626 wrapper hook
@@ -160,12 +165,16 @@ contract AutoWrapper is BaseHook, DeltaResolver {
 
     /**
      * @notice Validates pool initialization parameters for the ghost pool
-     * @dev Ensures ghost pool has zero fee since actual fees will be charged on the liquid pool
+     * @dev Ensures that the pool being initialized matches the expected ghost pool setup
      * @param poolKey The pool configuration being initialized
      * @return The function selector if validation passes
      */
     function _beforeInitialize(address, PoolKey calldata poolKey, uint160) internal view override returns (bytes4) {
         if (poolKey.fee != 0) revert InvalidPoolFee();
+        bool hasBaseCurrency = poolKey.currency0 == baseCurrency || poolKey.currency1 == baseCurrency;
+        bool hasUSDL = poolKey.currency0 == Currency.wrap(address(wUSDL.asset()))
+            || poolKey.currency1 == Currency.wrap(address(wUSDL.asset()));
+        if (!hasBaseCurrency || !hasUSDL) revert InvalidPoolConfiguration();
         return IHooks.beforeInitialize.selector;
     }
 

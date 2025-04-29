@@ -160,7 +160,6 @@ contract AutoWrapper is BaseHook, DeltaResolver {
 
     /**
      * @notice Validates pool initialization parameters for the ghost pool
-     * @dev Ensures ghost pool has zero fee since actual fees will be charged on the liquid pool
      * @param poolKey The pool configuration being initialized
      * @return The function selector if validation passes
      */

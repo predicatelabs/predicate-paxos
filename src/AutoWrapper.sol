@@ -276,7 +276,8 @@ contract AutoWrapper is BaseHook, DeltaResolver {
 
             // in case of rounding error, we have to check transfererred balance.
             // _take() will not sync the balance from poolManager perspective
-            if (usdlBalanceAfter - usdlBalanceBefore < inputAmount) {
+            // we only allow at most 5 wei of dust USDL use in _deposit()
+            if (inputAmount - (usdlBalanceAfter - usdlBalanceBefore) > 5) {
                 revert InsufficientUSDLBalance();
             }
 

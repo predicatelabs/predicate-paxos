@@ -97,13 +97,27 @@ contract AutoWrapperSetup is MetaCoinTestSetup, PoolSetup {
         uint160 predicateHookFlags =
             uint160(Hooks.BEFORE_SWAP_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG | Hooks.BEFORE_INITIALIZE_FLAG);
         bytes memory constructorArgs = abi.encode(
-            manager, PositionManager(payable(address(posm))), swapRouter, address(serviceManager), "testPolicy", admin
+            manager,
+            PositionManager(payable(address(posm))),
+            swapRouter,
+            address(serviceManager),
+            "testPolicy",
+            admin,
+            USDC,
+            address(wUSDL)
         );
         (address hookAddress, bytes32 salt) =
             HookMiner.find(address(this), predicateHookFlags, type(PredicateHook).creationCode, constructorArgs);
 
         predicateHook = new PredicateHook{salt: salt}(
-            manager, PositionManager(payable(address(posm))), swapRouter, address(serviceManager), "testPolicy", admin
+            manager,
+            PositionManager(payable(address(posm))),
+            swapRouter,
+            address(serviceManager),
+            "testPolicy",
+            admin,
+            USDC,
+            address(wUSDL)
         );
         require(address(predicateHook) == hookAddress, "Hook deployment failed");
 

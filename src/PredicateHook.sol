@@ -171,6 +171,7 @@ contract PredicateHook is BaseHook, PredicateClient, Ownable2Step {
     /**
      * @notice Validates transactions against the defined policy before allowing swaps
      * @dev Extracts the Predicate authorization message and validates its authenticity against the Predicate Service Manager
+     * @param sender The address of the sender
      * @param key Underlying pool configuration information
      * @param params Swap parameters including direction and amount
      * @param hookData Encoded authorization message from Predicate
@@ -179,7 +180,7 @@ contract PredicateHook is BaseHook, PredicateClient, Ownable2Step {
      * @return lpFeeOverride Fee override
      */
     function _beforeSwap(
-        address,
+        address sender,
         PoolKey calldata key,
         IPoolManager.SwapParams calldata params,
         bytes calldata hookData
@@ -187,7 +188,7 @@ contract PredicateHook is BaseHook, PredicateClient, Ownable2Step {
         BeforeSwapDelta delta = BeforeSwapDelta.wrap(0);
 
         // If the end user is authorized, bypass the predicate check
-        if (isAuthorizedSwapper[router.msgSender()]) {
+        if (sender == address(router) && isAuthorizedSwapper[router.msgSender()]) {
             return (IHooks.beforeSwap.selector, delta, 0);
         }
 

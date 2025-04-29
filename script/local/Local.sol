@@ -20,7 +20,9 @@ contract Local is INetwork {
             positionManager: PositionManager(payable(address(0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0))), // not used
             permit2: IAllowanceTransfer(address(0x1f98407aaB862CdDeF78Ed252D6f557aA5b0f00d)), // not used
             create2Deployer: address(0x4e59b44847b379578588920cA78FbF26c0B4956C),
-            serviceManager: address(0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0)
+            serviceManager: address(0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0),
+            baseCurrency: Currency.wrap(USDC),
+            wUSDL: WUSDL
         });
     }
 

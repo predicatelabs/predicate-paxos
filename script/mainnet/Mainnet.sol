@@ -25,7 +25,9 @@ contract Mainnet is INetwork {
             positionManager: PositionManager(payable(POSITION_MANAGER)),
             permit2: IAllowanceTransfer(PERMIT2),
             create2Deployer: CREATE2_DEPLOYER,
-            serviceManager: SERVICE_MANAGER
+            serviceManager: SERVICE_MANAGER,
+            baseCurrency: Currency.wrap(USDC),
+            wUSDL: WUSDL
         });
     }
 

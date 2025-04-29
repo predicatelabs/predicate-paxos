@@ -40,14 +40,29 @@ contract DeployPredicateHook is Script {
         INetwork.Config memory config = _env.config();
         uint160 flags = uint160(Hooks.BEFORE_SWAP_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG | Hooks.BEFORE_INITIALIZE_FLAG);
 
-        bytes memory constructorArgs =
-            abi.encode(config.poolManager, _posm, _swapRouter, config.serviceManager, _policyId, msg.sender);
+        bytes memory constructorArgs = abi.encode(
+            config.poolManager,
+            _posm,
+            _swapRouter,
+            config.serviceManager,
+            _policyId,
+            msg.sender,
+            config.baseCurrency,
+            config.wUSDL
+        );
         (address hookAddress, bytes32 salt) =
             HookMiner.find(config.create2Deployer, flags, type(PredicateHook).creationCode, constructorArgs);
         console.log("Deploying PredicateHook at address: ", hookAddress);
         vm.startBroadcast();
         PredicateHook predicateHook = new PredicateHook{salt: salt}(
-            config.poolManager, _posm, _swapRouter, config.serviceManager, _policyId, msg.sender
+            config.poolManager,
+            _posm,
+            _swapRouter,
+            config.serviceManager,
+            _policyId,
+            msg.sender,
+            config.baseCurrency,
+            config.wUSDL
         );
         require(address(predicateHook) == hookAddress, "PredicateHook address does not match expected address");
         console.log("PredicateHook deployed at: ", address(predicateHook));

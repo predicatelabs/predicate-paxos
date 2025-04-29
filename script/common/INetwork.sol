@@ -15,6 +15,8 @@ interface INetwork {
         IAllowanceTransfer permit2;
         address create2Deployer;
         address serviceManager;
+        Currency baseCurrency;
+        address wUSDL;
     }
 
     struct TokenConfig {

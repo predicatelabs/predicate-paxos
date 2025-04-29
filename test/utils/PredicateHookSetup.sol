@@ -12,6 +12,7 @@ import {MetaCoinTestSetup} from "@predicate-test/helpers/utility/MetaCoinTestSet
 import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
 import {HookMiner} from "test/utils/HookMiner.sol";
 import {PoolSetup} from "./PoolSetup.sol";
+import {PositionManager} from "@uniswap/v4-periphery/src/PositionManager.sol";
 
 contract PredicateHookSetup is MetaCoinTestSetup, PoolSetup {
     PredicateHook public hook;
@@ -34,11 +35,15 @@ contract PredicateHookSetup is MetaCoinTestSetup, PoolSetup {
         vm.stopPrank();
 
         uint160 flags = uint160(Hooks.BEFORE_SWAP_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG | Hooks.BEFORE_INITIALIZE_FLAG);
-        bytes memory constructorArgs = abi.encode(manager, swapRouter, address(serviceManager), "testPolicy", _owner);
+        bytes memory constructorArgs = abi.encode(
+            manager, PositionManager(payable(address(posm))), swapRouter, address(serviceManager), "testPolicy", _owner
+        );
         (address hookAddress, bytes32 salt) =
             HookMiner.find(address(this), flags, type(PredicateHook).creationCode, constructorArgs);
 
-        hook = new PredicateHook{salt: salt}(manager, swapRouter, address(serviceManager), "testPolicy", _owner);
+        hook = new PredicateHook{salt: salt}(
+            manager, PositionManager(payable(address(posm))), swapRouter, address(serviceManager), "testPolicy", _owner
+        );
         require(address(hook) == hookAddress, "Hook deployment failed");
 
         poolKey = PoolKey(currency0, currency1, 0, tickSpacing, IHooks(hook));

@@ -6,6 +6,7 @@ DEPLOYER_ECDSA_PRIV_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d
 PREDICATE_HOOK_ADDRESS=0x3BD20e23e524a20dA67F73e65938aABd1C47E880
 SWAP_ROUTER_ADDRESS=0x8F2c925603c4ba055779475F14241E3c9ee7c1be
 AUTO_WRAPPER_HOOK_ADDRESS=0x3f39eC4911c77085a8E6b9d99C7EaA351d64e8C8
+POSM_ADDRESS=0xbD216513d74C8cf14cf4747E6AaA6420FF64ee9e
 # POLICY_ID=x-aleo-6a52de9724a6e8f2 // mainnet
 POLICY_ID=local-test-policy
 # POLICY_ID=x-sanctions-example-policy
@@ -53,6 +54,7 @@ deploy-predicate-hook:
 	export NETWORK=${NETWORK} && \
 	export SWAP_ROUTER_ADDRESS=${SWAP_ROUTER_ADDRESS} && \
 	export POLICY_ID=${POLICY_ID} && \
+	export POSM_ADDRESS=${POSM_ADDRESS} && \
 	forge script script/common/DeployPredicateHook.s.sol \
 		--via-ir \
 		--rpc-url ${RPC_URL} \

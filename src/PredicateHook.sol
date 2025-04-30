@@ -148,7 +148,7 @@ contract PredicateHook is BaseHook, PredicateClient, Ownable2Step {
             afterRemoveLiquidity: false,
             beforeSwap: true,
             afterSwap: false,
-            beforeDonate: false,
+            beforeDonate: true,
             afterDonate: false,
             beforeSwapReturnDelta: false,
             afterSwapReturnDelta: false,
@@ -237,6 +237,38 @@ contract PredicateHook is BaseHook, PredicateClient, Ownable2Step {
 
         // If the sender is not an authorized liquidity provider, the transaction will revert
         revert UnauthorizedLiquidityProvider();
+    }
+
+    function _beforeDonate(
+        address sender,
+        PoolKey calldata key,
+        uint256 amount0,
+        uint256 amount1,
+        bytes calldata hookData
+    ) internal override returns (bytes4) {
+        if (isAuthorizedLP[sender]) {
+            return BaseHook.beforeDonate.selector;
+        }
+
+        PredicateMessage memory predicateMessage = abi.decode(hookData, (PredicateMessage));
+
+        bytes memory encodeSigAndArgs = abi.encodeWithSignature(
+            "_beforeDonate(address,address,address,uint24,int24,address,uint256,uint256)",
+            sender,
+            key.currency0,
+            key.currency1,
+            key.fee,
+            key.tickSpacing,
+            address(key.hooks),
+            amount0,
+            amount1
+        );
+
+        if (!_authorizeTransaction(predicateMessage, encodeSigAndArgs, sender, 0)) {
+            revert PredicateAuthorizationFailed();
+        }
+
+        return BaseHook.beforeDonate.selector;
     }
 
     /**

@@ -34,7 +34,10 @@ contract PredicateHookSetup is MetaCoinTestSetup, PoolSetup {
         _setTokenApprovalForRouters(currency1);
         vm.stopPrank();
 
-        uint160 flags = uint160(Hooks.BEFORE_SWAP_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG | Hooks.BEFORE_INITIALIZE_FLAG);
+        uint160 flags = uint160(
+            Hooks.BEFORE_SWAP_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG | Hooks.BEFORE_INITIALIZE_FLAG
+                | Hooks.BEFORE_DONATE_FLAG
+        );
         bytes memory constructorArgs = abi.encode(
             manager, PositionManager(payable(address(posm))), swapRouter, address(serviceManager), "testPolicy", _owner
         );

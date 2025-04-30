@@ -267,6 +267,7 @@ contract AutoWrapper is BaseHook, DeltaResolver {
         } else {
             // USDL -> baseCurrency swap path
             // Note: UniversalRouter sends USDL to the poolManager at start of swap
+            // this route also uses USDL in auto wrapper contract for rounding error
             uint256 inputAmount =
                 isExactInput ? uint256(-params.amountSpecified) : uint256(getWrapInputRequired(uint256(-wUSDLDelta)));
             usdlBalanceBefore = IERC20(wUSDL.asset()).balanceOf(address(this));
@@ -275,17 +276,15 @@ contract AutoWrapper is BaseHook, DeltaResolver {
 
             // in case of rounding error, we have to check transfererred balance.
             // _take() will not sync the balance from poolManager perspective
-            if (usdlBalanceAfter - usdlBalanceBefore != inputAmount) {
-                IERC20(wUSDL.asset()).transferFrom(router.msgSender(), address(this), 2); // hardcoded dust
-            }
-            usdlBalanceAfter = IERC20(wUSDL.asset()).balanceOf(address(this));
-            if (usdlBalanceAfter - usdlBalanceBefore < inputAmount) {
+            // we only allow at most 5 wei of dust USDL use in _deposit()
+            if (inputAmount - (usdlBalanceAfter - usdlBalanceBefore) > 5) {
                 revert InsufficientUSDLBalance();
             }
 
-            // in case of rounding error in deposit, we have to deposit the total amount with dust
             uint256 wUSDLAmount = _deposit(inputAmount);
-            if (wUSDLAmount < uint256(-wUSDLDelta)) {
+            // in case of rounding error in deposit, we have to deposit a dust amount
+            bool roundingError = (uint256(-wUSDLDelta) - wUSDLAmount) > 0;
+            if (roundingError) {
                 _deposit(2);
             }
 

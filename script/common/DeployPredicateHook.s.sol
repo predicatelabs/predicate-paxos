@@ -22,7 +22,7 @@ contract DeployPredicateHook is Script {
         bool networkExists = vm.envExists("NETWORK");
         bool swapRouterExists = vm.envExists("SWAP_ROUTER_ADDRESS");
         bool policyIdExists = vm.envExists("POLICY_ID");
-        bool posmExists = vm.envExists("POSM_ADDRESS"); // only used for non-MAINNET networks
+        bool posmExists = vm.envExists("POSM_ADDRESS");
 
         require(
             networkExists && swapRouterExists && policyIdExists && posmExists,

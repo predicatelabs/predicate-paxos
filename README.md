@@ -18,6 +18,8 @@ This repository contains two custom Uniswap V4 hooks that work in tandem to enab
 *note*: the predicated pool is liquid and can be swapped against individually. 
 The AutoWrapper hook is used to wrap/unwrap USDL ↔ wUSDL during swaps against the predicated pool; making it easier to swap USDL.
 
+You can find the design doc ![here](https://predicate-network.notion.site/Design-Doc-Paxos-Uniswap-V4-Hooks-1e3d742b36ac80968d5df0282292e1ba?pvs=74)
+
 ## Architecture
 
 ![Architecture Diagram](assets/architecture.png)

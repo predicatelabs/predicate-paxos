@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import {PredicateHook} from "../src/PredicateHook.sol";
 import {PredicateHookSetup} from "./utils/PredicateHookSetup.sol";
 import {V4Router} from "@uniswap/v4-periphery/src/V4Router.sol";
+import {PositionManager} from "@uniswap/v4-periphery/src/PositionManager.sol";
 import {Test} from "forge-std/Test.sol";
 
 contract PredicateHookTest is Test, PredicateHookSetup {
@@ -153,5 +154,19 @@ contract PredicateHookTest is Test, PredicateHookSetup {
         vm.prank(makeAddr("not-owner"));
         vm.expectRevert();
         hook.setRouter(V4Router(newRouter));
+    }
+
+    function testSetPosm() public {
+        address payable newPosm = payable(makeAddr("new-posm"));
+        vm.prank(hook.owner());
+        hook.setPosm(PositionManager(newPosm));
+        assertEq(address(hook.posm()), newPosm);
+    }
+
+    function testSetPosmNotOwner() public {
+        address payable newPosm = payable(makeAddr("new-posm"));
+        vm.prank(makeAddr("not-owner"));
+        vm.expectRevert();
+        hook.setPosm(PositionManager(newPosm));
     }
 }

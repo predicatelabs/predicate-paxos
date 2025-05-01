@@ -55,13 +55,13 @@ contract DeployAutoWrapperAndInitPool is Script {
                 | Hooks.BEFORE_SWAP_RETURNS_DELTA_FLAG | Hooks.AFTER_SWAP_FLAG
         );
         bytes memory autoWrapperConstructorArgs =
-            abi.encode(manager, ERC4626(address(wUSDL)), USDC, predicatePoolKey, _swapRouter);
+            abi.encode(manager, ERC4626(address(wUSDL)), USDC, predicatePoolKey, _swapRouter, msg.sender);
         (address autoWrapperAddress, bytes32 autoWrapperSalt) = HookMiner.find(
             config.create2Deployer, autoWrapperFlags, type(AutoWrapper).creationCode, autoWrapperConstructorArgs
         );
         vm.startBroadcast();
         AutoWrapper autoWrapper = new AutoWrapper{salt: autoWrapperSalt}(
-            manager, ERC4626(address(wUSDL)), Currency.wrap(address(USDC)), predicatePoolKey, _swapRouter
+            manager, ERC4626(address(wUSDL)), Currency.wrap(address(USDC)), predicatePoolKey, _swapRouter, msg.sender
         );
         require(address(autoWrapper) == autoWrapperAddress, "Hook deployment failed");
         console.log("Deployed AutoWrapper at address: ", address(autoWrapper));

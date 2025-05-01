@@ -22,6 +22,8 @@ import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {ERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import {DeltaResolver} from "@uniswap/v4-periphery/src/base/DeltaResolver.sol";
 import {TickMath} from "@uniswap/v4-core/src/libraries/TickMath.sol";
+import {Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 /**
  * @title AutoWrapper Swap Hook for USDL
@@ -30,7 +32,7 @@ import {TickMath} from "@uniswap/v4-core/src/libraries/TickMath.sol";
  * @dev This hook is intended to be used with a "ghost pool"-a non-liquid pool that acts as an interface
  *      for swapping USDL against wUSDL/baseCurrency pool.
  */
-contract AutoWrapper is BaseHook, DeltaResolver {
+contract AutoWrapper is BaseHook, DeltaResolver, Ownable2Step {
     using SafeCast for uint256;
     using SafeCast for int256;
     using CurrencyLibrary for Currency;
@@ -105,14 +107,16 @@ contract AutoWrapper is BaseHook, DeltaResolver {
      * @param _baseCurrency The base currency for wUSDL pool(e.g. USDC)
      * @param _wUSDLPoolKey The pool key for the pool with liquidity
      * @param _router The V4 router
+     * @param _owner The owner of the contract
      */
     constructor(
         IPoolManager _manager,
         ERC4626 _wUSDL,
         Currency _baseCurrency,
         PoolKey memory _wUSDLPoolKey,
-        V4Router _router
-    ) BaseHook(_manager) {
+        V4Router _router,
+        address _owner
+    ) BaseHook(_manager) Ownable(_owner) {
         if (_baseCurrency == _wUSDLPoolKey.currency0) {
             // baseCurrency/wUSDL pool
             require(
@@ -423,5 +427,15 @@ contract AutoWrapper is BaseHook, DeltaResolver {
         uint256 usdlAmount
     ) public view returns (int256) {
         return int256(wUSDL.previewDeposit(usdlAmount));
+    }
+
+    /**
+     * @notice Sets the router for the contract, only callable by the owner
+     * @param _router The new router
+     */
+    function setRouter(
+        V4Router _router
+    ) external onlyOwner {
+        router = _router;
     }
 }

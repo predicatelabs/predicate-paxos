@@ -106,6 +106,12 @@ contract PredicateHook is BaseHook, PredicateClient, Ownable2Step {
     event RouterUpdated(address router);
 
     /**
+     * @notice Event emitted when the position manager is updated
+     * @param posm The new position manager address
+     */
+    event PosmUpdated(address posm);
+
+    /**
      * @notice Constructor for the PredicateHook
      * @param _poolManager The pool manager contract
      * @param _posm The position manager contract
@@ -132,6 +138,7 @@ contract PredicateHook is BaseHook, PredicateClient, Ownable2Step {
         emit RouterUpdated(address(_router));
         emit AuthorizedLPAdded(_owner);
         emit AuthorizedUserAdded(_owner);
+        emit PosmUpdated(address(_posm));
     }
 
     /**
@@ -270,6 +277,17 @@ contract PredicateHook is BaseHook, PredicateClient, Ownable2Step {
     ) external onlyOwner {
         router = _router;
         emit RouterUpdated(address(_router));
+    }
+
+    /**
+     * @notice Sets the position manager contract
+     * @param _posm The new position manager
+     */
+    function setPosm(
+        PositionManager _posm
+    ) external onlyOwner {
+        posm = _posm;
+        emit PosmUpdated(address(_posm));
     }
 
     /**

@@ -38,7 +38,10 @@ contract DeployPredicateHook is Script {
     function run() public {
         _init();
         INetwork.Config memory config = _env.config();
-        uint160 flags = uint160(Hooks.BEFORE_SWAP_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG | Hooks.BEFORE_INITIALIZE_FLAG);
+        uint160 flags = uint160(
+            Hooks.BEFORE_SWAP_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG | Hooks.BEFORE_INITIALIZE_FLAG
+                | Hooks.BEFORE_DONATE_FLAG
+        );
 
         bytes memory constructorArgs =
             abi.encode(config.poolManager, _posm, _swapRouter, config.serviceManager, _policyId, msg.sender);

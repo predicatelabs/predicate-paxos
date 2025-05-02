@@ -40,6 +40,11 @@ contract PredicateHook is BaseHook, PredicateClient, Ownable2Step {
     error InvalidPoolFee();
 
     /**
+     * @notice An error emitted when a donation is attempted
+     */
+    error DonationNotAllowed();
+
+    /**
      * @notice The router contract that is used to swap tokens
      * @dev This router contract is used to get the msgSender() who initiated the swap
      */
@@ -155,7 +160,7 @@ contract PredicateHook is BaseHook, PredicateClient, Ownable2Step {
             afterRemoveLiquidity: false,
             beforeSwap: true,
             afterSwap: false,
-            beforeDonate: false,
+            beforeDonate: true,
             afterDonate: false,
             beforeSwapReturnDelta: false,
             afterSwapReturnDelta: false,
@@ -244,6 +249,16 @@ contract PredicateHook is BaseHook, PredicateClient, Ownable2Step {
 
         // If the sender is not an authorized liquidity provider, the transaction will revert
         revert UnauthorizedLiquidityProvider();
+    }
+
+    function _beforeDonate(
+        address sender,
+        PoolKey calldata key,
+        uint256 amount0,
+        uint256 amount1,
+        bytes calldata hookData
+    ) internal override returns (bytes4) {
+        revert DonationNotAllowed();
     }
 
     /**

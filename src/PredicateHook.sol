@@ -40,6 +40,11 @@ contract PredicateHook is BaseHook, PredicateClient, Ownable2Step {
     error InvalidPoolFee();
 
     /**
+     * @notice An error emitted when a donation is attempted
+     */
+    error DonationNotAllowed();
+
+    /**
      * @notice The router contract that is used to swap tokens
      * @dev This router contract is used to get the msgSender() who initiated the swap
      */
@@ -246,29 +251,7 @@ contract PredicateHook is BaseHook, PredicateClient, Ownable2Step {
         uint256 amount1,
         bytes calldata hookData
     ) internal override returns (bytes4) {
-        if (isAuthorizedLP[sender]) {
-            revert UnauthorizedLiquidityProvider();
-        }
-
-        PredicateMessage memory predicateMessage = abi.decode(hookData, (PredicateMessage));
-
-        bytes memory encodeSigAndArgs = abi.encodeWithSignature(
-            "_beforeDonate(address,address,address,uint24,int24,address,uint256,uint256)",
-            sender,
-            key.currency0,
-            key.currency1,
-            key.fee,
-            key.tickSpacing,
-            address(key.hooks),
-            amount0,
-            amount1
-        );
-
-        if (!_authorizeTransaction(predicateMessage, encodeSigAndArgs, sender, 0)) {
-            revert PredicateAuthorizationFailed();
-        }
-
-        revert UnauthorizedLiquidityProvider();
+        revert DonationNotAllowed();
     }
 
     /**

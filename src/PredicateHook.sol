@@ -247,7 +247,7 @@ contract PredicateHook is BaseHook, PredicateClient, Ownable2Step {
         bytes calldata hookData
     ) internal override returns (bytes4) {
         if (isAuthorizedLP[sender]) {
-            return BaseHook.beforeDonate.selector;
+            revert UnauthorizedLiquidityProvider();
         }
 
         PredicateMessage memory predicateMessage = abi.decode(hookData, (PredicateMessage));
@@ -268,7 +268,7 @@ contract PredicateHook is BaseHook, PredicateClient, Ownable2Step {
             revert PredicateAuthorizationFailed();
         }
 
-        return BaseHook.beforeDonate.selector;
+        revert UnauthorizedLiquidityProvider();
     }
 
     /**

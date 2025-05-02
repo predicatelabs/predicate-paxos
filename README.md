@@ -1,6 +1,6 @@
 # USDL Uniswap V4 Hooks
 
-# Overview
+## Overview
 
 This repository has a collection of smart contracts that enable policy-controlled trading of USDL (Lift Dollar) on Uniswap V4. It includes two V4 hooks - AutoWrapper Hook and Predicate Hook. AutoWrapper hook manages USDL conversions and swapping through liquid pool. Predicate hook enforces the policy/compliance requirement for all swaps.
 
@@ -66,6 +66,7 @@ anvil --fork-url <MAINNET_URL> --fork-block-number 22197233
 ```
 
 For testing with mainnet anvil fork:
+
 **Makefile Updates**
 - Update ENV variable as `NETWORK=MAINNET`. This enables our network selector in script to use mainnet addresses for tokens, poolmanager etc. 
 - Update ENV variable for `DEPLOYER_ECDSA_PRIV_KEY` to a key that has USDL, wUSDL and USDC (this is not consumed in testing as we are running local fork but is required)

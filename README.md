@@ -1,8 +1,8 @@
-# USDL V4 Hook Suite
+# USDL Uniswap V4 Hooks
 
 # Overview
 
-The USDL V4 Hook Suite is a collection of smart contracts that enable policy-controlled trading of USDL (Lift Dollar) on Uniswap V4. The suite includes automated token wrapping and enforces configurable compliance requirements at the smart contract level through integration with Predicate.
+This repository has a collection of smart contracts that enable policy-controlled trading of USDL (Lift Dollar) on Uniswap V4. It includes two V4 hooks - AutoWrapper Hook and Predicate Hook. AutoWrapper hook manages USDL conversions and swapping through liquid pool. Predicate hook enforces the policy/compliance requirement for all swaps.
 
 ## Key Features
 
@@ -11,7 +11,7 @@ The USDL V4 Hook Suite is a collection of smart contracts that enable policy-con
 - Configurable compliance requirements enforced on-chain
 - Flexible ownership and policy management (Both hooks are Ownable2Step)
 - Support for transaction limits, geo-restrictions and other controls
-- By default, it has support for trading with any USDL/ERC20 pair
+- By default, it has support for trading with any USDL/ERC20 pair. Example is with USDC
 
 You can find the design doc [here](https://predicate-network.notion.site/Design-Doc-Paxos-Uniswap-V4-Hooks-1e3d742b36ac80968d5df0282292e1ba?pvs=74)
 
@@ -40,8 +40,7 @@ Policy docs [here](https://docs.predicate.io/essentials/introduction).
 ## Deployment
 
 ### Prerequisites
-- Node.js >=18
-- Foundry 1.0.0
+- Foundry
 - An Ethereum node provider (e.g. Alchemy, Infura, etc.)
 
 ### Setup

@@ -67,11 +67,10 @@ anvil --fork-url <MAINNET_URL> --fork-block-number 22197233
 ```
 
 For testing with mainnet anvil fork:
-
 **Makefile Updates**
 - Update ENV variable as `NETWORK=MAINNET`. This enables our network selector in script to use mainnet addresses for tokens, poolmanager etc. 
 - Update ENV variable for `DEPLOYER_ECDSA_PRIV_KEY` to a key that has USDL, wUSDL and USDC (this is not consumed in testing as we are running local fork but is required)
-- Update ENV varialbe as `POLICY_ID=<sample_policy_id>`
+- Update ENV varialbe as `POLICY_ID=x-test-policy`
 
 **Steps**
 1. Run `make deploy-router` to deploy V4 router. Update `SWAP_ROUTER_ADDRESS` env variable in Makefile

@@ -1,22 +1,17 @@
-# USDL V4 Hook Suite
+# USDL Uniswap V4 Hooks
 
-A Uniswap V4 hook implementation that enables policy-controlled trading of USDL (Lift Dollar) with automated token wrapping. 
-Using [Predicate](https://predicate.io), the wUSDL/ERC20 V4 hook enforces configurable compliance requirements at the smart contract level. 
+# Overview
 
-Ownership of the hooks is initially set to the deployer but can be transferred to any Ethereum address. 
-The owner can update onchain allowlists and policies, which may include constraints such as transaction limits, geo-restrictions, 
-and other compliance controls. An example policy is provided in this repository.
+This repository has a collection of smart contracts that enable policy-controlled trading of USDL (Lift Dollar) on Uniswap V4. It includes two V4 hooks - AutoWrapper Hook and Predicate Hook. AutoWrapper hook manages USDL conversions and swapping through liquid pool. Predicate hook enforces the policy/compliance requirement for all swaps.
 
-## Overview
+## Key Features
 
-This repository contains two custom Uniswap V4 hooks that work in tandem to enable policy-compliant trading of USDL:
-
-1. **PredicateHook**: Enforces compliance policies on the liquid ERC20/wUSDL pool through the Predicate Network
-
-2. **AutoWrapper**: Manages automatic wrapping/unwrapping of USDL ↔ wUSDL during swaps
-
-*note*: the predicated pool is liquid and can be swapped against individually. 
-The AutoWrapper hook is used to wrap/unwrap USDL ↔ wUSDL during swaps against the predicated pool; making it easier to swap USDL.
+- Policy-controlled trading of USDL/wUSDL pairs
+- Automated token wrapping between USDL and wUSDL
+- Configurable compliance requirements enforced on-chain
+- Flexible ownership and policy management (Both hooks are Ownable2Step)
+- Support for transaction limits, geo-restrictions and other controls
+- By default, it has support for trading with any USDL/ERC20 pair. Example is with USDC
 
 You can find the design doc [here](https://predicate-network.notion.site/Design-Doc-Paxos-Uniswap-V4-Hooks-1e3d742b36ac80968d5df0282292e1ba?pvs=74)
 
@@ -26,34 +21,26 @@ You can find the design doc [here](https://predicate-network.notion.site/Design-
 
 ### Components
 
-- **SimpleV4Router**: Handles swap routing and settlement with the Uniswap V4 PoolManager
+- **V4Router**: Handles swap routing (barebone UniversalRouter implementation)
 - **Pools (configured with scripts)**:
    - Ghost Pool (USDL/ERC20)
    - Liquid Pool (wUSDL/ERC20)
-- **Hook System**:
+- **Hooks**:
    - PredicateHook: Validates compliance through signed Predicate messages
    - AutoWrapper: Manages USDL conversion and routing between pools
+- **Transactor**:
+   - Used for e2e testing with predicate network staging API
 
 ## Policy
-
 Policies are JSON objects stored onchain and evaluated by Predicate Operators offchain. Each policy contains a set of 
 rules—such as AML checks, geofencing, or other criteria—which must be satisfied for a transaction to be authorized.
 
-Contracts requiring policy validation must inherit from PredicateClient, which stores the policyId and interfaces with 
-the PredicateManager to verify authorization at execution time.
-
-Under script/ you will find an UpdatePolicy.s.sol-you can run it as follows:
-
-```bash
-# 🔔 You must have your .env file setup to run this script.
-make update-policy --policy-id {policy-id}
-```
+Policy docs [here](https://docs.predicate.io/essentials/introduction).
 
 ## Deployment
 
 ### Prerequisites
-- Node.js >=18
-- Foundry 1.0.0
+- Foundry
 - An Ethereum node provider (e.g. Alchemy, Infura, etc.)
 
 ### Setup
@@ -69,33 +56,34 @@ make build
 make tests
 ```
 
-### Local Deployment
+## Local Development
+For local development, it is recommended to run an anvil fork for mainnet. Alternatively, there's scripts in `Makefile` to deploy
+PoolManager, PositionManager etc
 
-```bash
-# Deploy full suite
-make deploy-contracts
-
-# Or deploy individual components
-make deploy-pool-manager
-make deploy-router
-make deploy-predicate-hook
-make deploy-tokens-and-liquidity-pool
-make deploy-auto-wrapper
+To run a local anvil fork: 
 ```
+anvil --fork-url <MAINNET_URL> --fork-block-number 22197233
+```
+
+For testing with mainnet anvil fork:
+**Makefile Updates**
+- Update ENV variable as `NETWORK=MAINNET`. This enables our network selector in script to use mainnet addresses for tokens, poolmanager etc. 
+- Update ENV variable for `DEPLOYER_ECDSA_PRIV_KEY` to a key that has USDL, wUSDL and USDC (this is not consumed in testing as we are running local fork but is required)
+- Update ENV varialbe as `POLICY_ID=x-test-policy`
+
+**Steps**
+1. Run `make deploy-router` to deploy V4 router. Update `SWAP_ROUTER_ADDRESS` env variable in Makefile
+2. Run `make deploy-predicate-hook` to deploy standalone predicate hook contract. Update `PREDICATE_HOOK_ADDRESS` env variable in Makefile
+3. Run `make create-pool-and-mint-liquidity`. This deploys a V4 pool and mints necessary liquidity as well
+4. Run `make deploy-auto-wrapper` to deploy auto wrapper and create ghost pool. Update `AUTO_WRAPPER_HOOK_ADDRESS` env variable in Makefile.
+5. Run `make swap-usdc-for-usdl`. This will swap USDC for USDL on the ghost + liquidity pools that we just configured. (there's some more options available in the script that can be used).
+
+*Note: Predicate signature validation is skipped as the predicate hook owner is added to an authorized owner allow-list during hook creation.*
 
 ## Testing
 
 ### Unit Tests
 ```bash
-forge test
-```
-
-### Integration Tests
-```bash
-# Deploy test environment
-make deploy-contracts
-
-# Run integration test suite
-forge test --match-path test/integration/*
+make tests
 ```
 

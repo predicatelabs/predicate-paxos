@@ -300,8 +300,7 @@ contract AutoWrapper is BaseHook, DeltaResolver, Ownable2Step {
 
             _settle(Currency.wrap(address(wUSDL)), address(this), uint256(-wUSDLDelta));
 
-            int128 amountUnspecified =
-                isExactInput ? -baseCurrencyDelta.toInt128() : (usdlBalanceAfter - usdlBalanceBefore).toInt128();
+            int128 amountUnspecified = isExactInput ? -baseCurrencyDelta.toInt128() : inputAmount.toInt128();
             swapDelta = toBeforeSwapDelta(-params.amountSpecified.toInt128(), amountUnspecified);
         }
 
@@ -422,7 +421,7 @@ contract AutoWrapper is BaseHook, DeltaResolver, Ownable2Step {
     function getWrapInputRequired(
         uint256 wUSDLAmount
     ) public view returns (int256) {
-        return int256(wUSDL.previewRedeem(wUSDLAmount));
+        return int256(wUSDL.previewMint(wUSDLAmount));
     }
 
     /**
@@ -433,7 +432,7 @@ contract AutoWrapper is BaseHook, DeltaResolver, Ownable2Step {
     function getUnwrapInputRequired(
         uint256 usdlAmount
     ) public view returns (int256) {
-        return int256(wUSDL.previewDeposit(usdlAmount));
+        return int256(wUSDL.previewWithdraw(usdlAmount));
     }
 
     /**

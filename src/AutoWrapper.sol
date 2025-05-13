@@ -300,8 +300,7 @@ contract AutoWrapper is BaseHook, DeltaResolver, Ownable2Step {
 
             _settle(Currency.wrap(address(wUSDL)), address(this), uint256(-wUSDLDelta));
 
-            int128 amountUnspecified =
-                isExactInput ? -baseCurrencyDelta.toInt128() : (usdlBalanceAfter - usdlBalanceBefore).toInt128();
+            int128 amountUnspecified = isExactInput ? -baseCurrencyDelta.toInt128() : inputAmount.toInt128();
             swapDelta = toBeforeSwapDelta(-params.amountSpecified.toInt128(), amountUnspecified);
         }
 

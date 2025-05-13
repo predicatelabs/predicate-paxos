@@ -84,7 +84,7 @@ contract PredicateHook is BaseHook, PredicateClient, Ownable2Step {
      * @notice An event emitted when a user is added to the authorized user list
      * @param user The address of the user
      */
-    event AuthorizedUserAdded(address indexed user);
+    event AuthorizedSwapperAdded(address indexed user);
 
     /**
      * @notice An event emitted when a user is removed from the authorized user list
@@ -142,7 +142,7 @@ contract PredicateHook is BaseHook, PredicateClient, Ownable2Step {
         emit PredicateManagerUpdated(_serviceManager);
         emit RouterUpdated(address(_router));
         emit AuthorizedLPAdded(_owner);
-        emit AuthorizedUserAdded(_owner);
+        emit AuthorizedSwapperAdded(_owner);
         emit PosmUpdated(address(_posm));
     }
 
@@ -340,7 +340,7 @@ contract PredicateHook is BaseHook, PredicateClient, Ownable2Step {
     ) external onlyOwner {
         for (uint256 i = 0; i < _users.length; i++) {
             isAuthorizedSwapper[_users[i]] = true;
-            emit AuthorizedUserAdded(_users[i]);
+            emit AuthorizedSwapperAdded(_users[i]);
         }
     }
 

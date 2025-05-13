@@ -422,7 +422,7 @@ contract AutoWrapper is BaseHook, DeltaResolver, Ownable2Step {
     function getWrapInputRequired(
         uint256 wUSDLAmount
     ) public view returns (int256) {
-        return int256(wUSDL.previewRedeem(wUSDLAmount));
+        return int256(wUSDL.previewMint(wUSDLAmount));
     }
 
     /**
@@ -433,7 +433,7 @@ contract AutoWrapper is BaseHook, DeltaResolver, Ownable2Step {
     function getUnwrapInputRequired(
         uint256 usdlAmount
     ) public view returns (int256) {
-        return int256(wUSDL.previewDeposit(usdlAmount));
+        return int256(wUSDL.previewWithdraw(usdlAmount));
     }
 
     /**

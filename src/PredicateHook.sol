@@ -242,11 +242,6 @@ contract PredicateHook is BaseHook, PredicateClient, Ownable2Step {
             return BaseHook.beforeAddLiquidity.selector;
         }
 
-        // If the sender is an authorized liquidity provider, allow the transaction
-        if (isAuthorizedLP[sender]) {
-            return BaseHook.beforeAddLiquidity.selector;
-        }
-
         // If the sender is not an authorized liquidity provider, the transaction will revert
         revert UnauthorizedLiquidityProvider();
     }

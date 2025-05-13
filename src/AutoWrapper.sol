@@ -58,6 +58,12 @@ contract AutoWrapper is BaseHook, DeltaResolver, Ownable2Step {
     error CallerIsNotRouter();
 
     /**
+     * @notice Event emitted when the router is updated
+     * @param router The new router address
+     */
+    event RouterUpdated(address router);
+
+    /**
      * @notice baseCurrency -> USDL swap path, exactOutput is not allowed
      */
     error ExactOutputIsNotAllowed();
@@ -136,6 +142,7 @@ contract AutoWrapper is BaseHook, DeltaResolver, Ownable2Step {
         router = _router;
         baseCurrencyIsToken0 = baseCurrency < Currency.wrap(wUSDL.asset()); // true for mainnet
         IERC20(wUSDL.asset()).approve(address(wUSDL), type(uint256).max);
+        emit RouterUpdated(address(_router));
     }
 
     /**
@@ -437,5 +444,6 @@ contract AutoWrapper is BaseHook, DeltaResolver, Ownable2Step {
         V4Router _router
     ) external onlyOwner {
         router = _router;
+        emit RouterUpdated(address(_router));
     }
 }

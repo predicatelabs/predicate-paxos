@@ -42,6 +42,7 @@ Policy docs [here](https://docs.predicate.io/essentials/introduction).
 ### Prerequisites
 - Foundry
 - An Ethereum node provider (e.g. Alchemy, Infura, etc.)
+- An account with both 50 USDL & 50 wUSDL on Ethereum is required for local development against an Ethereum Mainnetfork 
 
 ### Setup
 

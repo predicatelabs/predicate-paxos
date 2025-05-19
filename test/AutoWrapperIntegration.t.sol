@@ -16,7 +16,6 @@ import {Test} from "forge-std/Test.sol";
 import {Actions} from "@uniswap/v4-periphery/src/libraries/Actions.sol";
 import {IV4Router} from "@uniswap/v4-periphery/src/interfaces/IV4Router.sol";
 import {SafeCast} from "@uniswap/v4-core/src/libraries/SafeCast.sol";
-import {ERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 
 contract AutoWrapperIntegrationTest is Test, AutoWrapperSetup, OperatorTestPrep {
     using SafeCast for uint256;

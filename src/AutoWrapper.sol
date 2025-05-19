@@ -279,7 +279,7 @@ contract AutoWrapper is BaseHook, DeltaResolver, Ownable2Step {
             // Note: UniversalRouter sends USDL to the poolManager at start of swap
             // this route also uses USDL in auto wrapper contract for rounding error
             uint256 inputAmount =
-                isExactInput ? uint256(-params.amountSpecified) : uint256(getWrapInputRequired(uint256(-wUSDLDelta)));
+                isExactInput ? uint256(-params.amountSpecified) : wUSDL.previewMint(uint256(-wUSDLDelta));
             usdlBalanceBefore = IERC20(wUSDL.asset()).balanceOf(address(this));
             _take(Currency.wrap(wUSDL.asset()), address(this), inputAmount);
             usdlBalanceAfter = IERC20(wUSDL.asset()).balanceOf(address(this));
@@ -319,12 +319,35 @@ contract AutoWrapper is BaseHook, DeltaResolver, Ownable2Step {
     ) internal view returns (int256) {
         bool isExactInput = params.amountSpecified < 0;
         if (params.zeroForOne == baseCurrencyIsToken0) {
-            // USDC -> USDL pool
-            return isExactInput ? params.amountSpecified : getUnwrapInputRequired(uint256(params.amountSpecified));
+            // Ex. USDC/USDL pool -> USDL
+            // Ex. USDL/USDC pool -> USDL
+            return isExactInput
+                // USDC exact input:
+                // - Swap USDC (exact input, specified) for wUSDL in USDC/wUSDL pool.
+                // - Redeem wUSDL output shares for USDL assets.
+                ? params.amountSpecified
+                // USDL exact output:
+                // - Swap USDC (unspecified) for wUSDL (exact output, calculated) in USDC/wUSDL pool.
+                // - Redeem wUSDL output shares for USDL assets.
+                // We need to calculate the exact amount of wUSDL required
+                // which can be redeemed for the exact amount of output USDL amount specified.
+                // We therefore round up the required amount of wUSDL (`previewWithdraw`).
+                : int256(wUSDL.previewWithdraw({assets: uint256(params.amountSpecified)}));
         } else {
-            // USDL -> USDC ex. 5 USDL as output
-            // WUSDL/USDC pool
-            return isExactInput ? -(getUnwrapInputRequired(uint256(-params.amountSpecified))) : params.amountSpecified;
+            // Ex. USDL -> USDL/USDC pool
+            // Ex. USDL -> USDC/USDL pool
+            return isExactInput
+                // USDL exact input:
+                // - Deposit USDL (exact input, specified) for wUSDL shares (calculated).
+                // - Swap wUSDL (exact input, calculated) for USDC.
+                // We need to calculate the exact amount of wUSDL shares
+                // we will receive when depositing the exact amount of USDL amount specified.
+                // We therefore round down the estimated amount of wUSDL received (`previewDeposit`).
+                ? -int256(wUSDL.previewDeposit({assets: uint256(-params.amountSpecified)}))
+                // USDC exact output:
+                // - Deposit USDL (specified) assets for wUSDL shares.
+                // - Swap wUSDL shares for USDC.
+                : params.amountSpecified;
         }
     }
 
@@ -411,28 +434,6 @@ contract AutoWrapper is BaseHook, DeltaResolver, Ownable2Step {
         uint256 wUSDLAmount
     ) internal returns (uint256) {
         return wUSDL.redeem({shares: wUSDLAmount, receiver: address(this), owner: address(this)});
-    }
-
-    /**
-     * @notice Calculates USDL required to obtain a desired amount of wUSDL
-     * @param wUSDLAmount The target amount of wUSDL needed
-     * @return wUSDL amount of USDL required
-     */
-    function getWrapInputRequired(
-        uint256 wUSDLAmount
-    ) public view returns (int256) {
-        return int256(wUSDL.previewMint(wUSDLAmount));
-    }
-
-    /**
-     * @notice Calculates wUSDL required to obtain a desired amount of USDL
-     * @param usdlAmount The target amount of USDL needed
-     * @return The amount of wUSDL required
-     */
-    function getUnwrapInputRequired(
-        uint256 usdlAmount
-    ) public view returns (int256) {
-        return int256(wUSDL.previewWithdraw(usdlAmount));
     }
 
     /**

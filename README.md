@@ -42,6 +42,7 @@ Policy docs [here](https://docs.predicate.io/essentials/introduction).
 ### Prerequisites
 - Foundry
 - An Ethereum node provider (e.g. Alchemy, Infura, etc.)
+- An account with 50 USDL, 50 wUSDL, 50 USDC on Ethereum is required for local development against an Ethereum Mainnet fork 
 
 ### Setup
 
@@ -57,29 +58,30 @@ make tests
 ```
 
 ## Local Development
-For local development, it is recommended to run an anvil fork for mainnet. Alternatively, there's scripts in `Makefile` to deploy
-PoolManager, PositionManager etc
+For local development, it is recommended to run an anvil fork for mainnet. Alternatively, there's `DeployTokensAndPool.s.sol` to deploy PoolManager, PositionManager etc.
 
-To run a local anvil fork: 
+To run a mainnet anvil fork: 
 ```
 anvil --fork-url <MAINNET_URL> --fork-block-number 22197233
 ```
 
 For testing with mainnet anvil fork:
 
-**Makefile Updates**
-- Update ENV variable as `NETWORK=MAINNET`. This enables our network selector in script to use mainnet addresses for tokens, poolmanager etc. 
-- Update ENV variable for `DEPLOYER_ECDSA_PRIV_KEY` to a key that has USDL, wUSDL and USDC (this is not consumed in testing as we are running local fork but is required)
-- Update ENV varialbe as `POLICY_ID=x-test-policy`
+**Makefile updates**
+- Verify `NETWORK=MAINNET` in Makefile. This enables our network selector in script to use mainnet addresses for tokens, poolmanager etc. 
+- Update ENV variable for `DEPLOYER_ECDSA_PRIV_KEY` to the key that has USDL, wUSDL and USDC on mainnet (this is not consumed in testing as we are running local fork but is required)
 
 **Steps**
-1. Run `make deploy-router` to deploy V4 router. Update `SWAP_ROUTER_ADDRESS` env variable in Makefile
-2. Run `make deploy-predicate-hook` to deploy standalone predicate hook contract. Update `PREDICATE_HOOK_ADDRESS` env variable in Makefile
-3. Run `make create-pool-and-mint-liquidity`. This deploys a V4 pool and mints necessary liquidity as well
-4. Run `make deploy-auto-wrapper` to deploy auto wrapper and create ghost pool. Update `AUTO_WRAPPER_HOOK_ADDRESS` env variable in Makefile.
-5. Run `make swap-usdc-for-usdl-exact-in`. This will swap USDC for USDL on the ghost + liquidity pools that we just configured. (there's some more options available in the script that can be used).
+1. Run `make deploy-router` to deploy V4 router. 
+2. Update `SWAP_ROUTER_ADDRESS` env variable in Makefile from this deployment
+3. Run `make deploy-predicate-hook` to deploy standalone predicate hook contract. 
+4. Update `PREDICATE_HOOK_ADDRESS` env variable in Makefile from this deployment
+5. Run `make create-pool-and-mint-liquidity`. This deploys a V4 pool and mints necessary liquidity as well
+6. Run `make deploy-auto-wrapper` to deploy auto wrapper and create ghost pool. 
+7. Update `AUTO_WRAPPER_HOOK_ADDRESS` env variable in Makefile from this deployment
+8. Run `make swap-usdc-for-usdl-exact-in`. This will swap USDC for USDL on the ghost + liquidity pools that we just configured. (there's some more options available in the script that can be used).
 
-*Note: Predicate signature validation is skipped as the predicate hook owner is added to an authorized owner allow-list during hook creation.*
+*Note: Predicate signature validation is skipped for local testing as the predicate hook owner is added to an authorized owner allow-list during hook creation.*
 
 ## Testing
 

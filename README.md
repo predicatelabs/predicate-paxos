@@ -77,7 +77,7 @@ For testing with mainnet anvil fork:
 2. Run `make deploy-predicate-hook` to deploy standalone predicate hook contract. Update `PREDICATE_HOOK_ADDRESS` env variable in Makefile
 3. Run `make create-pool-and-mint-liquidity`. This deploys a V4 pool and mints necessary liquidity as well
 4. Run `make deploy-auto-wrapper` to deploy auto wrapper and create ghost pool. Update `AUTO_WRAPPER_HOOK_ADDRESS` env variable in Makefile.
-5. Run `make swap-usdc-for-usdl`. This will swap USDC for USDL on the ghost + liquidity pools that we just configured. (there's some more options available in the script that can be used).
+5. Run `make swap-usdc-for-usdl-exact-in`. This will swap USDC for USDL on the ghost + liquidity pools that we just configured. (there's some more options available in the script that can be used).
 
 *Note: Predicate signature validation is skipped as the predicate hook owner is added to an authorized owner allow-list during hook creation.*
 

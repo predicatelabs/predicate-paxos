@@ -75,11 +75,12 @@ contract AutoWrapperIntegrationTest is Test, AutoWrapperSetup, OperatorTestPrep 
     }
 
     function testSwapZeroForOneExactOutput() public permissionedOperators prepOperatorRegistration(true) {
+        // USDC -> USDL
         PoolKey memory key = getPoolKey();
         string memory taskId = "unique-identifier";
         uint256 amountSpecified = 1e18;
         PredicateMessage memory message =
-            getPredicateMessage(taskId, false, autoWrapper.getUnwrapInputRequired(amountSpecified));
+            getPredicateMessage(taskId, false, int256(autoWrapper.wUSDL().previewWithdraw(amountSpecified)));
         IV4Router.ExactOutputSingleParams memory swapParams = IV4Router.ExactOutputSingleParams({
             poolKey: key,
             zeroForOne: true,
@@ -112,7 +113,7 @@ contract AutoWrapperIntegrationTest is Test, AutoWrapperSetup, OperatorTestPrep 
         PoolKey memory key = getPoolKey();
         uint256 amountSpecified = 1e18;
         PredicateMessage memory message =
-            getPredicateMessage(taskId, true, -autoWrapper.getUnwrapInputRequired(amountSpecified));
+            getPredicateMessage(taskId, true, -int256(autoWrapper.wUSDL().previewDeposit(amountSpecified)));
         IV4Router.ExactInputSingleParams memory swapParams = IV4Router.ExactInputSingleParams({
             poolKey: key,
             zeroForOne: false,
@@ -195,7 +196,7 @@ contract AutoWrapperIntegrationTest is Test, AutoWrapperSetup, OperatorTestPrep 
         string memory taskId = "unique-identifier";
         uint256 amountSpecified = 1e18;
         PredicateMessage memory message =
-            getPredicateMessage(taskId, true, autoWrapper.getUnwrapInputRequired(amountSpecified));
+            getPredicateMessage(taskId, true, int256(autoWrapper.wUSDL().previewWithdraw(amountSpecified)));
 
         // change the taskId to an invalid one
         message.taskId = "invalid-task-id";

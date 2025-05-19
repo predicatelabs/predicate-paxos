@@ -20,6 +20,12 @@ import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
 import {V4SwapRouter} from "../../src/V4SwapRouter.sol";
 
 contract SwapScript is Script {
+    enum Case {
+        SWAP_USDC_FOR_USDL_EXACT_IN,
+        SWAP_USDL_FOR_USDC_EXACT_IN,
+        SWAP_USDL_FOR_USDC_EXACT_OUT
+    }
+
     uint24 lpFee = 0; // 0.30%
     int24 tickSpacing = 60;
     Currency private _currency0;
@@ -27,19 +33,36 @@ contract SwapScript is Script {
     INetwork private _env;
     address private _autowrapperHookAddress;
     V4SwapRouter private _swapRouter;
+    string private _case;
 
     function _init() internal {
         bool networkExists = vm.envExists("NETWORK");
         bool autoWrapperHookAddress = vm.envExists("AUTO_WRAPPER_HOOK_ADDRESS");
         bool swapRouterAddressExists = vm.envExists("SWAP_ROUTER_ADDRESS");
+        bool caseExists = vm.envExists("CASE");
         require(
-            networkExists && autoWrapperHookAddress && swapRouterAddressExists,
+            networkExists && autoWrapperHookAddress && swapRouterAddressExists && caseExists,
             "All environment variables must be set if any are specified"
         );
         string memory _network = vm.envString("NETWORK");
         _env = new NetworkSelector().select(_network);
         _autowrapperHookAddress = vm.envAddress("AUTO_WRAPPER_HOOK_ADDRESS");
         _swapRouter = V4SwapRouter(vm.envAddress("SWAP_ROUTER_ADDRESS"));
+        _case = vm.envString("CASE");
+    }
+
+    function _stringToCase(
+        string memory _case
+    ) internal returns (Case) {
+        bytes32 _caseHash = keccak256(abi.encodePacked(_case));
+        if (_caseHash == keccak256(abi.encodePacked("SWAP_USDC_FOR_USDL_EXACT_IN"))) {
+            return Case.SWAP_USDC_FOR_USDL_EXACT_IN;
+        } else if (_caseHash == keccak256(abi.encodePacked("SWAP_USDL_FOR_USDC_EXACT_IN"))) {
+            return Case.SWAP_USDL_FOR_USDC_EXACT_IN;
+        } else if (_caseHash == keccak256(abi.encodePacked("SWAP_USDL_FOR_USDC_EXACT_OUT"))) {
+            return Case.SWAP_USDL_FOR_USDC_EXACT_OUT;
+        }
+        revert("Invalid case input");
     }
 
     function run() public {
@@ -54,9 +77,16 @@ contract SwapScript is Script {
         vm.label(address(0xf6f4A30EeF7cf51Ed4Ee1415fB3bFDAf3694B0d2), "SERVICEMANAGER_CONTRACT");
 
         _tokenApprovals();
-        swapUSDCForUSDLExactIn();
-        swapUSDLForUSDCExactIn();
-        // swapUSDLForUSDCExactOut();
+        Case _case = _stringToCase(_case);
+        if (_case == Case.SWAP_USDC_FOR_USDL_EXACT_IN) {
+            swapUSDCForUSDLExactIn();
+        } else if (_case == Case.SWAP_USDL_FOR_USDC_EXACT_IN) {
+            swapUSDLForUSDCExactIn();
+        } else if (_case == Case.SWAP_USDL_FOR_USDC_EXACT_OUT) {
+            swapUSDLForUSDCExactOut();
+        } else {
+            revert("Invalid case input");
+        }
     }
 
     function _tokenApprovals() internal {

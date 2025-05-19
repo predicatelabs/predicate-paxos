@@ -1,4 +1,4 @@
-.PHONY: install build tests clean format deploy-router deploy-hook create-pool-and-mint-liquidity deploy-auto-wrapper deploy-contracts swap-usdc-for-usdl-exact-in swap-usdl-for-usdc-exact-in swap-usdl-for-usdc-exact-out
+.PHONY: install build tests clean format deploy-router deploy-hook create-pool-and-mint-liquidity deploy-auto-wrapper swap-usdc-for-usdl-exact-in swap-usdl-for-usdc-exact-in swap-usdl-for-usdc-exact-out
 
 DEPLOYER_ECDSA_PRIV_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
 # public key - 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
@@ -79,8 +79,6 @@ deploy-auto-wrapper:
 		--rpc-url ${RPC_URL} \
 		--private-key ${DEPLOYER_ECDSA_PRIV_KEY} \
 		--broadcast -vvvv
-
-deploy-contracts: deploy-pool-manager deploy-router deploy-predicate-hook create-pool-and-mint-liquidity deploy-auto-wrapper
 
 #______________________________________SWAP SCRIPT_______________________________________#
 swap-usdc-for-usdl-exact-in:

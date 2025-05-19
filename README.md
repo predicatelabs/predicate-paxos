@@ -42,6 +42,7 @@ Policy docs [here](https://docs.predicate.io/essentials/introduction).
 ### Prerequisites
 - Foundry
 - An Ethereum node provider (e.g. Alchemy, Infura, etc.)
+- An account with 50 USDL, 50 wUSDL, 50 USDC on Ethereum is required for local development against an Ethereum Mainnet fork 
 
 ### Setup
 
@@ -59,16 +60,16 @@ make tests
 ## Local Development
 For local development, it is recommended to run an anvil fork for mainnet. Alternatively, there's `DeployTokensAndPool.s.sol` to deploy PoolManager, PositionManager etc.
 
-To run a local anvil fork: 
+To run a mainnet anvil fork: 
 ```
 anvil --fork-url <MAINNET_URL> --fork-block-number 22197233
 ```
 
 For testing with mainnet anvil fork:
 
-**Pre-requisites**
+**Makefile updates**
 - Verify `NETWORK=MAINNET` in Makefile. This enables our network selector in script to use mainnet addresses for tokens, poolmanager etc. 
-- Update ENV variable for `DEPLOYER_ECDSA_PRIV_KEY` to a key that has USDL, wUSDL and USDC on mainnet (this is not consumed in testing as we are running local fork but is required)
+- Update ENV variable for `DEPLOYER_ECDSA_PRIV_KEY` to the key that has USDL, wUSDL and USDC on mainnet (this is not consumed in testing as we are running local fork but is required)
 
 **Steps**
 1. Run `make deploy-router` to deploy V4 router. 

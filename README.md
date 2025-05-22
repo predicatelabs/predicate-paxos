@@ -81,7 +81,8 @@ For testing with mainnet anvil fork:
 7. Update `AUTO_WRAPPER_HOOK_ADDRESS` env variable in Makefile from this deployment
 8. Run `make swap-usdc-for-usdl-exact-in`. This will swap USDC for USDL on the ghost + liquidity pools that we just configured. (there's some more options available in the script that can be used).
 
-*Note: Predicate signature validation is skipped for local testing as the predicate hook owner is added to an authorized owner allow-list during hook creation.*
+*Note: The Predicate signature validation is skipped for local testing as the locally deployed contracts would not be visible to the Predicate Network. 
+As a workaround, the predicate hook 'owner' (your address) is added to an authorized owner allow-list in the predicate-hook deployment script.*
 
 ## Testing
 

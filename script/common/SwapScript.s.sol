@@ -100,6 +100,8 @@ contract SwapScript is Script {
     }
 
     function swapUSDCForUSDLExactIn() public {
+        uint256 balanceBeforeSwapUSDC = IERC20(Currency.unwrap(_env.tokenConfig().USDC)).balanceOf(msg.sender);
+        uint256 balanceBeforeSwapUSDL = IERC20(Currency.unwrap(_env.tokenConfig().USDL)).balanceOf(msg.sender);
         INetwork.TokenConfig memory tokenConfig = _env.tokenConfig();
         uint128 amountIn = 1e6; // 1 USDC
         uint128 amountOutMin = 1e17; // accepts min 0.1 USDL out
@@ -126,9 +128,30 @@ contract SwapScript is Script {
         vm.startBroadcast();
         _swapRouter.execute(abi.encode(actions, params));
         vm.stopBroadcast();
+
+        uint256 balanceAfterSwapUSDC = IERC20(Currency.unwrap(_env.tokenConfig().USDC)).balanceOf(msg.sender);
+        uint256 balanceAfterSwapUSDL = IERC20(Currency.unwrap(_env.tokenConfig().USDL)).balanceOf(msg.sender);
+
+        console.log("======================================");
+        console.log(" Exact-In Swap: 1 USDC to USDL ");
+        console.log("======================================");
+
+        console.log(" Balances Before Swap:");
+        console.log("   USDC: %s", balanceBeforeSwapUSDC / 1e6);
+        console.log("   USDL: %s", balanceBeforeSwapUSDL / 1e18);
+
+        console.log("--------------------------------------");
+
+        console.log(" Balances After Swap:");
+        console.log("   USDC: %s", balanceAfterSwapUSDC / 1e6);
+        console.log("   USDL: %s", balanceAfterSwapUSDL / 1e18);
+
+        console.log("======================================");
     }
 
     function swapUSDLForUSDCExactIn() public {
+        uint256 balanceBeforeSwapUSDC = IERC20(Currency.unwrap(_env.tokenConfig().USDC)).balanceOf(msg.sender);
+        uint256 balanceBeforeSwapUSDL = IERC20(Currency.unwrap(_env.tokenConfig().USDL)).balanceOf(msg.sender);
         INetwork.TokenConfig memory tokenConfig = _env.tokenConfig();
         uint128 amountIn = 1e18; // 1 USDL
         uint128 amountOutMin = 9e5; // accepts min 0.9 USDC out
@@ -157,9 +180,30 @@ contract SwapScript is Script {
         vm.startBroadcast();
         _swapRouter.execute(abi.encode(actions, params));
         vm.stopBroadcast();
+
+        uint256 balanceAfterSwapUSDC = IERC20(Currency.unwrap(_env.tokenConfig().USDC)).balanceOf(msg.sender);
+        uint256 balanceAfterSwapUSDL = IERC20(Currency.unwrap(_env.tokenConfig().USDL)).balanceOf(msg.sender);
+
+        console.log("======================================");
+        console.log(" Exact-In Swap: 1 USDL to USDC ");
+        console.log("======================================");
+
+        console.log(" Balances Before Swap:");
+        console.log("   USDC: %s", balanceBeforeSwapUSDC / 1e6);
+        console.log("   USDL: %s", balanceBeforeSwapUSDL / 1e18);
+
+        console.log("--------------------------------------");
+
+        console.log(" Balances After Swap:");
+        console.log("   USDC: %s", balanceAfterSwapUSDC / 1e6);
+        console.log("   USDL: %s", balanceAfterSwapUSDL / 1e18);
+
+        console.log("======================================");
     }
 
     function swapUSDLForUSDCExactOut() public {
+        uint256 balanceBeforeSwapUSDC = IERC20(Currency.unwrap(_env.tokenConfig().USDC)).balanceOf(msg.sender);
+        uint256 balanceBeforeSwapUSDL = IERC20(Currency.unwrap(_env.tokenConfig().USDL)).balanceOf(msg.sender);
         INetwork.TokenConfig memory tokenConfig = _env.tokenConfig();
         uint128 amountOut = 1e6; // 1 USDC
         uint128 amountInMax = 2e18; // accepts max 2 USDL in
@@ -192,5 +236,24 @@ contract SwapScript is Script {
         vm.startBroadcast();
         _swapRouter.execute(abi.encode(actions, params));
         vm.stopBroadcast();
+
+        uint256 balanceAfterSwapUSDC = IERC20(Currency.unwrap(_env.tokenConfig().USDC)).balanceOf(msg.sender);
+        uint256 balanceAfterSwapUSDL = IERC20(Currency.unwrap(_env.tokenConfig().USDL)).balanceOf(msg.sender);
+
+        console.log("======================================");
+        console.log(" Exact-Out Swap: USDL for 1 USDC ");
+        console.log("======================================");
+
+        console.log(" Balances Before Swap:");
+        console.log("   USDC: %s", balanceBeforeSwapUSDC / 1e6);
+        console.log("   USDL: %s", balanceBeforeSwapUSDL / 1e18);
+
+        console.log("--------------------------------------");
+
+        console.log(" Balances After Swap:");
+        console.log("   USDC: %s", balanceAfterSwapUSDC / 1e6);
+        console.log("   USDL: %s", balanceAfterSwapUSDL / 1e18);
+
+        console.log("======================================");
     }
 }

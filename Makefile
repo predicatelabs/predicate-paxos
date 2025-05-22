@@ -3,8 +3,8 @@
 DEPLOYER_ECDSA_PRIV_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
 # public key - 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
 
-PREDICATE_HOOK_ADDRESS=0x452e2E2CfcaC437d4E321226A3255d2cFc5c68A0
 SWAP_ROUTER_ADDRESS=0x8F2c925603c4ba055779475F14241E3c9ee7c1be
+PREDICATE_HOOK_ADDRESS=0x452e2E2CfcaC437d4E321226A3255d2cFc5c68A0
 AUTO_WRAPPER_HOOK_ADDRESS=0x75202124c8B7FAFBD66AB67F39CE01f69C0128c8
 POSM_ADDRESS=0xbD216513d74C8cf14cf4747E6AaA6420FF64ee9e # mainnet POSM
 # POLICY_ID=x-aleo-6a52de9724a6e8f2 // mainnet
@@ -90,7 +90,7 @@ swap-usdc-for-usdl-exact-in:
 		--via-ir \
 		--rpc-url ${RPC_URL} \
 		--private-key ${DEPLOYER_ECDSA_PRIV_KEY} \
-		--broadcast -vvvv
+		--broadcast
 
 swap-usdl-for-usdc-exact-in:
 	export NETWORK=${NETWORK} && \
@@ -101,7 +101,7 @@ swap-usdl-for-usdc-exact-in:
 		--via-ir \
 		--rpc-url ${RPC_URL} \
 		--private-key ${DEPLOYER_ECDSA_PRIV_KEY} \
-		--broadcast -vvvv
+		--broadcast
 
 swap-usdl-for-usdc-exact-out:
 	export NETWORK=${NETWORK} && \
@@ -112,6 +112,6 @@ swap-usdl-for-usdc-exact-out:
 		--via-ir \
 		--rpc-url ${RPC_URL} \
 		--private-key ${DEPLOYER_ECDSA_PRIV_KEY} \
-		--broadcast -vvvv
+		--broadcast
 
 

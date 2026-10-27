@@ -35,7 +35,7 @@ You can find the design doc [here](https://predicate-network.notion.site/Design-
 Policies are JSON objects stored onchain and evaluated by Predicate Operators offchain. Each policy contains a set of 
 rules—such as AML checks, geofencing, or other criteria—which must be satisfied for a transaction to be authorized.
 
-Policy docs [here](https://docs.predicate.io/essentials/introduction).
+Policy docs [here](https://docs.predicate.io/v2/essentials/overview).
 
 ## Deployment
 
